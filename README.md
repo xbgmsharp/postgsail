@@ -1,5 +1,5 @@
 # PostgSail
-Effortless cloud based solution for storing and sharing your SignalK data. Allow to effortlessly log your sails and monitor your boat. 
+Effortless cloud based solution for storing and sharing your SignalK data. Allow to effortlessly log your sails and monitor your boat with historical data.
 
 ### Context
 It is all about SQL, object-relational, time-series, spatial database with a bit python.
@@ -38,7 +38,7 @@ Then simply excecute:
 $ docker-compose up
 ```
 
-### PostgSail Configuration
+### SQL Configuration
 
 Check and update your postgsail settings via SQL in the table `app_settings`:
 
@@ -58,7 +58,7 @@ Next, to ingest data from signalk, you need to install [signalk-postgsail](https
 
 Also, if you like, you can import saillogger data using the postgsail helpers, [postgsail-helpers](https://github.com/xbgmsharp/postgsail-helpers).
 
-You might want to import your influxdb1 data as weel, [outflux](https://github.com/timescale/outflux).
+You might want to import your influxdb1 data as well, [outflux](https://github.com/timescale/outflux).
 Any taker on influxdb2 to PostgSail? It is definitly possible.
 
 Last, if you like, you can import the sample data from Signalk NMEA Plaka by running the tests.
