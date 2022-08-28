@@ -15,7 +15,7 @@
 -- Always store time in UTC
 ---------------------------------------------------------------------------
 
--- vessels signalk -(POST)-> metadata -> metadata_upsert -(trigger)-> metadata_upsert_fn (INSERT or UPDATE)
+-- vessels signalk -(POST)-> metadata -> metadata_upsert -(trigger)-> metadata_upsert_trigger_fn (INSERT or UPDATE)
 -- vessels signalk -(POST)-> metrics -> metrics -(trigger)-> metrics_fn new log,stay,moorage
 
 ---------------------------------------------------------------------------
@@ -151,6 +151,7 @@ CREATE TABLE IF NOT EXISTS api.logbook(
   --track_geom Geometry(LINESTRING)
   track_geom geometry(LINESTRING,4326) NULL,
   track_geog geography(LINESTRING) NULL,
+  track_geojson JSON NULL,
   _from_time TIMESTAMP WITHOUT TIME ZONE NOT NULL,
   _to_time TIMESTAMP WITHOUT TIME ZONE NULL,
   distance NUMERIC, -- meters?
@@ -604,6 +605,8 @@ COMMENT ON FUNCTION
 
 ---------------------------------------------------------------------------
 -- Views
+-- Views are invoked with the privileges of the view owner,
+-- make the user_role the view’s owner.
 --
 CREATE VIEW first_metric AS
     SELECT * 
@@ -628,15 +631,45 @@ CREATE VIEW stay_in_progress AS
 -- TODO: Use materialized views instead as it is not live data
 -- Logs web view
 DROP VIEW IF EXISTS api.logs_view;
-CREATE VIEW api.logs_view AS
-    SELECT id,name,_from,_to,_from_time,_to_time,distance,duration
-    FROM api.logbook
-    WHERE _to_time IS NOT NULL
-    ORDER BY _from_time DESC;
+CREATE OR REPLACE VIEW api.logs_view AS
+    SELECT id,
+            name as "Name",
+            _from as "From",
+            _from_time as "Started",
+            _to as "To",
+            _to_time as "Ended",
+            distance as "Distance",
+            duration as "Duration"
+        FROM api.logbook l
+        WHERE _to_time IS NOT NULL
+        ORDER BY _from_time DESC;
 -- Description
 COMMENT ON VIEW
     api.logs_view
     IS 'Logs web view';
+
+DROP VIEW IF EXISTS api.log_view;
+CREATE OR REPLACE VIEW api.log_view AS
+    SELECT id,
+            name as "Name",
+            _from as "From",
+            _from_time as "Started",
+            _to as "To",
+            _to_time as "Ended",
+            distance as "Distance",
+            duration as "Duration",
+            notes as "Notes",
+            track_geojson as geojson,
+            avg_speed as avg_speed,
+            max_speed as max_speed,
+            max_wind_speed as max_wind_speed
+        FROM api.logbook l
+        WHERE _to_time IS NOT NULL
+        ORDER BY _from_time DESC;
+-- Description
+COMMENT ON VIEW
+    api.logs_view
+    IS 'Log web view';
 
 -- Stays web view
 -- TODO group by month
@@ -894,3 +927,54 @@ COMMENT ON FUNCTION
 --COMMENT ON FUNCTION
 --    api.export_logbook_csv_fn
 --    IS 'TODO, ...';
+
+DROP FUNCTION IF EXISTS api.log_geojson_fn;
+CREATE FUNCTION api.log_geojson_fn(IN _id INTEGER, OUT log_map JSON) RETURNS JSON AS $export_log$
+    declare
+     log_geojson jsonb;
+     metrics_geojson jsonb;
+     _map jsonb;
+    begin
+		-- GeoJson Feature Logbook linestring
+	    SELECT
+		  ST_AsGeoJSON(l.*) into log_geojson
+		FROM
+		  api.logbook l
+		WHERE l.id = _id;
+		-- GeoJson Feature Metrics point
+		SELECT
+		  json_agg(ST_AsGeoJSON(t.*)::json) into metrics_geojson
+		FROM (
+		    (
+            select
+                time,
+                courseovergroundtrue,
+                speedoverground,
+                anglespeedapparent,
+                longitude,latitude,
+                st_makepoint(longitude,latitude) AS geo_point
+		    FROM api.metrics m
+		    WHERE m.latitude IS NOT NULL
+		        AND m.longitude IS NOT NULL
+		        AND m.time >= '2022-08-27 20:00:34.000'
+		        AND m.time <= '2022-08-27 20:29:34.000'
+		    ORDER BY m.time asc
+		   )
+		) AS t;
+
+        -- Add Linestring into Point array
+        SELECT log_geojson::jsonb || metrics_geojson::jsonb into _map;
+
+        -- Build Geojson FeatureCollection
+        SELECT
+        json_build_object(
+            'type', 'FeatureCollection',
+            'features', _map
+        ) into log_map;
+    END;
+$export_log$ LANGUAGE plpgsql;
+
+-- Description
+COMMENT ON FUNCTION
+    api.log_geojson_fn
+    IS 'TODO';
