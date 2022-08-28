@@ -85,9 +85,9 @@ COMMENT ON TABLE
 INSERT INTO email_templates VALUES
 ('logbook',
     'New Logbook Entry',
-    E'Hello __RECIPIENT__,\n\nWe just wanted to let you know that you have a new entry on openplotter.cloud: "__LOGBOOK_NAME__"\r\n\r\nSee more details at __LOGBOOK_LINK__\n\nHappy sailing!\nThe Saillogger Team',
+    E'Hello __RECIPIENT__,\n\nWe just wanted to let you know that you have a new entry on openplotter.cloud: "__LOGBOOK_NAME__"\r\n\r\nSee more details at https://beta.openplotter.cloud/log/__LOGBOOK_LINK__\n\nHappy sailing!\nThe PostgSail Team',
     'New Logbook Entry',
-    E'We just wanted to let you know that you have a new entry on openplotter.cloud: "__LOGBOOK_NAME__"\r\n\r\nSee more details at __LOGBOOK_LINK__\n\nHappy sailing!\nThe Saillogger Team'),
+    E'We just wanted to let you know that you have a new entry on openplotter.cloud: "__LOGBOOK_NAME__"\r\n\r\nSee more details at https://beta.openplotter.cloud/log/__LOGBOOK_LINK__\n\nHappy sailing!\nThe PostgSail Team'),
 ('user',
     'Welcome',
     E'Hello __RECIPIENT__,\nCongratulations!\nYou successfully created an account.\nKeep in mind to register your vessel.\nHappy sailing!',
@@ -100,19 +100,19 @@ INSERT INTO email_templates VALUES
     E'Hi!\nHow are you?\n__BOAT__ is now linked to your account.'),
 ('monitor_offline',
     'Offline',
-    E'__BOAT__ has been offline for more than an hour\r\nFind more details at https://openplotter.cloud/boats/\n',
+    E'__BOAT__ has been offline for more than an hour\r\nFind more details at https://beta.openplotter.cloud/boats/\n',
     'Offline',
-    E'__BOAT__ has been offline for more than an hour\r\nFind more details at https://openplotter.cloud/boats/\n'),
+    E'__BOAT__ has been offline for more than an hour\r\nFind more details at https://beta.openplotter.cloud/boats/\n'),
 ('monitor_online',
     'Online',
-    E'__BOAT__ just came online\nFind more details at https://openplotter.cloud/boats/\n',
+    E'__BOAT__ just came online\nFind more details at https://beta.openplotter.cloud/boats/\n',
     'Online',
-    E'__BOAT__ just came online\nFind more details at https://openplotter.cloud/boats/\n'),
+    E'__BOAT__ just came online\nFind more details at https://beta.openplotter.cloud/boats/\n'),
 ('badge',
     'New Badge!',
-    E'Hello __RECIPIENT__,\nCongratulations! You have just unlocked a new badge: __BADGE_NAME__\nSee more details at https://openplotter.cloud/badges\nHappy sailing!\nThe Saillogger Team',
+    E'Hello __RECIPIENT__,\nCongratulations! You have just unlocked a new badge: __BADGE_NAME__\nSee more details at https://beta.openplotter.cloud/badges\nHappy sailing!\nThe PostgSail Team',
     'New Badge!',
-    E'Congratulations!\nYou have just unlocked a new badge: __BADGE_NAME__\nSee more details at https://openplotter.cloud/badges\nHappy sailing!\nThe Saillogger Team');
+    E'Congratulations!\nYou have just unlocked a new badge: __BADGE_NAME__\nSee more details at https://beta.openplotter.cloud/badges\nHappy sailing!\nThe PostgSail Team');
 
 ---------------------------------------------------------------------------
 -- python send email
@@ -150,6 +150,8 @@ AS $send_email_py$
         return None
     if 'logbook_name' in _user and _user['logbook_name']:
         email_content = email_content.replace('__LOGBOOK_NAME__', _user['logbook_name'])
+    if 'logbook_link' in _user and _user['logbook_link']:
+        email_content = email_content.replace('__LOGBOOK_LINK__', str(_user['logbook_link']))
     if 'recipient' in _user and _user['recipient']:
         email_content = email_content.replace('__RECIPIENT__', _user['recipient'])
     if 'boat' in _user and _user['boat']:
@@ -235,6 +237,8 @@ AS $send_pushover_py$
     # Replace fields using input jsonb obj
     if 'logbook_name' in _user and _user['logbook_name']:
         pushover_message = pushover_message.replace('__LOGBOOK_NAME__', _user['logbook_name'])
+    if 'logbook_link' in _user and _user['logbook_link']:
+        pushover_message = pushover_message.replace('__LOGBOOK_LINK__', str(_user['logbook_link']))
     if 'recipient' in _user and _user['recipient']:
         pushover_message = pushover_message.replace('__RECIPIENT__', _user['recipient'])
     if 'boat' in _user and _user['boat']:
@@ -338,6 +342,57 @@ COMMENT ON FUNCTION
     public.logbook_update_geom_distance_fn
     IS 'Update logbook details with geometry data an distance, ST_Length';
 
+-- Create GeoJSON for api consum.
+CREATE FUNCTION logbook_update_geojson_fn(IN _id integer, IN _start text, IN _end text,
+    OUT _track_geojson JSON
+ ) AS $logbook_geojson$
+    declare
+     log_geojson jsonb;
+     metrics_geojson jsonb;
+     _map jsonb;
+    begin
+		-- GeoJson Feature Logbook linestring
+	    SELECT
+		  ST_AsGeoJSON(l.*) into log_geojson
+		FROM
+		  api.logbook l
+		WHERE l.id = _id;
+		-- GeoJson Feature Metrics point
+		SELECT
+		  json_agg(ST_AsGeoJSON(t.*)::json) into metrics_geojson
+		FROM (
+		  ( select
+		  	time,
+		  	courseovergroundtrue,
+		    speedoverground,
+		    anglespeedapparent,
+		    longitude,latitude,
+		    st_makepoint(longitude,latitude) AS geo_point
+		    FROM api.metrics m
+		    WHERE m.latitude IS NOT NULL
+		        AND m.longitude IS NOT NULL
+                AND time >= _start::TIMESTAMP WITHOUT TIME ZONE
+                AND time <= _end::TIMESTAMP WITHOUT TIME ZONE
+		    ORDER BY m.time asc
+		   )  
+		) AS t;
+
+		-- 
+		select log_geojson::jsonb || metrics_geojson::jsonb into _map;
+	
+	    SELECT
+        json_build_object(
+            'type', 'FeatureCollection',
+            'features', _map
+        ) into _track_geojson;
+    END;
+$logbook_geojson$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.logbook_update_geojson_fn
+    IS 'Update logbook details with geojson';
+
+
 -- Update pending new logbook from process queue
 DROP FUNCTION IF EXISTS process_logbook_queue_fn;
 CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void AS $process_logbook_queue$
@@ -350,8 +405,12 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         geo_rec record;
         user_settings jsonb;
         app_settings jsonb;
+        geojson jsonb;
     BEGIN
         -- If _id is not NULL
+        IF _id IS NULL OR _id < 1 THEN
+            RAISE WARNING '-> process_logbook_queue_fn invalid input %', _id;
+        END IF;
         SELECT * INTO logbook_rec
             FROM api.logbook
             WHERE active IS false
@@ -368,10 +427,11 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         -- Update logbook entry with the latest metric data and calculate data
         avg_rec := logbook_update_avg_fn(logbook_rec.id, logbook_rec._from_time::TEXT, logbook_rec._to_time::TEXT);
         geo_rec := logbook_update_geom_distance_fn(logbook_rec.id, logbook_rec._from_time::TEXT, logbook_rec._to_time::TEXT);
+        --geojson := logbook_update_geojson_fn(logbook_rec.id, logbook_rec._from_time::TEXT, logbook_rec._to_time::TEXT);
         -- todo check on time start vs end
         RAISE NOTICE 'Updating logbook entry [%] [%] [%]', logbook_rec.id, logbook_rec._from_time, logbook_rec._to_time;
-        UPDATE api.logbook 
-            SET 
+        UPDATE api.logbook
+            SET
                 duration = (logbook_rec._to_time::timestamp without time zone - logbook_rec._from_time::timestamp without time zone),
                 avg_speed = avg_rec.avg_speed,
                 max_speed = avg_rec.max_speed,
@@ -381,6 +441,13 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
                 name = log_name,
                 track_geom = geo_rec._track_geom,
                 distance = geo_rec._track_distance
+            WHERE id = logbook_rec.id;
+
+        -- GeoJSON
+        geojson := logbook_update_geojson_fn(logbook_rec.id, logbook_rec._from_time::TEXT, logbook_rec._to_time::TEXT);
+        UPDATE api.logbook
+            SET
+               track_geojson = geojson
             WHERE id = logbook_rec.id;
         -- Gather email and pushover app settings
         app_settings := get_app_settings_fn();
@@ -407,9 +474,10 @@ CREATE OR REPLACE FUNCTION process_stay_queue_fn(IN _id integer) RETURNS void AS
         _name varchar;
     BEGIN
         RAISE WARNING 'process_stay_queue_fn';
-        RAISE WARNING 'jwt %', current_setting('request.jwt.claims', true);
-        RAISE WARNING 'cur_user %', current_user;
         -- If _id is not NULL
+        IF _id IS NULL OR _id < 1 THEN
+            RAISE WARNING '-> process_stay_queue_fn invalid input %', _id;
+        END IF;
         SELECT * INTO stay_rec
             FROM api.stays
             WHERE id = _id;
@@ -443,6 +511,9 @@ CREATE OR REPLACE FUNCTION process_moorage_queue_fn(IN _id integer) RETURNS void
         moorage_rec record;
     BEGIN
         -- If _id is not NULL
+        IF _id IS NULL OR _id < 1 THEN
+            RAISE WARNING '-> process_moorage_queue_fn invalid input %', _id;
+        END IF;
         SELECT * INTO stay_rec
             FROM api.stays
             WHERE active IS false 
@@ -602,7 +673,8 @@ AS $get_user_settings_from_log$
                     'boat' , v.name,
                     'recipient', a.first,
                     'email', v.owner_email,
-                    'logbook_name', l.name) INTO user_settings
+                    'logbook_name', l.name,
+                    'logbook_link', l.id) INTO user_settings
             FROM auth.accounts a, auth.vessels v, api.metadata m, api.logbook l 
             WHERE lower(a.email) = lower(v.owner_email) 
                -- AND lower(v.name) = lower(m.name) 
@@ -869,6 +941,23 @@ BEGIN
         RAISE EXCEPTION 'Invalid user'
             USING HINT = 'Unkown user';
     END IF;
+    -- Check a vessel and user exist
+    SELECT * INTO vessel_rec
+        FROM auth.vessels, auth.accounts
+        WHERE auth.vessels.owner_email = _email
+            AND auth.accounts.email = _email;
+    -- check if boat exist yet?
+    IF vessel_rec.owner_email IS NULL THEN
+        RETURN; -- ignore if not exist
+    END IF;
+    IF vessel_rec.mmsi IS NULL THEN
+        RAISE EXCEPTION 'Invalid vessel'
+            USING HINT = 'Unkown vessel mmsi';
+    END IF;
+    PERFORM set_config('vessel.mmsi', vessel_rec.mmsi, false);
+    PERFORM set_config('vessel.name', vessel_rec.name, false);
+    RAISE WARNING 'public.check_jwt() user_role vessel.mmsi %', current_setting('vessel.mmsi', false);
+    RAISE WARNING 'public.check_jwt() user_role vessel.name %', current_setting('vessel.name', false);
   ELSIF _role = 'vessel_role' THEN
     -- Check the vessel and user exist
     SELECT * INTO vessel_rec
@@ -885,7 +974,8 @@ BEGIN
             USING HINT = 'Unkown vessel mmsi';
     END IF;
     PERFORM set_config('vessel.mmsi', vessel_rec.mmsi, false);
-    RAISE WARNING 'vessel.mmsi %', current_setting('vessel.mmsi', false);
+    --RAISE WARNING 'vessel.mmsi %', current_setting('vessel.mmsi', false);
+    PERFORM set_config('vessel.name', vessel_rec.name, false);
   ELSIF _role <> 'api_anonymous' THEN
     RAISE EXCEPTION 'Invalid role'
       USING HINT = 'Stop being so evil and maybe you can log in';
@@ -899,12 +989,12 @@ $$ language plpgsql security definer;
 CREATE OR REPLACE FUNCTION api.run_cron_jobs() RETURNS void AS $$
 BEGIN
     -- In correct order
-    perform public.cron_process_new_account_fn();
-    perform public.cron_process_new_vessel_fn();
-    perform public.cron_process_monitor_online_fn();
-    perform public.cron_process_new_logbook_fn();
-    perform public.cron_process_new_stay_fn();
-    perform public.cron_process_new_moorage_fn();
-    perform public.cron_process_monitor_offline_fn();
+    select public.cron_process_new_account_fn();
+    select public.cron_process_new_vessel_fn();
+    select public.cron_process_monitor_online_fn();
+    select public.cron_process_new_logbook_fn();
+    select public.cron_process_new_stay_fn();
+    select public.cron_process_new_moorage_fn();
+    select public.cron_process_monitor_offline_fn();
 END
 $$ language plpgsql security definer;
