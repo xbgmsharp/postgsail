@@ -189,7 +189,7 @@ begin
   -- check vessel exist
   SELECT * INTO vessel_rec
     FROM auth.vessels vessel
-    WHERE vessel.owner_email = vessel_email
+    WHERE LOWER(vessel.owner_email) = LOWER(vessel_email)
       AND vessel.mmsi = vessel_mmsi
       AND LOWER(vessel.name) = LOWER(vessel_name);
   if vessel_rec is null then

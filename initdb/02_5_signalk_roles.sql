@@ -17,7 +17,9 @@ select current_database();
 -- nologin
 -- api_anonymous role in the database with which to execute anonymous web requests.
 -- api_anonymous allows JWT token generation with an expiration time via function api.login() from auth.accounts table
-create role api_anonymous nologin noinherit;
+create role api_anonymous WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOLOGIN NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 10;
+-- Limit to 10 connections
+--alter user api_anonymous connection limit 10;
 grant usage on schema api to api_anonymous;
 -- explicitly limit EXECUTE privileges to only signup and login functions
 grant execute on function api.login(text,text) to api_anonymous;
@@ -27,35 +29,103 @@ grant execute on function public.check_jwt() to api_anonymous;
 
 -- authenticator
 -- login role
-create role authenticator noinherit login password 'mysecretpassword';
+create role authenticator NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT login password 'mysecretpassword';
 grant api_anonymous to authenticator;
 
--- Grafana user and role with login, read-only
-CREATE ROLE grafana WITH LOGIN PASSWORD 'mysecretpassword';
+-- Grafana user and role with login, read-only, limit 10 connections
+CREATE ROLE grafana WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 10 LOGIN PASSWORD 'mysecretpassword';
 GRANT USAGE ON SCHEMA api TO grafana;
 GRANT USAGE, SELECT ON SEQUENCE api.logbook_id_seq,api.metadata_id_seq,api.moorages_id_seq,api.stays_id_seq TO grafana;
 GRANT SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata TO grafana;
+-- Allow read on VIEWS
+GRANT SELECT ON TABLE api.logs_view,api.moorages_view,api.stays_view TO grafana;
 
 -- User:
 -- nologin
--- read-only for all and Read-Write on logbook, stays and moorage except for name COLUMN ?
-CREATE ROLE user_role WITH NOLOGIN;
+-- read-only for all and Read-Write on logbook, stays and moorage except for specific (name, notes) COLUMNS ?
+CREATE ROLE user_role WITH NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION;
 GRANT user_role to authenticator;
 GRANT USAGE ON SCHEMA api TO user_role;
 GRANT USAGE, SELECT ON SEQUENCE api.logbook_id_seq,api.metadata_id_seq,api.moorages_id_seq,api.stays_id_seq TO user_role;
-GRANT SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata TO user_role;
+GRANT SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata,api.stays_at TO user_role;
+GRANT SELECT ON TABLE auth.vessels TO user_role;
 -- Allow update on table for notes
-GRANT UPDATE ON TABLE api.logbook,api.moorages,api.stays TO user_role;
+--GRANT UPDATE ON TABLE api.logbook,api.moorages,api.stays TO user_role;
+-- Allow users to update certain columns
+GRANT UPDATE (name, notes) ON api.logbook TO user_role;
+GRANT UPDATE (name, notes, stay_code) ON api.stays TO user_role;
+GRANT UPDATE (name, notes, stay_code, home_flag) ON api.moorages TO user_role;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA api TO user_role;
 -- explicitly limit EXECUTE privileges to pgrest db-pre-request function
-GRANT EXECUTE ON FUNCTION public.check_jwt() to user_role;
+GRANT EXECUTE ON FUNCTION public.check_jwt() TO user_role;
+GRANT EXECUTE ON FUNCTION public.st_asgeojson(text) TO user_role;
+GRANT EXECUTE ON FUNCTION public.geography_eq(geography, geography) TO user_role;
+
+-- Update ownership for security user_role as run by web user.
+ALTER VIEW api.stays_view OWNER TO user_role;
+ALTER VIEW api.moorages_view OWNER TO user_role;
+ALTER VIEW api.logs_view OWNER TO user_role;
+-- Remove all right except select
+REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.stays_view FROM user_role;
+REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.moorages_view FROM user_role;
+REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.logs_view FROM user_role;
+--REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.vessel_view FROM user_role;
+
+-- Allow read and update on VIEWS
+ALTER VIEW api.logs_view OWNER TO user_role;
+REVOKE TRUNCATE, DELETE, TRIGGER, INSERT ON TABLE api.stays_view FROM user_role;
+
+-- For cron job
+GRANT EXECUTE ON function api.run_cron_jobs() TO user_role;
+
+-- List vessel
+CREATE OR REPLACE VIEW api.vessel_view AS
+    SELECT
+        v.name as name,
+        v.mmsi as mmsi,
+        v.created_at as created_at,
+        m.time as last_contact
+        FROM auth.vessels v, api.metadata m
+        WHERE
+            m.mmsi = current_setting('vessel.mmsi')
+            AND lower(v.owner_email) = lower(current_setting('request.jwt.claims', true)::json->>'email');
+
+ALTER VIEW api.vessel_view OWNER TO user_role;
+REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.vessel_view FROM user_role;
+GRANT SELECT ON TABLE api.logs_view,api.moorages_view,api.stays_view,api.vessel_view TO grafana;
+
+-- Or function?
+DROP FUNCTION IF EXISTS api.vessel_fn;
+CREATE OR REPLACE FUNCTION api.vessel_fn(OUT obj JSON) RETURNS JSON
+AS $vessel$
+  DECLARE
+    _email name;
+    BEGIN
+        SELECT current_setting('request.jwt.claims', true)::json->>'email' INTO _email;
+        -- todo check if valid email
+        SELECT
+            v.name as name,
+            v.mmsi as mmsi,
+            v.created_at as created_at,
+            m.time as last_contact
+	        FROM auth.vessels v, api.metadata m
+            WHERE
+                m.mmsi = v.mmsi
+                AND lower(v.owner_email) = lower(_email);
+    END;
+$vessel$ language plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    api.vessel_fn
+    IS 'TODO, ...';
+
 -- Allow read on VIEWS
-GRANT SELECT ON TABLE api.logs_view,api.moorages_view,api.stays_view TO user_role;
+--GRANT SELECT ON TABLE api.logs_view,api.moorages_view,api.stays_view,api.vessel_view TO user_role;
 
 -- Vessel:
 -- nologin
 -- insert-update-only for api.metrics,api.logbook,api.moorages,api.stays,api.metadata and sequences and process_queue
-CREATE ROLE vessel_role WITH NOLOGIN;
+CREATE ROLE vessel_role WITH NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION;
 GRANT vessel_role to authenticator;
 GRANT USAGE ON SCHEMA api TO vessel_role;
 GRANT INSERT, UPDATE, SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata TO vessel_role;
@@ -154,3 +224,18 @@ CREATE POLICY api_vessel_role ON api.moorages TO vessel_role
 CREATE POLICY api_user_role ON api.moorages TO user_role
     USING (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%')
     WITH CHECK (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%');
+
+-- Be sure to enable row level security on the table
+ALTER TABLE auth.vessels ENABLE ROW LEVEL SECURITY;
+-- Administrator can see all rows and add any rows
+CREATE POLICY admin_all ON auth.vessels TO current_user
+    USING (true)
+    WITH CHECK (true);
+-- Allow user_role to update and select on their own records
+CREATE POLICY api_user_role ON auth.vessels TO user_role
+    USING (mmsi = current_setting('vessel.mmsi', false)
+        AND owner_email = current_setting('request.jwt.claims', false)::json->>'email'
+    )
+    WITH CHECK (mmsi = current_setting('vessel.mmsi', false)
+        AND owner_email = current_setting('request.jwt.claims', false)::json->>'email'
+    )
