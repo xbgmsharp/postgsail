@@ -15,7 +15,7 @@ select current_database();
 --
 -- api_anonymous
 -- nologin
--- api_anonymous role in the database with which to execute anonymous web requests.
+-- api_anonymous role in the database with which to execute anonymous web requests, limit 10 connections
 -- api_anonymous allows JWT token generation with an expiration time via function api.login() from auth.accounts table
 create role api_anonymous WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOLOGIN NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 10;
 -- Limit to 10 connections
@@ -41,8 +41,8 @@ GRANT SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadat
 GRANT SELECT ON TABLE api.logs_view,api.moorages_view,api.stays_view TO grafana;
 
 -- User:
--- nologin
--- read-only for all and Read-Write on logbook, stays and moorage except for specific (name, notes) COLUMNS ?
+-- nologin, web api only
+-- read-only for all and Read-Write on logbook, stays and moorage except for specific (name, notes) COLUMNS
 CREATE ROLE user_role WITH NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION;
 GRANT user_role to authenticator;
 GRANT USAGE ON SCHEMA api TO user_role;
@@ -62,6 +62,7 @@ GRANT EXECUTE ON FUNCTION public.st_asgeojson(text) TO user_role;
 GRANT EXECUTE ON FUNCTION public.geography_eq(geography, geography) TO user_role;
 
 -- Update ownership for security user_role as run by web user.
+-- Web listing
 ALTER VIEW api.stays_view OWNER TO user_role;
 ALTER VIEW api.moorages_view OWNER TO user_role;
 ALTER VIEW api.logs_view OWNER TO user_role;
@@ -72,8 +73,11 @@ REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.logs_v
 --REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.vessel_view FROM user_role;
 
 -- Allow read and update on VIEWS
-ALTER VIEW api.logs_view OWNER TO user_role;
-REVOKE TRUNCATE, DELETE, TRIGGER, INSERT ON TABLE api.stays_view FROM user_role;
+-- Web detail view
+ALTER VIEW api.log_view OWNER TO user_role;
+REVOKE TRUNCATE, DELETE, TRIGGER, INSERT ON TABLE api.log_view FROM user_role;
+
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO user_role;
 
 -- For cron job
 GRANT EXECUTE ON function api.run_cron_jobs() TO user_role;
