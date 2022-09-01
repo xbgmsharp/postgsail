@@ -390,7 +390,7 @@ $logbook_geojson$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
     public.logbook_update_geojson_fn
-    IS 'Update logbook details with geojson';
+    IS 'Update log details with geojson';
 
 
 -- Update pending new logbook from process queue
