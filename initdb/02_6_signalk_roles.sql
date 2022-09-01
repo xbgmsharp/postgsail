@@ -57,9 +57,12 @@ GRANT UPDATE (name, notes, stay_code) ON api.stays TO user_role;
 GRANT UPDATE (name, notes, stay_code, home_flag) ON api.moorages TO user_role;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA api TO user_role;
 -- explicitly limit EXECUTE privileges to pgrest db-pre-request function
+GRANT EXECUTE ON FUNCTION api.export_logbook_geojson_linestring_fn(int4) TO user_role;
 GRANT EXECUTE ON FUNCTION public.check_jwt() TO user_role;
 GRANT EXECUTE ON FUNCTION public.st_asgeojson(text) TO user_role;
 GRANT EXECUTE ON FUNCTION public.geography_eq(geography, geography) TO user_role;
+-- TODO should not be need !! ??
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO user_role;
 
 -- Update ownership for security user_role as run by web user.
 -- Web listing
@@ -77,12 +80,11 @@ REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.logs_v
 ALTER VIEW api.log_view OWNER TO user_role;
 REVOKE TRUNCATE, DELETE, TRIGGER, INSERT ON TABLE api.log_view FROM user_role;
 
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO user_role;
-
 -- For cron job
-GRANT EXECUTE ON function api.run_cron_jobs() TO user_role;
+--GRANT EXECUTE ON function api.run_cron_jobs() TO user_role;
 
 -- List vessel
+--TODO add geojson with position
 CREATE OR REPLACE VIEW api.vessel_view AS
     SELECT
         v.name as name,
@@ -98,30 +100,9 @@ ALTER VIEW api.vessel_view OWNER TO user_role;
 REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.vessel_view FROM user_role;
 GRANT SELECT ON TABLE api.logs_view,api.moorages_view,api.stays_view,api.vessel_view TO grafana;
 
--- Or function?
-DROP FUNCTION IF EXISTS api.vessel_fn;
-CREATE OR REPLACE FUNCTION api.vessel_fn(OUT obj JSON) RETURNS JSON
-AS $vessel$
-  DECLARE
-    _email name;
-    BEGIN
-        SELECT current_setting('request.jwt.claims', true)::json->>'email' INTO _email;
-        -- todo check if valid email
-        SELECT
-            v.name as name,
-            v.mmsi as mmsi,
-            v.created_at as created_at,
-            m.time as last_contact
-	        FROM auth.vessels v, api.metadata m
-            WHERE
-                m.mmsi = v.mmsi
-                AND lower(v.owner_email) = lower(_email);
-    END;
-$vessel$ language plpgsql;
--- Description
-COMMENT ON FUNCTION
-    api.vessel_fn
-    IS 'TODO, ...';
+GRANT EXECUTE ON FUNCTION api.vessel_fn() TO user_role;
+GRANT EXECUTE ON FUNCTION api.settings_fn() TO user_role;
+
 
 -- Allow read on VIEWS
 --GRANT SELECT ON TABLE api.logs_view,api.moorages_view,api.stays_view,api.vessel_view TO user_role;
@@ -139,6 +120,7 @@ GRANT USAGE, SELECT ON SEQUENCE public.process_queue_id_seq TO vessel_role;
 -- explicitly limit EXECUTE privileges to pgrest db-pre-request function
 GRANT EXECUTE ON FUNCTION public.check_jwt() to vessel_role;
 
+--- Scheduler:
 -- TODO: currently cron function are run as super user, switch to scheduler role.
 -- Scheduler read-only all, and write on logbook, stays, moorage, process_queue
 -- Crons
