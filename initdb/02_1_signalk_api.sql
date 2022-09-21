@@ -469,10 +469,13 @@ COMMENT ON TRIGGER
     metrics_trigger ON api.metrics 
     IS  'BEFORE INSERT ON api.metrics run function metrics_trigger_fn';
 
+---------------------------------------------------------------------------
+-- API helper functions
+--
+---------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------
 -- Functions API schema
-
 -- Export a log entry to geojson
 DROP FUNCTION IF EXISTS api.export_logbook_geojson_point_fn;
 CREATE OR REPLACE FUNCTION api.export_logbook_geojson_point_fn(IN _id INTEGER, OUT geojson JSON) RETURNS JSON AS $export_logbook_geojson_point$
@@ -528,7 +531,7 @@ CREATE FUNCTION api.export_logbook_geojson_linestring_fn(IN _id INTEGER) RETURNS
         geojson json;
     BEGIN
         -- If _id is is not NULL and > 0
-        SELECT ST_AsGeoJSON(l.track_geom) INTO geojson
+        SELECT ST_AsGeoJSON(l.*) INTO geojson
             FROM api.logbook l 
             WHERE l.id = _id;
         RETURN geojson;
@@ -538,6 +541,110 @@ $export_logbook_geojson_linestring$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION
     api.export_logbook_geojson_linestring_fn
     IS 'Export a log entry to geojson feature linestring';
+
+-- export_logbook_geojson_fn
+DROP FUNCTION IF EXISTS api.export_logbook_geojson_fn;
+CREATE FUNCTION api.export_logbook_geojson_fn(IN _id integer, OUT geojson JSON) RETURNS JSON AS $export_logbook_geojson$
+    DECLARE
+        logbook_rec record;
+        log_geojson jsonb;
+        metrics_geojson jsonb;
+        _map jsonb;
+    BEGIN
+        -- Gather log details
+        -- If _id is is not NULL and > 0
+        SELECT * INTO logbook_rec
+            FROM api.logbook WHERE id = _id;
+		-- GeoJson Feature Logbook linestring
+	    SELECT
+		  ST_AsGeoJSON(l.*) into log_geojson
+		FROM
+		  api.logbook l
+		WHERE l.id = _id;
+		-- GeoJson Feature Metrics point
+		SELECT
+		  json_agg(ST_AsGeoJSON(t.*)::json) into metrics_geojson
+		FROM (
+		  ( SELECT
+                time,
+                courseovergroundtrue,
+                speedoverground,
+                anglespeedapparent,
+                longitude,latitude,
+                st_makepoint(longitude,latitude) AS geo_point
+		    FROM api.metrics m
+		    WHERE m.latitude IS NOT NULL
+		        AND m.longitude IS NOT NULL
+                AND time >= logbook_rec._from_time::TIMESTAMP WITHOUT TIME ZONE
+                AND time <= logbook_rec._to_time::TIMESTAMP WITHOUT TIME ZONE
+		    ORDER BY m.time ASC
+		   )
+		) AS t;
+
+		-- Merge jsonb
+		select log_geojson::jsonb || metrics_geojson::jsonb into _map;
+        -- output
+	    SELECT
+        json_build_object(
+            'type', 'FeatureCollection',
+            'features', _map
+        ) into geojson;
+    END;
+$export_logbook_geojson$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    api.export_logbook_geojson_fn
+    IS 'Export a log entry to geojson feature linestring and multipoint';
+
+-- Generate GPX XML file output
+-- https://opencpn.org/OpenCPN/info/gpxvalidation.html
+--
+DROP FUNCTION IF EXISTS api.export_logbook_gpx_fn;
+CREATE OR REPLACE FUNCTION api.export_logbook_gpx_fn(IN _id INTEGER) RETURNS pg_catalog.xml
+AS $export_logbook_gpx$
+    DECLARE
+        log_rec record;
+    BEGIN
+        -- Gather log details _from_time and _to_time
+        SELECT * into log_rec
+            FROM
+            api.logbook l
+            WHERE l.id = _id;
+        -- Generate XML
+        RETURN xmlelement(name gpx,
+                            xmlattributes(  '1.1' as version,
+                                            'PostgSAIL' as creator,
+                                            'http://www.topografix.com/GPX/1/1' as xmlns,
+                                            'http://www.opencpn.org' as "xmlns:opencpn",
+                                            'http://www.w3.org/2001/XMLSchema-instance' as "xmlns:xsi",
+                                            'http://www.garmin.com/xmlschemas/GpxExtensions/v3' as "xmlns:gpxx",
+                                            'http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd' as "xsi:schemaLocation"),
+                xmlelement(name trk,
+                    xmlelement(name name, 'Track Name'),
+                    xmlelement(name desc, 'Track Description'),
+                    xmlelement(name link, xmlattributes('https://openplotter.cloud/log/{_id}' as href),
+                                                xmlelement(name text, 'Link name')),
+                    xmlelement(name extensions, xmlelement(name "opencpn:guid", uuid_generate_v4()),
+                                                xmlelement(name "opencpn:viz", '1'),
+                                                xmlelement(name "opencpn:start", log_rec._from_time),
+                                                xmlelement(name "opencpn:end", log_rec._to_time)
+                                                ),
+                    xmlelement(name trkseg, xmlagg(
+                                                xmlelement(name trkpt,
+                                                    xmlattributes(latitude  as lat, longitude as lon),
+                                                        xmlelement(name time, time)
+                                                )))))::pg_catalog.xml
+            FROM api.metrics m
+            WHERE m.latitude IS NOT null
+                AND m.longitude IS NOT null
+                AND m.time >= log_rec._from_time::TIMESTAMP WITHOUT TIME ZONE
+                AND m.time <= log_rec._to_time::TIMESTAMP WITHOUT TIME ZONE;
+    END;
+$export_logbook_gpx$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    api.export_logbook_gpx_fn
+    IS 'Export a log entry to GPX XML format';
 
 -- Find all log from and to moorage geopoint within 100m
 DROP FUNCTION IF EXISTS api.find_log_from_moorage_fn;
@@ -604,10 +711,16 @@ COMMENT ON FUNCTION
     IS 'Find all stay within 100m of moorage geopoint';
 
 ---------------------------------------------------------------------------
+-- API helper view
+--
+---------------------------------------------------------------------------
+
+---------------------------------------------------------------------------
 -- Views
 -- Views are invoked with the privileges of the view owner,
 -- make the user_role the view’s owner.
---
+---------------------------------------------------------------------------
+
 CREATE VIEW first_metric AS
     SELECT * 
         FROM api.metrics
@@ -874,107 +987,3 @@ CREATE VIEW api.voltage AS
         cast(metrics-> 'electrical.batteries.victronDevice.voltage' AS numeric) AS victronDeviceVoltage
     FROM api.metrics m 
     ORDER BY time DESC LIMIT 1;
-
----------------------------------------------------------------------------
--- API helper functions
---
-
-DROP FUNCTION IF EXISTS api.export_logbook_gpx_py_fn;
-CREATE OR REPLACE FUNCTION api.export_logbook_gpx_py_fn(IN _id INTEGER) RETURNS XML
-AS $export_logbook_gpx_py$
-    import uuid
-
-    # BEGIN GPX XML format
-    gpx_data = f"""<?xml version="1.0"?>
-    <gpx version="1.1" creator="PostgSAIL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.topografix.com/GPX/1/1" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd" xmlns:opencpn="http://www.opencpn.org">
-    <trk>
-        <link href="https://openplotter.cloud/log/{_id}">
-        <text>openplotter trip log todo</text>
-        </link>
-        <extensions>
-        <opencpn:guid>{uuid.uuid4()}</opencpn:guid>
-        <opencpn:viz>1</opencpn:viz>
-        <opencpn:start>{mytrack[0]['time']}</opencpn:start>
-        <opencpn:end>{mytrack[-1]['time']}</opencpn:end>
-        </extensions>
-        <trkseg>\n""";
-    ##print(gpx_data)
-    # LOOP through log entry 
-    for entry in mytrack:
-        ##print(entry['time'])
-        gpx_data += f"""        <trkpt lat="{entry['lat']}" lon="{entry['lng']}">
-    <time>{entry['time']}</time>
-</trkpt>\n""";
-
-    # END GPX XML format
-    gpx_data += """    </trkseg>
-    </trk>
-    </gpx>""";
-
-    return gpx_data
-$export_logbook_gpx_py$ LANGUAGE plpython3u;
--- Description
-COMMENT ON FUNCTION
-    api.export_logbook_gpx_py_fn
-    IS 'TODO, Export a log entry to GPX XML format using plpython3u';
-
---DROP FUNCTION IF EXISTS api.export_logbook_csv_fn;
---CREATE OR REPLACE FUNCTION api.export_logbook_csv_fn(IN _id INTEGER) RETURNS void
---AS $export_logbook_csv$
- -- TODO
---$export_logbook_csv$ language plpgsql;
--- Description
---COMMENT ON FUNCTION
---    api.export_logbook_csv_fn
---    IS 'TODO, ...';
-
-DROP FUNCTION IF EXISTS api.log_geojson_fn;
-CREATE FUNCTION api.log_geojson_fn(IN _id INTEGER, OUT log_map JSON) RETURNS JSON AS $export_log$
-    declare
-     log_geojson jsonb;
-     metrics_geojson jsonb;
-     _map jsonb;
-    begin
-		-- GeoJson Feature Logbook linestring
-	    SELECT
-		  ST_AsGeoJSON(l.*) into log_geojson
-		FROM
-		  api.logbook l
-		WHERE l.id = _id;
-		-- GeoJson Feature Metrics point
-		SELECT
-		  json_agg(ST_AsGeoJSON(t.*)::json) into metrics_geojson
-		FROM (
-		    (
-            select
-                time,
-                courseovergroundtrue,
-                speedoverground,
-                anglespeedapparent,
-                longitude,latitude,
-                st_makepoint(longitude,latitude) AS geo_point
-		    FROM api.metrics m
-		    WHERE m.latitude IS NOT NULL
-		        AND m.longitude IS NOT NULL
-		        AND m.time >= '2022-08-27 20:00:34.000'
-		        AND m.time <= '2022-08-27 20:29:34.000'
-		    ORDER BY m.time asc
-		   )
-		) AS t;
-
-        -- Add Linestring into Point array
-        SELECT log_geojson::jsonb || metrics_geojson::jsonb into _map;
-
-        -- Build Geojson FeatureCollection
-        SELECT
-        json_build_object(
-            'type', 'FeatureCollection',
-            'features', _map
-        ) into log_map;
-    END;
-$export_log$ LANGUAGE plpgsql;
-
--- Description
-COMMENT ON FUNCTION
-    api.log_geojson_fn
-    IS 'TODO';
