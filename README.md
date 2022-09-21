@@ -1,8 +1,8 @@
 # PostgSail
-Effortless cloud based solution for storing and sharing your SignalK data. Allow to effortlessly log your sails and monitor your boat with historical data.
+Effortless cloud based solution for storing and sharing your SignalK data. Allow you to effortlessly log your sails and monitor your boat with historical data.
 
 ### Context
-It is all about SQL, object-relational, time-series, spatial database with a bit python.
+It is all about SQL, object-relational, time-series, spatial databases with a bit of python.
 
 ### Features
 - Automatically log your voyages without manually starting or stopping a trip.
@@ -15,7 +15,7 @@ It is all about SQL, object-relational, time-series, spatial database with a bit
 - Monitor your boat (position, depth, wind, temperature, battery charge status, etc.) remotely.
 - History: view trends.
 - Alert monitoring: get notification on low voltage or low fuel remotely.
-- Notification via email or PushOver.
+- Notification via email or PushOver, Telegram
 
 ### Cloud
 The cloud advantage.
