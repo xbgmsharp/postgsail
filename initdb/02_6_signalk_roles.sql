@@ -39,6 +39,7 @@ GRANT USAGE, SELECT ON SEQUENCE api.logbook_id_seq,api.metadata_id_seq,api.moora
 GRANT SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata TO grafana;
 -- Allow read on VIEWS
 GRANT SELECT ON TABLE api.logs_view,api.moorages_view,api.stays_view TO grafana;
+--GRANT SELECT ON TABLE api.logs_view,api.moorages_view,api.stays_view,api.vessel_view TO grafana;
 
 -- User:
 -- nologin, web api only
@@ -69,43 +70,20 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO user_role;
 ALTER VIEW api.stays_view OWNER TO user_role;
 ALTER VIEW api.moorages_view OWNER TO user_role;
 ALTER VIEW api.logs_view OWNER TO user_role;
--- Remove all right except select
+-- Remove all permissions except select
 REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.stays_view FROM user_role;
 REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.moorages_view FROM user_role;
 REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.logs_view FROM user_role;
---REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.vessel_view FROM user_role;
 
 -- Allow read and update on VIEWS
 -- Web detail view
 ALTER VIEW api.log_view OWNER TO user_role;
+-- Remove all permissions except select and update
 REVOKE TRUNCATE, DELETE, TRIGGER, INSERT ON TABLE api.log_view FROM user_role;
 
--- For cron job
---GRANT EXECUTE ON function api.run_cron_jobs() TO user_role;
-
--- List vessel
---TODO add geojson with position
-CREATE OR REPLACE VIEW api.vessel_view AS
-    SELECT
-        v.name as name,
-        v.mmsi as mmsi,
-        v.created_at as created_at,
-        m.time as last_contact
-        FROM auth.vessels v, api.metadata m
-        WHERE
-            m.mmsi = current_setting('vessel.mmsi')
-            AND lower(v.owner_email) = lower(current_setting('request.jwt.claims', true)::json->>'email');
-
-ALTER VIEW api.vessel_view OWNER TO user_role;
-REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.vessel_view FROM user_role;
-GRANT SELECT ON TABLE api.logs_view,api.moorages_view,api.stays_view,api.vessel_view TO grafana;
-
-GRANT EXECUTE ON FUNCTION api.vessel_fn() TO user_role;
-GRANT EXECUTE ON FUNCTION api.settings_fn() TO user_role;
-
-
--- Allow read on VIEWS
---GRANT SELECT ON TABLE api.logs_view,api.moorages_view,api.stays_view,api.vessel_view TO user_role;
+ALTER VIEW api.vessels_view OWNER TO user_role;
+-- Remove all permissions except select and update
+REVOKE TRUNCATE, DELETE, TRIGGER, INSERT ON TABLE api.vessels_view FROM user_role;
 
 -- Vessel:
 -- nologin
