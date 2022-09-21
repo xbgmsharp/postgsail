@@ -377,9 +377,9 @@ CREATE FUNCTION logbook_update_geojson_fn(IN _id integer, IN _start text, IN _en
 		   )  
 		) AS t;
 
-		-- 
+		-- Merge jsonb
 		select log_geojson::jsonb || metrics_geojson::jsonb into _map;
-	
+        -- output
 	    SELECT
         json_build_object(
             'type', 'FeatureCollection',
@@ -473,7 +473,7 @@ CREATE OR REPLACE FUNCTION process_stay_queue_fn(IN _id integer) RETURNS void AS
         stay_rec record;
         _name varchar;
     BEGIN
-        RAISE WARNING 'process_stay_queue_fn';
+        RAISE NOTICE 'process_stay_queue_fn';
         -- If _id is not NULL
         IF _id IS NULL OR _id < 1 THEN
             RAISE WARNING '-> process_stay_queue_fn invalid input %', _id;
@@ -510,6 +510,7 @@ CREATE OR REPLACE FUNCTION process_moorage_queue_fn(IN _id integer) RETURNS void
        	stay_rec record;
         moorage_rec record;
     BEGIN
+        RAISE NOTICE 'process_moorage_queue_fn';
         -- If _id is not NULL
         IF _id IS NULL OR _id < 1 THEN
             RAISE WARNING '-> process_moorage_queue_fn invalid input %', _id;
@@ -676,8 +677,8 @@ AS $get_user_settings_from_log$
                     'logbook_name', l.name,
                     'logbook_link', l.id) INTO user_settings
             FROM auth.accounts a, auth.vessels v, api.metadata m, api.logbook l 
-            WHERE lower(a.email) = lower(v.owner_email) 
-               -- AND lower(v.name) = lower(m.name) 
+            WHERE lower(a.email) = lower(v.owner_email)
+                AND lower(v.name) = lower(m.name)
                 AND m.client_id = l.client_id 
                 AND l.client_id = logbook_rec.client_id
                 AND l.id = logbook_rec.id;
@@ -763,8 +764,8 @@ AS $get_user_settings_from_clientid$
                     'badges', a.preferences->'badges',
                     'logbook_name', logbook_name ) INTO user_settings
             FROM auth.accounts a, auth.vessels v, api.metadata m
-            WHERE lower(a.email) = lower(v.owner_email) 
-                --AND lower(v.name) = lower(m.name) 
+            WHERE lower(a.email) = lower(v.owner_email)
+                AND lower(v.name) = lower(m.name)
                 AND m.mmsi = v.mmsi
                 AND m.client_id = clientid;
     END;
@@ -923,6 +924,7 @@ DECLARE
   _role name;
   _email name;
   _mmsi name;
+  _path name;
   account_rec record;
   vessel_rec record;
 BEGIN
@@ -939,7 +941,16 @@ BEGIN
         WHERE auth.accounts.email = _email;
     IF account_rec.email IS NULL THEN
         RAISE EXCEPTION 'Invalid user'
-            USING HINT = 'Unkown user';
+            USING HINT = 'Unkown user or password';
+    END IF;
+    RAISE WARNING 'req path %', current_setting('request.path', true);
+    -- Function allow without defined vessel
+    -- openapi doc, user settings and vessel registration
+    SELECT current_setting('request.path', true) into _path;
+    IF _path = '/rpc/settings_fn'
+        OR _path = '/rpc/register_vessel'
+        OR _path = '/' THEN
+        RETURN;
     END IF;
     -- Check a vessel and user exist
     SELECT * INTO vessel_rec
@@ -948,7 +959,12 @@ BEGIN
             AND auth.accounts.email = _email;
     -- check if boat exist yet?
     IF vessel_rec.owner_email IS NULL THEN
-        RETURN; -- ignore if not exist
+        -- Return http status code 551 with message
+		RAISE sqlstate 'PT551' using
+		  message = 'Vessel Required',
+		  detail = 'Invalid vessel',
+		  hint = 'Unkown vessel';
+        --RETURN; -- ignore if not exist
     END IF;
     IF vessel_rec.mmsi IS NULL THEN
         RAISE EXCEPTION 'Invalid vessel'
