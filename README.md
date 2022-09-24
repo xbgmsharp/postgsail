@@ -87,7 +87,7 @@ $ curl http://localhost:3000/ -H 'Authorization: Bearer my_token_from_register_v
 
 #### API main workflow
 
-Check the [unit test sample](https://github.com/xbgmsharp/PostgSail/blob/main/tests/index.js).
+Check the [unit test sample](https://github.com/xbgmsharp/postgsail/blob/main/tests/index.js).
 
 ### Docker dependencies
 
@@ -115,7 +115,7 @@ Out of the box iot platform using docker with the following software:
 
 ### Support
 
-To get support, please create new [issue](https://github.com/xbgmsharp/PostgSail/issues).
+To get support, please create new [issue](https://github.com/xbgmsharp/postgsail/issues).
 
 There is more likely security flows and bugs.
 
