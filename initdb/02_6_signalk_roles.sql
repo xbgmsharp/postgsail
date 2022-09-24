@@ -39,7 +39,7 @@ GRANT USAGE, SELECT ON SEQUENCE api.logbook_id_seq,api.metadata_id_seq,api.moora
 GRANT SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata TO grafana;
 -- Allow read on VIEWS
 GRANT SELECT ON TABLE api.logs_view,api.moorages_view,api.stays_view TO grafana;
---GRANT SELECT ON TABLE api.logs_view,api.moorages_view,api.stays_view,api.vessel_view TO grafana;
+--GRANT SELECT ON TABLE api.logs_view,api.moorages_view,api.stays_view,api.vessels_view TO grafana;
 
 -- User:
 -- nologin, web api only
@@ -84,6 +84,10 @@ REVOKE TRUNCATE, DELETE, TRIGGER, INSERT ON TABLE api.log_view FROM user_role;
 ALTER VIEW api.vessels_view OWNER TO user_role;
 -- Remove all permissions except select and update
 REVOKE TRUNCATE, DELETE, TRIGGER, INSERT ON TABLE api.vessels_view FROM user_role;
+ALTER VIEW api.vessel_p_view OWNER TO user_role;
+-- Remove all permissions except select and update
+REVOKE TRUNCATE, DELETE, TRIGGER, INSERT ON TABLE api.vessel_p_view FROM user_role;
+
 
 -- Vessel:
 -- nologin
