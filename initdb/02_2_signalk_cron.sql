@@ -127,9 +127,8 @@ begin
         -- Gather email and pushover app settings
         app_settings = get_app_settings_fn();
         -- Gather user settings
-        user_settings := get_user_settings_from_metadata_fn(metadata_rec.id::INTEGER);
-        --user_settings := get_user_settings_from_clientid_fn(metadata_rec.id::INTEGER);
-        RAISE DEBUG '-> debug monitor_offline get_user_settings_from_metadata_fn [%]', user_settings;
+        user_settings := get_user_settings_from_clientid_fn(metadata_rec.client_id::TEXT);
+        RAISE DEBUG '-> debug monitor_offline get_user_settings_from_clientid_fn [%]', user_settings;
         -- Send notification
         --PERFORM send_notification_fn('monitor_offline'::TEXT, metadata_rec::RECORD);
         PERFORM send_email_py_fn('monitor_offline'::TEXT, user_settings::JSONB, app_settings::JSONB);
@@ -172,9 +171,8 @@ begin
         -- Gather email and pushover app settings
         app_settings = get_app_settings_fn();
         -- Gather user settings
-        user_settings := get_user_settings_from_metadata_fn(metadata_rec.id::INTEGER);
-        --user_settings := get_user_settings_from_clientid_fn((metadata_rec.client_id::INTEGER, );
-        RAISE NOTICE '-> debug monitor_online get_user_settings_from_metadata_fn [%]', user_settings;
+        user_settings := get_user_settings_from_clientid_fn(metadata_rec.client_id::TEXT);
+        RAISE NOTICE '-> debug monitor_online get_user_settings_from_clientid_fn [%]', user_settings;
         -- Send notification
         --PERFORM send_notification_fn('monitor_online'::TEXT, metadata_rec::RECORD);
         PERFORM send_email_py_fn('monitor_online'::TEXT, user_settings::JSONB, app_settings::JSONB);

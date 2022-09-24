@@ -146,7 +146,7 @@ AS $send_email_py$
     # Replace fields using input jsonb obj
     plpy.notice('Parameters [{}] [{}]'.format(_user, app))
     if not _user or not app:
-        plpy.error('Error no parameters')
+        plpy.error('Error missing parameters')
         return None
     if 'logbook_name' in _user and _user['logbook_name']:
         email_content = email_content.replace('__LOGBOOK_NAME__', _user['logbook_name'])
@@ -403,6 +403,7 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         log_name varchar;
         avg_rec record;
         geo_rec record;
+        log_settings jsonb;
         user_settings jsonb;
         app_settings jsonb;
         geojson jsonb;
@@ -452,7 +453,11 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         -- Gather email and pushover app settings
         app_settings := get_app_settings_fn();
         -- Gather user settings
-        user_settings := get_user_settings_from_log_fn(logbook_rec::RECORD);
+        SELECT json_build_object('logbook_name', log_name,  'logbook_link', logbook_rec.id) into log_settings;
+        user_settings := get_user_settings_from_clientid_fn(logbook_rec.client_id::TEXT);
+        SELECT user_settings::JSONB || log_settings::JSONB into user_settings;
+        RAISE DEBUG '-> debug process_logbook_queue_fn get_user_settings_from_clientid_fn [%]', user_settings;
+        --user_settings := get_user_settings_from_log_fn(logbook_rec::RECORD);
         --user_settings := '{"logbook_name": "' || log_name || '"}, "{"email": "' || account_rec.email || '", "recipient": "' || account_rec.first || '}';
         --user_settings := '{"logbook_name": "' || log_name || '"}';
         -- Send notification email, pushover
@@ -481,7 +486,6 @@ CREATE OR REPLACE FUNCTION process_stay_queue_fn(IN _id integer) RETURNS void AS
         SELECT * INTO stay_rec
             FROM api.stays
             WHERE id = _id;
---                AND client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%';
 
         -- geo reverse _lng _lat
         _name := reverse_geocode_py_fn('nominatim', stay_rec.longitude::NUMERIC, stay_rec.latitude::NUMERIC);
@@ -644,7 +648,7 @@ COMMENT ON FUNCTION
 
 -- Get user settings details from a log entry
 DROP FUNCTION IF EXISTS get_app_settings_fn;
-CREATE OR REPLACE FUNCTION get_app_settings_fn(OUT app_settings JSON) RETURNS JSON
+CREATE OR REPLACE FUNCTION get_app_settings_fn(OUT app_settings JSONB) RETURNS JSONB
 AS $get_app_settings$
     DECLARE
     BEGIN
@@ -657,62 +661,6 @@ $get_app_settings$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION
     public.get_app_settings_fn
     IS 'get app settings details, email, pushover';
-
-
--- Get user settings details from a log entry
-DROP FUNCTION IF EXISTS get_user_settings_from_log_fn;
-CREATE OR REPLACE FUNCTION get_user_settings_from_log_fn(IN logbook_rec RECORD, OUT user_settings JSON) RETURNS JSON
-AS $get_user_settings_from_log$
-    DECLARE
-    BEGIN
-        -- If client_id is not NULL
-        IF logbook_rec.client_id IS NULL OR logbook_rec.client_id = '' THEN
-            RAISE WARNING '-> get_user_settings_from_log_fn invalid input %', logbook_rec.client_id;
-        END IF;
-        SELECT 
-            json_build_object( 
-                    'boat' , v.name,
-                    'recipient', a.first,
-                    'email', v.owner_email,
-                    'logbook_name', l.name,
-                    'logbook_link', l.id) INTO user_settings
-            FROM auth.accounts a, auth.vessels v, api.metadata m, api.logbook l 
-            WHERE lower(a.email) = lower(v.owner_email)
-                AND lower(v.name) = lower(m.name)
-                AND m.client_id = l.client_id 
-                AND l.client_id = logbook_rec.client_id
-                AND l.id = logbook_rec.id;
-
-    END;
-$get_user_settings_from_log$ LANGUAGE plpgsql;
--- Description
-COMMENT ON FUNCTION
-    public.get_user_settings_from_log_fn
-    IS 'get user settings details from a log entry, initiate for logbook entry notification';
-
--- Get user settings details from a metadata entry
-DROP FUNCTION IF EXISTS get_user_settings_from_metadata;
-CREATE OR REPLACE FUNCTION get_user_settings_from_metadata_fn(IN meta_id INTEGER, OUT user_settings JSON) RETURNS JSON 
-AS $get_user_settings_from_metadata$
-    DECLARE
-    BEGIN
-        -- If meta_id is not NULL
-        IF meta_id IS NULL OR meta_id < 1 THEN
-            RAISE WARNING '-> get_user_settings_from_metadata_fn invalid input %', meta_id;
-        END IF;
-        SELECT json_build_object( 
-                'boat' , v.name,
-                'email', v.owner_email) INTO user_settings
-            FROM auth.vessels v, api.metadata m
-            WHERE
-            --lower(v.name) = lower(m.name) AND
-                 m.id = meta_id;
-    END;
-$get_user_settings_from_metadata$ LANGUAGE plpgsql;
--- Description
-COMMENT ON FUNCTION
-    public.get_user_settings_from_metadata_fn
-    IS 'get user settings details from a metadata entry, initiate for monitoring offline,online notification';
 
 -- Get user settings details from a metadata entry
 DROP FUNCTION IF EXISTS send_notification_fn;
@@ -744,9 +692,8 @@ COMMENT ON FUNCTION
 DROP FUNCTION IF EXISTS get_user_settings_from_clientid_fn;
 CREATE OR REPLACE FUNCTION get_user_settings_from_clientid_fn(
     IN clientid TEXT,
-    IN logbook_name TEXT, 
-    OUT user_settings JSON
-    ) RETURNS JSON
+    OUT user_settings JSONB
+    ) RETURNS JSONB
 AS $get_user_settings_from_clientid$
     DECLARE
     BEGIN
@@ -761,19 +708,17 @@ AS $get_user_settings_from_clientid$
                     'email', v.owner_email ,
                     'settings', a.preferences,
                     'pushover_key', a.preferences->'pushover_key',
-                    'badges', a.preferences->'badges',
-                    'logbook_name', logbook_name ) INTO user_settings
+                    'badges', a.preferences->'badges'
+                    ) INTO user_settings
             FROM auth.accounts a, auth.vessels v, api.metadata m
-            WHERE lower(a.email) = lower(v.owner_email)
-                AND lower(v.name) = lower(m.name)
-                AND m.mmsi = v.mmsi
+            WHERE m.mmsi = v.mmsi
                 AND m.client_id = clientid;
     END;
 $get_user_settings_from_clientid$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
     public.get_user_settings_from_clientid_fn
-    IS 'get user settings details from a clientid, initiate for badge entry notification';
+    IS 'get user settings details from a clientid, initiate for notifications';
 
 ---------------------------------------------------------------------------
 -- Queue handling
