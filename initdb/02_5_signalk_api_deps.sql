@@ -61,12 +61,15 @@ AS $vessel$
 			                    longitude,latitude,
 			                    st_makepoint(longitude,latitude) AS geo_point
 			                    FROM public.last_metric
-			                    WHERE latitude IS NOT NULL
-			                        AND longitude IS NOT NULL
+			                    WHERE
+                                    latitude IS NOT NULL
+                                    AND longitude IS NOT NULL
+                                    AND client_id LIKE '%' || current_setting('vessel.mmsi', false)
 			                )
 			            ) AS t
 	            ) AS geojson_t
-            WHERE v.mmsi = current_setting('vessel.mmsi')
+            WHERE
+                m.mmsi = current_setting('vessel.mmsi')
                 AND m.mmsi = v.mmsi;
 		--RAISE notice 'api.vessel_fn %', obj;
     END;
