@@ -16,6 +16,7 @@ INSERT INTO app_settings (name, value) VALUES
         ('app.email_from', '${PGSAIL_EMAIL_FROM}'),
         ('app.pushover_token', '${PGSAIL_PUSHOVER_TOKEN}'),
         ('app.pushover_app', '_todo_'),
+        ('app.url', '${PGSAIL_APP_URL}'),
         ('app.version', '${PGSAIL_VERSION}');
 -- Update comment with version
 COMMENT ON DATABASE signalk IS 'version ${PGSAIL_VERSION}';

@@ -82,12 +82,13 @@ COMMENT ON TABLE
 
 -- with escape value, eg: E'A\nB\r\nC'
 -- https://stackoverflow.com/questions/26638615/insert-line-break-in-postgresql-when-updating-text-field
+-- TODO Update notification subject for log entry to 'logbook #NB ...'
 INSERT INTO email_templates VALUES
 ('logbook',
     'New Logbook Entry',
-    E'Hello __RECIPIENT__,\n\nWe just wanted to let you know that you have a new entry on openplotter.cloud: "__LOGBOOK_NAME__"\r\n\r\nSee more details at https://beta.openplotter.cloud/log/__LOGBOOK_LINK__\n\nHappy sailing!\nThe PostgSail Team',
+    E'Hello __RECIPIENT__,\n\nWe just wanted to let you know that you have a new entry on openplotter.cloud: "__LOGBOOK_NAME__"\r\n\r\nSee more details at __APP_URL__/log/__LOGBOOK_LINK__\n\nHappy sailing!\nThe PostgSail Team',
     'New Logbook Entry',
-    E'We just wanted to let you know that you have a new entry on openplotter.cloud: "__LOGBOOK_NAME__"\r\n\r\nSee more details at https://beta.openplotter.cloud/log/__LOGBOOK_LINK__\n\nHappy sailing!\nThe PostgSail Team'),
+    E'We just wanted to let you know that you have a new entry on openplotter.cloud: "__LOGBOOK_NAME__"\r\n\r\nSee more details at __APP_URL__/log/__LOGBOOK_LINK__\n\nHappy sailing!\nThe PostgSail Team'),
 ('user',
     'Welcome',
     E'Hello __RECIPIENT__,\nCongratulations!\nYou successfully created an account.\nKeep in mind to register your vessel.\nHappy sailing!',
@@ -100,19 +101,19 @@ INSERT INTO email_templates VALUES
     E'Hi!\nHow are you?\n__BOAT__ is now linked to your account.'),
 ('monitor_offline',
     'Offline',
-    E'__BOAT__ has been offline for more than an hour\r\nFind more details at https://beta.openplotter.cloud/boats/\n',
+    E'__BOAT__ has been offline for more than an hour\r\nFind more details at __APP_URL__/boats/\n',
     'Offline',
-    E'__BOAT__ has been offline for more than an hour\r\nFind more details at https://beta.openplotter.cloud/boats/\n'),
+    E'__BOAT__ has been offline for more than an hour\r\nFind more details at __APP_URL__/boats/\n'),
 ('monitor_online',
     'Online',
-    E'__BOAT__ just came online\nFind more details at https://beta.openplotter.cloud/boats/\n',
+    E'__BOAT__ just came online\nFind more details at __APP_URL__/boats/\n',
     'Online',
-    E'__BOAT__ just came online\nFind more details at https://beta.openplotter.cloud/boats/\n'),
+    E'__BOAT__ just came online\nFind more details at __APP_URL__/boats/\n'),
 ('badge',
     'New Badge!',
-    E'Hello __RECIPIENT__,\nCongratulations! You have just unlocked a new badge: __BADGE_NAME__\nSee more details at https://beta.openplotter.cloud/badges\nHappy sailing!\nThe PostgSail Team',
+    E'Hello __RECIPIENT__,\nCongratulations! You have just unlocked a new badge: __BADGE_NAME__\nSee more details at __APP_URL__/badges\nHappy sailing!\nThe PostgSail Team',
     'New Badge!',
-    E'Congratulations!\nYou have just unlocked a new badge: __BADGE_NAME__\nSee more details at https://beta.openplotter.cloud/badges\nHappy sailing!\nThe PostgSail Team');
+    E'Congratulations!\nYou have just unlocked a new badge: __BADGE_NAME__\nSee more details at __APP_URL__/badges\nHappy sailing!\nThe PostgSail Team');
 
 ---------------------------------------------------------------------------
 -- python send email
@@ -158,6 +159,9 @@ AS $send_email_py$
         email_content = email_content.replace('__BOAT__', _user['boat'])
     if 'badge' in _user and _user['badge']:
         email_content = email_content.replace('__BADGE_NAME__', _user['badge'])
+
+    if 'app.url' in app and app['app.url']:
+        email_content = email_content.replace('__APP_URL__', app['app.url'])
 
     email_from = 'root@localhost'
     if 'app.email_from' in app and app['app.email_from']:
@@ -245,6 +249,9 @@ AS $send_pushover_py$
         pushover_message = pushover_message.replace('__BOAT__', _user['boat'])
     if 'badge' in _user and _user['badge']:
         pushover_message = pushover_message.replace('__BADGE_NAME__', _user['badge'])
+
+    if 'app.url' in app and app['app.url']:
+        pushover_message = pushover_message.replace('__APP_URL__', app['app.url'])
 
     pushover_token = None
     if 'app.pushover_token' in app and app['app.pushover_token']:
@@ -648,23 +655,33 @@ COMMENT ON FUNCTION
 
 -- Get user settings details from a log entry
 DROP FUNCTION IF EXISTS get_app_settings_fn;
-CREATE OR REPLACE FUNCTION get_app_settings_fn(OUT app_settings JSONB) RETURNS JSONB
-AS $get_app_settings$
-    DECLARE
-    BEGIN
-        SELECT jsonb_object_agg(name,value) INTO app_settings
-                FROM public.app_settings
-                WHERE name LIKE '%app.email%' OR name LIKE '%app.pushover%';
-    END;
-$get_app_settings$ LANGUAGE plpgsql;
+CREATE OR REPLACE FUNCTION get_app_settings_fn (OUT app_settings jsonb)
+    RETURNS jsonb
+    AS $get_app_settings$
+DECLARE
+BEGIN
+    SELECT
+        jsonb_object_agg(name, value) INTO app_settings
+    FROM
+        public.app_settings
+    WHERE
+        name LIKE '%app.email%'
+        OR name LIKE '%app.pushover%'
+        OR name LIKE '%app.url';
+END;
+$get_app_settings$
+LANGUAGE plpgsql;
+
 -- Description
 COMMENT ON FUNCTION
     public.get_app_settings_fn
     IS 'get app settings details, email, pushover';
 
--- Get user settings details from a metadata entry
+-- Send notifications
 DROP FUNCTION IF EXISTS send_notification_fn;
-CREATE OR REPLACE FUNCTION send_notification_fn(IN email_type TEXT, IN notification_rec RECORD) RETURNS JSON 
+CREATE OR REPLACE FUNCTION send_notification_fn(
+    IN email_type TEXT,
+    IN user_settings JSONB) RETURNS VOID
 AS $send_notification$
     DECLARE
         app_settings JSONB;
@@ -687,7 +704,7 @@ $send_notification$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
     public.send_notification_fn
-    IS 'TODO';
+    IS 'TODO Send notifications';
 
 DROP FUNCTION IF EXISTS get_user_settings_from_clientid_fn;
 CREATE OR REPLACE FUNCTION get_user_settings_from_clientid_fn(
@@ -698,7 +715,7 @@ AS $get_user_settings_from_clientid$
     DECLARE
     BEGIN
         -- If client_id is not NULL
-        IF clientid IS NULL OR clientid <> '' THEN
+        IF clientid IS NULL OR clientid = '' THEN
             RAISE WARNING '-> get_user_settings_from_clientid_fn invalid input %', clientid;
         END IF;
         SELECT 
