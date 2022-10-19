@@ -70,6 +70,7 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO user_role;
 ALTER VIEW api.stays_view OWNER TO user_role;
 ALTER VIEW api.moorages_view OWNER TO user_role;
 ALTER VIEW api.logs_view OWNER TO user_role;
+ALTER VIEW api.vessel_p_view OWNER TO user_role;
 -- Remove all permissions except select
 REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.stays_view FROM user_role;
 REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.moorages_view FROM user_role;
@@ -106,9 +107,12 @@ GRANT EXECUTE ON FUNCTION public.check_jwt() to vessel_role;
 -- TODO: currently cron function are run as super user, switch to scheduler role.
 -- Scheduler read-only all, and write on logbook, stays, moorage, process_queue
 -- Crons
-CREATE ROLE scheduler WITH NOLOGIN;
+--CREATE ROLE scheduler WITH NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION;
+CREATE ROLE scheduler WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 10 LOGIN;
 GRANT scheduler to authenticator;
-GRANT EXECUTE ON FUNCTION api.run_cron_jobs() to scheduler;
+GRANT USAGE ON SCHEMA api TO scheduler;
+GRANT SELECT ON TABLE api.metrics,api.metadata TO scheduler;
+GRANT INSERT, UPDATE, SELECT ON TABLE api.logbook,api.moorages,api.stays TO scheduler;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO scheduler;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO scheduler;
 GRANT SELECT,UPDATE ON TABLE process_queue TO scheduler;
@@ -132,6 +136,10 @@ CREATE POLICY api_vessel_role ON api.metadata TO vessel_role
 CREATE POLICY api_user_role ON api.metadata TO user_role
     USING (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%')
     WITH CHECK (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%');
+-- Allow scheduler to update and select based on the client_id
+CREATE POLICY api_scheduler_role ON api.metadata TO scheduler
+    USING (client_id = current_setting('vessel.client_id', false))
+    WITH CHECK (client_id = current_setting('vessel.client_id', false));
 
 ALTER TABLE api.metrics ENABLE ROW LEVEL SECURITY;
 -- Administrator can see all rows and add any rows
@@ -146,6 +154,10 @@ CREATE POLICY api_vessel_role ON api.metrics TO vessel_role
 CREATE POLICY api_user_role ON api.metrics TO user_role
     USING (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%')
     WITH CHECK (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%');
+-- Allow scheduler to update and select based on the client_id
+CREATE POLICY api_scheduler_role ON api.metrics TO scheduler
+    USING (client_id = current_setting('vessel.client_id', false))
+    WITH CHECK (client_id = current_setting('vessel.client_id', false));
 
 -- Be sure to enable row level security on the table
 ALTER TABLE api.logbook ENABLE ROW LEVEL SECURITY;
@@ -162,6 +174,10 @@ CREATE POLICY api_vessel_role ON api.logbook TO vessel_role
 CREATE POLICY api_user_role ON api.logbook TO user_role
     USING (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%')
     WITH CHECK (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%');
+-- Allow scheduler to update and select based on the client_id
+CREATE POLICY api_scheduler_role ON api.logbook TO scheduler
+    USING (client_id = current_setting('vessel.client_id', false))
+    WITH CHECK (client_id = current_setting('vessel.client_id', false));
 
 -- Be sure to enable row level security on the table
 ALTER TABLE api.stays ENABLE ROW LEVEL SECURITY;
@@ -177,6 +193,10 @@ CREATE POLICY api_vessel_role ON api.stays TO vessel_role
 CREATE POLICY api_user_role ON api.stays TO user_role
     USING (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%')
     WITH CHECK (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%');
+-- Allow scheduler to update and select based on the client_id
+CREATE POLICY api_scheduler_role ON api.stays TO scheduler
+    USING (client_id = current_setting('vessel.client_id', false))
+    WITH CHECK (client_id = current_setting('vessel.client_id', false));
 
 -- Be sure to enable row level security on the table
 ALTER TABLE api.moorages ENABLE ROW LEVEL SECURITY;
@@ -192,6 +212,10 @@ CREATE POLICY api_vessel_role ON api.moorages TO vessel_role
 CREATE POLICY api_user_role ON api.moorages TO user_role
     USING (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%')
     WITH CHECK (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%');
+-- Allow scheduler to update and select based on the client_id
+CREATE POLICY api_scheduler_role ON api.moorages TO scheduler
+    USING (client_id = current_setting('vessel.client_id', false))
+    WITH CHECK (client_id = current_setting('vessel.client_id', false));
 
 -- Be sure to enable row level security on the table
 ALTER TABLE auth.vessels ENABLE ROW LEVEL SECURITY;
@@ -206,4 +230,4 @@ CREATE POLICY api_user_role ON auth.vessels TO user_role
     )
     WITH CHECK (mmsi = current_setting('vessel.mmsi', false)
         AND owner_email = current_setting('request.jwt.claims', false)::json->>'email'
-    )
+    );
