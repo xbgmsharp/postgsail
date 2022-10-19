@@ -145,8 +145,8 @@ AS $send_email_py$
     email_content = rv[0]['email_content']
 
     # Replace fields using input jsonb obj
-    plpy.notice('Parameters [{}] [{}]'.format(_user, app))
     if not _user or not app:
+        plpy.notice('send_email_py_fn Parameters [{}] [{}]'.format(_user, app))
         plpy.error('Error missing parameters')
         return None
     if 'logbook_name' in _user and _user['logbook_name']:
@@ -307,8 +307,9 @@ CREATE OR REPLACE FUNCTION logbook_update_avg_fn(
         SELECT AVG(speedOverGround), MAX(speedOverGround), MAX(windspeedapparent) INTO
                 avg_speed, max_speed, max_wind_speed
             FROM api.metrics 
-            WHERE time >= _start::TIMESTAMP WITHOUT TIME ZONE AND 
-                    time <= _end::TIMESTAMP WITHOUT TIME ZONE;
+            WHERE time >= _start::TIMESTAMP WITHOUT TIME ZONE
+                    AND time <= _end::TIMESTAMP WITHOUT TIME ZONE
+                    AND client_id = current_setting('vessel.client_id', false);
         RAISE NOTICE '-> Updated avg for logbook id=%, avg_speed:%, max_speed:%, max_wind_speed:%', _id, avg_speed, max_speed, max_wind_speed;
     END;
 $logbook_update_avg$ LANGUAGE plpgsql;
@@ -334,6 +335,7 @@ CREATE FUNCTION logbook_update_geom_distance_fn(IN _id integer, IN _start text, 
                         AND m.longitude IS NOT NULL
                         AND m.time >= _start::TIMESTAMP WITHOUT TIME ZONE
                         AND m.time <= _end::TIMESTAMP WITHOUT TIME ZONE
+                        AND client_id = current_setting('vessel.client_id', false)
                     ORDER BY m.time ASC
             )
         ) INTO _track_geom;
@@ -380,6 +382,7 @@ CREATE FUNCTION logbook_update_geojson_fn(IN _id integer, IN _start text, IN _en
 		        AND m.longitude IS NOT NULL
                 AND time >= _start::TIMESTAMP WITHOUT TIME ZONE
                 AND time <= _end::TIMESTAMP WITHOUT TIME ZONE
+                AND client_id = current_setting('vessel.client_id', false)
 		    ORDER BY m.time asc
 		   )  
 		) AS t;
@@ -413,6 +416,7 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         log_settings jsonb;
         user_settings jsonb;
         app_settings jsonb;
+        vessel_settings jsonb;
         geojson jsonb;
     BEGIN
         -- If _id is not NULL
@@ -423,6 +427,9 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
             FROM api.logbook
             WHERE active IS false
                 AND id = _id;
+
+        PERFORM set_config('vessel.client_id', logbook_rec.client_id, false);
+        RAISE WARNING 'public.process_logbook_queue_fn() scheduler vessel.client_id %', current_setting('vessel.client_id', false);
 
         -- geo reverse _from_lng _from_lat
         -- geo reverse _to_lng _to_lat
@@ -602,10 +609,19 @@ CREATE OR REPLACE FUNCTION process_account_queue_fn(IN _email TEXT) RETURNS void
         user_settings jsonb;
         app_settings jsonb;
     BEGIN
-        -- If _email is not NULL
+        IF _email IS NULL OR _email = '' THEN
+            RAISE EXCEPTION 'Invalid email'
+                USING HINT = 'Unkown email';
+            RETURN;
+        END IF;
         SELECT * INTO account_rec
             FROM auth.accounts
             WHERE email = _email;
+        IF account_rec.email IS NULL OR account_rec.email = '' THEN
+            RAISE EXCEPTION 'Invalid email'
+                USING HINT = 'Unkown email';
+            RETURN;
+        END IF;
         -- Gather email and pushover app settings
         app_settings := get_app_settings_fn();
         -- Gather user settings
@@ -629,10 +645,19 @@ CREATE OR REPLACE FUNCTION process_vessel_queue_fn(IN _email TEXT) RETURNS void 
         user_settings jsonb;
         app_settings jsonb;
     BEGIN
-        -- If _email is not NULL
+        IF _email IS NULL OR _email = '' THEN
+            RAISE EXCEPTION 'Invalid email'
+                USING HINT = 'Unkown email';
+            RETURN;
+        END IF;
         SELECT * INTO vessel_rec
             FROM auth.vessels
             WHERE owner_email = _email;
+        IF vessel_rec.owner_email IS NULL OR vessel_rec.owner_email = '' THEN
+            RAISE EXCEPTION 'Invalid email'
+                USING HINT = 'Unkown email';
+            RETURN;
+        END IF;
         -- Gather user_settings from 
         -- if notification email
         -- -- Send email
@@ -736,6 +761,38 @@ $get_user_settings_from_clientid$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION
     public.get_user_settings_from_clientid_fn
     IS 'get user settings details from a clientid, initiate for notifications';
+
+DROP FUNCTION IF EXISTS set_vessel_settings_from_clientid_fn;
+CREATE OR REPLACE FUNCTION set_vessel_settings_from_clientid_fn(
+    IN clientid TEXT,
+    OUT vessel_settings JSONB
+    ) RETURNS JSONB
+AS $set_vessel_settings_from_clientid$
+    DECLARE
+    BEGIN
+        -- If client_id is not NULL
+        IF clientid IS NULL OR clientid = '' THEN
+            RAISE WARNING '-> set_vessel_settings_from_clientid_fn invalid input %', clientid;
+        END IF;
+        SELECT
+            json_build_object(
+                    'name' , v.name,
+                    'mmsi', v.mmsi,
+                    'client_id', m.client_id
+                    ) INTO vessel_settings
+            FROM auth.accounts a, auth.vessels v, api.metadata m
+            WHERE m.mmsi = v.mmsi
+                AND m.client_id = clientid;
+        PERFORM set_config('vessel.mmsi', vessel_rec.mmsi, false);
+        PERFORM set_config('vessel.name', vessel_rec.name, false);
+        PERFORM set_config('vessel.client_id', vessel_rec.client_id, false);
+    END;
+$set_vessel_settings_from_clientid$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.set_vessel_settings_from_clientid_fn
+    IS 'set_vessel settings details from a clientid, initiate for process queue functions';
+
 
 ---------------------------------------------------------------------------
 -- Queue handling
