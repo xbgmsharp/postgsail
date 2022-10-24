@@ -196,12 +196,12 @@ AS $send_email_py$
                 server.starttls()
                 server.login(app['app.email_user'], app['app.email_pass'])
             #server.send_message(msg)
-            server.sendmail(msg["To"], msg["From"], msg.as_string())
+            server.sendmail(msg["From"], msg["To"], msg.as_string())
             server.quit()
         # tell the script to report if your message was sent or which errors need to be fixed
         plpy.notice('Sent email successfully to [{}] [{}]'.format(msg["To"], msg["Subject"]))
         return None
-    except OSError as error :
+    except OSError as error:
         plpy.error(error)
     except smtplib.SMTPConnectError:
         plpy.error('Failed to connect to the server. Bad connection settings?')
@@ -341,15 +341,18 @@ CREATE FUNCTION logbook_update_geom_distance_fn(IN _id integer, IN _start text, 
         ) INTO _track_geom;
         RAISE NOTICE '-> GIS LINESTRING %', _track_geom;
         -- SELECT ST_Length(_track_geom,false) INTO _track_distance;
+        -- Meter to Nautical Mile (international) Conversion
         -- SELECT TRUNC (st_length(st_transform(track_geom,4326)::geography)::INT / 1.852) from logbook where id = 209; -- in NM
-        SELECT TRUNC (ST_Length(_track_geom,false)::INT / 1.852) INTO _track_distance; -- in NM
+        -- SELECT (st_length(st_transform(track_geom,4326)::geography)::INT * 0.0005399568) from api.logbook where id = 1; -- in NM
+        --SELECT TRUNC (ST_Length(_track_geom,false)::INT / 1.852) INTO _track_distance; -- in NM
+        SELECT TRUNC (ST_Length(_track_geom,false)::INT * 0.0005399568, 4) INTO _track_distance; -- in NM
         RAISE NOTICE '-> GIS Length %', _track_distance;
     END;
 $logbook_geo_distance$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
     public.logbook_update_geom_distance_fn
-    IS 'Update logbook details with geometry data an distance, ST_Length';
+    IS 'Update logbook details with geometry data an distance, ST_Length in Nautical Mile (international)';
 
 -- Create GeoJSON for api consum.
 CREATE FUNCTION logbook_update_geojson_fn(IN _id integer, IN _start text, IN _end text,
@@ -429,7 +432,7 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
                 AND id = _id;
 
         PERFORM set_config('vessel.client_id', logbook_rec.client_id, false);
-        RAISE WARNING 'public.process_logbook_queue_fn() scheduler vessel.client_id %', current_setting('vessel.client_id', false);
+        --RAISE WARNING 'public.process_logbook_queue_fn() scheduler vessel.client_id %', current_setting('vessel.client_id', false);
 
         -- geo reverse _from_lng _from_lat
         -- geo reverse _to_lng _to_lat
