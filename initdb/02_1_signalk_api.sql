@@ -73,32 +73,6 @@ UPDATE pg_language SET lanpltrusted = true WHERE lanname = 'plpython3u';
 ---------------------------------------------------------------------------
 -- Tables
 --
--- Metrics from signalk
-CREATE TABLE IF NOT EXISTS api.metrics (
-  time TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-  client_id VARCHAR(255) NOT NULL,
-  latitude DOUBLE PRECISION NULL,
-  longitude DOUBLE PRECISION NULL,
-  speedOverGround DOUBLE PRECISION NULL,
-  courseOverGroundTrue DOUBLE PRECISION NULL,
-  windSpeedApparent DOUBLE PRECISION NULL,
-  angleSpeedApparent DOUBLE PRECISION NULL,
-  status VARCHAR(100) NULL,
-  metrics jsonb NULL
-);
--- Description
-COMMENT ON TABLE
-    api.metrics
-    IS 'Stores metrics from vessel';
-
--- Index todo!
-CREATE INDEX ON api.metrics (client_id, time DESC);
-CREATE INDEX ON api.metrics (status, time DESC);
--- json index??
-CREATE INDEX ON api.metrics using GIN (metrics);
--- timescaledb hypertable
-SELECT create_hypertable('api.metrics', 'time');
-
 ---------------------------------------------------------------------------
 -- Metadata from signalk
 CREATE TABLE IF NOT EXISTS api.metadata(
@@ -122,6 +96,33 @@ COMMENT ON TABLE
 
 -- Index todo!
 CREATE INDEX metadata_client_id_idx ON api.metadata (client_id);
+
+---------------------------------------------------------------------------
+-- Metrics from signalk
+CREATE TABLE IF NOT EXISTS api.metrics (
+  time TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+  client_id VARCHAR(255) NOT NULL REFERENCES api.metadata(client_id) ON DELETE RESTRICT,
+  latitude DOUBLE PRECISION NULL,
+  longitude DOUBLE PRECISION NULL,
+  speedOverGround DOUBLE PRECISION NULL,
+  courseOverGroundTrue DOUBLE PRECISION NULL,
+  windSpeedApparent DOUBLE PRECISION NULL,
+  angleSpeedApparent DOUBLE PRECISION NULL,
+  status VARCHAR(100) NULL,
+  metrics jsonb NULL
+);
+-- Description
+COMMENT ON TABLE
+    api.metrics
+    IS 'Stores metrics from vessel';
+
+-- Index todo!
+CREATE INDEX ON api.metrics (client_id, time DESC);
+CREATE INDEX ON api.metrics (status, time DESC);
+-- json index??
+CREATE INDEX ON api.metrics using GIN (metrics);
+-- timescaledb hypertable
+SELECT create_hypertable('api.metrics', 'time');
 
 ---------------------------------------------------------------------------
 -- Logbook
@@ -240,8 +241,8 @@ COMMENT ON COLUMN api.moorages.geog IS 'postgis geography type default SRID 4326
 ---------------------------------------------------------------------------
 -- Stay Type
 CREATE TABLE IF NOT EXISTS api.stays_at(
-  stay_code   INTEGER,
-  description TEXT
+  stay_code   INTEGER NOT NULL,
+  description TEXT NOT NULL
 );
 -- Description
 COMMENT ON TABLE api.stays_at IS 'Stay Type';
