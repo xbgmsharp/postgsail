@@ -1,5 +1,5 @@
 ---------------------------------------------------------------------------
--- PostSail => Postgres + TimescaleDB + PostGIS + PostgREST
+-- PostgSail => Postgres + TimescaleDB + PostGIS + PostgREST
 -- 
 -- Inspired from:
 -- https://groups.google.com/g/signalk/c/W2H15ODCic4
@@ -83,10 +83,10 @@ CREATE TABLE IF NOT EXISTS api.metadata(
   length DOUBLE PRECISION NULL,
   beam DOUBLE PRECISION NULL,
   height DOUBLE PRECISION NULL,
-  ship_type VARCHAR(255) NULL,
+  ship_type VARCHAR(255) NULL, -- Should be an INT !?
   plugin_version VARCHAR(10) NOT NULL,
   signalk_version VARCHAR(10) NOT NULL,
-  time TIMESTAMP WITHOUT TIME ZONE NOT NULL, -- last_update
+  time TIMESTAMP WITHOUT TIME ZONE NOT NULL, -- should be rename to last_update !?
   active BOOLEAN DEFAULT True -- monitor online/offline
 );
 -- Description
@@ -96,6 +96,8 @@ COMMENT ON TABLE
 
 -- Index todo!
 CREATE INDEX metadata_client_id_idx ON api.metadata (client_id);
+CREATE INDEX metadata_mmsi_idx ON api.metadata (mmsi);
+CREATE INDEX metadata_name_idx ON api.metadata (name);
 
 ---------------------------------------------------------------------------
 -- Metrics from signalk
@@ -263,6 +265,8 @@ CREATE FUNCTION metadata_upsert_trigger_fn() RETURNS trigger AS $metadata_upsert
         metadata_id integer;
         metadata_active boolean;
     BEGIN
+        -- Set client_id to new value to allow RLS
+        PERFORM set_config('vessel.client_id', NEW.client_id, false);
         -- UPSERT - Insert vs Update for Metadata
         RAISE NOTICE 'metadata_upsert_trigger_fn';
         SELECT m.id,m.active INTO metadata_id,metadata_active
@@ -363,11 +367,11 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
             ORDER BY m.time DESC LIMIT 1;
         RAISE NOTICE 'Metrics Status, New:[%] Previous:[%]', NEW.status, previous_status;
         IF NEW.status IS NULL THEN
-            RAISE WARNING 'Invalid new status [%], update to default moored', NEW.status;
+            RAISE WARNING 'Metrics Unknow NEW.status from vessel [%], set to default moored', NEW.status;
             NEW.status := 'moored';
         END IF;
         IF previous_status IS NULL THEN
-            RAISE WARNING 'Invalid previous status [%], update to default moored', previous_status;
+            RAISE WARNING 'Metrics Unknow previous_status from vessel [%], set to default moored', previous_status;
             previous_status := 'moored';
             -- Add new stay as no previous entry exist
             INSERT INTO api.stays 
@@ -376,11 +380,11 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                 RETURNING id INTO stay_id;
             -- Add stay entry to process queue for further processing
             INSERT INTO process_queue (channel, payload, stored) values ('new_stay', stay_id, now());
-            RAISE WARNING 'Insert first stay as no previous metrics exist, stay_id %', stay_id;
+            RAISE WARNING 'Metrics Insert first stay as no previous metrics exist, stay_id %', stay_id;
         END IF;
         IF previous_time = NEW.time THEN
             -- Ignore entry if same time
-            RAISE WARNING 'Ignoring metric, duplicate time [%] = [%]', previous_time, NEW.time;
+            RAISE WARNING 'Metrics Ignoring metric, duplicate time [%] = [%]', previous_time, NEW.time;
             RETURN NULL;
         END IF;
 
@@ -388,8 +392,8 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
         -- Check the state and if any previous/current entry
         IF previous_status <> NEW.status AND (NEW.status = 'sailing' OR NEW.status = 'motoring') THEN
             -- Start new log
-            RAISE WARNING 'Start new log, New:[%] Previous:[%]', NEW.status, previous_status;
-            RAISE NOTICE 'Inserting new trip [%]', NEW.status;
+            RAISE WARNING 'Metrics Start new log, New:[%] Previous:[%]', NEW.status, previous_status;
+            RAISE NOTICE 'Metrics Inserting new trip [%]', NEW.status;
             INSERT INTO api.logbook 
                 (client_id, active, _from_time, _from_lat, _from_lng)
                 VALUES (NEW.client_id, true, NEW.time, NEW.latitude, NEW.longitude);
@@ -401,7 +405,7 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                     AND s.client_id = NEW.client_id
                     AND active IS true
                 LIMIT 1;
-            RAISE NOTICE 'Updating stay status [%] [%] [%]', stay_id, NEW.status, NEW.time;
+            RAISE NOTICE 'Metrics Updating stay status [%] [%] [%]', stay_id, NEW.status, NEW.time;
             IF stay_id IS NOT NULL THEN
                 UPDATE api.stays
                     SET
@@ -411,12 +415,12 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                 -- Add moorage entry to process queue for further processing
                 INSERT INTO process_queue (channel, payload, stored) values ('new_moorage', stay_id, now());
             ELSE
-                RAISE WARNING 'Invalid stay_id [%] [%]', stay_id, NEW.time;
+                RAISE WARNING 'Metrics Invalid stay_id [%] [%]', stay_id, NEW.time;
             END IF;
         ELSIF previous_status <> NEW.status AND (NEW.status = 'moored' OR NEW.status = 'anchored') THEN
             -- Start new stays
-            RAISE WARNING 'Start new stay, New:[%] Previous:[%]', NEW.status, previous_status;
-            RAISE NOTICE 'Inserting new stay [%]', NEW.status;
+            RAISE WARNING 'Metrics new stay, New:[%] Previous:[%]', NEW.status, previous_status;
+            RAISE NOTICE 'Metrics Inserting new stay [%]', NEW.status;
             -- if metric status is anchored set stay_code accordingly
             stay_code = 1;
             IF NEW.status = 'anchored' THEN
@@ -439,7 +443,7 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                 LIMIT 1;
             IF logbook_id IS NOT NULL THEN
                 -- todo check on time start vs end
-                RAISE NOTICE 'Updating trip status [%] [%] [%]', logbook_id, NEW.status, NEW.time;
+                RAISE NOTICE 'Metrics Updating trip status [%] [%] [%]', logbook_id, NEW.status, NEW.time;
                 UPDATE api.logbook 
                     SET 
                         active = false, 
@@ -450,7 +454,7 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                 -- Add logbook entry to process queue for later processing
                 INSERT INTO process_queue (channel, payload, stored) values ('new_logbook', logbook_id, now());
             ELSE
-                RAISE WARNING 'Invalid logbook_id [%] [%]', logbook_id, NEW.time;
+                RAISE WARNING 'Metrics Invalid logbook_id [%] [%]', logbook_id, NEW.time;
             END IF;
         END IF;
         RETURN NEW; -- Finally insert the actual new metric
@@ -936,7 +940,7 @@ CREATE VIEW timelapse AS -- todo
 
 -- View main monitoring for grafana
 -- LAST Monitoring data from json!
-CREATE VIEW api.monitoring AS
+CREATE VIEW api.monitoring_view AS
     SELECT 
         time AS "time",
         metrics-> 'environment.water.temperature' AS waterTemperature,
@@ -964,7 +968,7 @@ CREATE VIEW api.monitoring_humidity AS
 
 -- View main monitoring for grafana
 -- LAST Monitoring data from json!
-CREATE VIEW api.monitorin_temperatures AS
+CREATE VIEW api.monitoring_temperatures AS
     SELECT 
         time AS "time",
         metrics-> 'environment.water.temperature' AS waterTemperature,
@@ -976,7 +980,7 @@ CREATE VIEW api.monitorin_temperatures AS
 -- json key regexp
 -- https://stackoverflow.com/questions/38204467/selecting-for-a-jsonb-array-contains-regex-match
 -- Last voltage data from json!
-CREATE VIEW api.voltage AS
+CREATE VIEW api.monitoring_voltage AS
     SELECT
         time AS "time",
         cast(metrics-> 'electrical.batteries.AUX2.voltage' AS numeric) AS AUX2,
