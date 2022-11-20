@@ -28,7 +28,7 @@ begin
             SET 
                 processed = NOW()
             WHERE id = process_rec.id;
-        RAISE NOTICE '-> updated process_queue table [%]', process_rec.id;
+        RAISE NOTICE '-> cron_process_new_logbook_fn updated process_queue table [%]', process_rec.id;
     END LOOP;
 END;
 $$ language plpgsql;
@@ -57,7 +57,7 @@ begin
             SET 
                 processed = NOW()
             WHERE id = process_rec.id;
-        RAISE NOTICE '-> updated process_queue table [%]', process_rec.id;
+        RAISE NOTICE '-> cron_process_new_stay_fn updated process_queue table [%]', process_rec.id;
     END LOOP;
 END;
 $$ language plpgsql;
@@ -87,7 +87,7 @@ begin
             SET 
                 processed = NOW()
             WHERE id = process_rec.id;
-        RAISE NOTICE '-> updated process_queue table [%]', process_rec.id;
+        RAISE NOTICE '-> cron_process_new_moorage_fn updated process_queue table [%]', process_rec.id;
     END LOOP;
 END;
 $$ language plpgsql;
@@ -123,12 +123,22 @@ begin
             SET 
                 active = False
             WHERE id = metadata_rec.id;
-        RAISE NOTICE '-> updated api.metadata table to inactive for [%]', metadata_rec.id;
+
+        IF metadata_rec.client_id IS NULL OR metadata_rec.client_id = '' THEN
+            RAISE WARNING '-> cron_process_monitor_offline_fn invalid metadata record client_id %', client_id;
+            RAISE EXCEPTION 'Invalid metadata'
+                USING HINT = 'Unkown client_id';
+            RETURN;
+        END IF;
+        PERFORM set_config('vessel.client_id', metadata_rec.client_id, false);
+        RAISE DEBUG '-> DEBUG cron_process_monitor_offline_fn vessel.client_id %', current_setting('vessel.client_id', false);
+        RAISE NOTICE '-> cron_process_monitor_offline_fn updated api.metadata table to inactive for [%] [%]', metadata_rec.id, metadata_rec.client_id;
+
         -- Gather email and pushover app settings
         app_settings = get_app_settings_fn();
         -- Gather user settings
         user_settings := get_user_settings_from_clientid_fn(metadata_rec.client_id::TEXT);
-        RAISE DEBUG '-> debug monitor_offline get_user_settings_from_clientid_fn [%]', user_settings;
+        RAISE DEBUG '-> cron_process_monitor_offline_fn get_user_settings_from_clientid_fn [%]', user_settings;
         -- Send notification
         --PERFORM send_notification_fn('monitor_offline'::TEXT, metadata_rec::RECORD);
         PERFORM send_email_py_fn('monitor_offline'::TEXT, user_settings::JSONB, app_settings::JSONB);
@@ -139,7 +149,7 @@ begin
             VALUES 
                 ('monitoring_offline', metadata_rec.id, metadata_rec.interval, now())
             RETURNING id INTO process_id;
-        RAISE NOTICE '-> updated process_queue table [%]', process_id;
+        RAISE NOTICE '-> cron_process_monitor_offline_fn updated process_queue table [%]', process_id;
     END LOOP;
 END;
 $$ language plpgsql;
@@ -164,15 +174,25 @@ begin
             where channel = 'monitoring_online' and processed is null
             order by stored asc
     LOOP
-        RAISE NOTICE '-> cron_process_monitor_online_fn metadata_id [%]', process_rec.payload;
+        RAISE NOTICE '-> cron_process_monitor_online_fn  metadata_id [%]', process_rec.payload;
         SELECT * INTO metadata_rec 
             FROM api.metadata
             WHERE id = process_rec.payload::INTEGER;
+
+        IF metadata_rec.client_id IS NULL OR metadata_rec.client_id = '' THEN
+            RAISE WARNING '-> cron_process_monitor_online_fn invalid metadata record client_id %', client_id;
+            RAISE EXCEPTION 'Invalid metadata'
+                USING HINT = 'Unkown client_id';
+            RETURN;
+        END IF;
+        PERFORM set_config('vessel.client_id', metadata_rec.client_id, false);
+        RAISE DEBUG '-> DEBUG cron_process_monitor_online_fn vessel.client_id %', current_setting('vessel.client_id', false);
+
         -- Gather email and pushover app settings
         app_settings = get_app_settings_fn();
         -- Gather user settings
         user_settings := get_user_settings_from_clientid_fn(metadata_rec.client_id::TEXT);
-        RAISE NOTICE '-> debug monitor_online get_user_settings_from_clientid_fn [%]', user_settings;
+        RAISE DEBUG '-> DEBUG cron_process_monitor_online_fn get_user_settings_from_clientid_fn [%]', user_settings;
         -- Send notification
         --PERFORM send_notification_fn('monitor_online'::TEXT, metadata_rec::RECORD);
         PERFORM send_email_py_fn('monitor_online'::TEXT, user_settings::JSONB, app_settings::JSONB);
@@ -182,7 +202,7 @@ begin
             SET 
                 processed = NOW()
             WHERE id = process_rec.id;
-        RAISE NOTICE '-> updated process_queue table [%]', process_rec.id;
+        RAISE NOTICE '-> cron_process_monitor_online_fn updated process_queue table [%]', process_rec.id;
     END LOOP;
 END;
 $$ language plpgsql;
@@ -211,7 +231,7 @@ begin
             SET 
                 processed = NOW()
             WHERE id = process_rec.id;
-        RAISE NOTICE '-> updated process_queue table [%]', process_rec.id;
+        RAISE NOTICE '-> cron_process_new_account_fn updated process_queue table [%]', process_rec.id;
     END LOOP;
 END;
 $$ language plpgsql;
@@ -240,7 +260,7 @@ begin
             SET 
                 processed = NOW()
             WHERE id = process_rec.id;
-        RAISE NOTICE '-> updated process_queue table [%]', process_rec.id;
+        RAISE NOTICE '-> cron_process_new_vessel_fn updated process_queue table [%]', process_rec.id;
     END LOOP;
 END;
 $$ language plpgsql;
