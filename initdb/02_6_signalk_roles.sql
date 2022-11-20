@@ -26,6 +26,10 @@ grant execute on function api.login(text,text) to api_anonymous;
 grant execute on function api.signup(text,text,text,text) to api_anonymous;
 -- explicitly limit EXECUTE privileges to pgrest db-pre-request function
 grant execute on function public.check_jwt() to api_anonymous;
+-- explicitly limit EXECUTE privileges to only telegram bot auth function
+grant execute on function api.bot(text,text) to api_anonymous;
+-- explicitly limit EXECUTE privileges to only pushover subscription validation function
+grant execute on function api.pushover_fn(text,text) to api_anonymous;
 
 -- authenticator
 -- login role
@@ -49,19 +53,19 @@ GRANT user_role to authenticator;
 GRANT USAGE ON SCHEMA api TO user_role;
 GRANT USAGE, SELECT ON SEQUENCE api.logbook_id_seq,api.metadata_id_seq,api.moorages_id_seq,api.stays_id_seq TO user_role;
 GRANT SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata,api.stays_at TO user_role;
+-- To check?
 GRANT SELECT ON TABLE auth.vessels TO user_role;
--- Allow update on table for notes
---GRANT UPDATE ON TABLE api.logbook,api.moorages,api.stays TO user_role;
 -- Allow users to update certain columns
 GRANT UPDATE (name, notes) ON api.logbook TO user_role;
 GRANT UPDATE (name, notes, stay_code) ON api.stays TO user_role;
 GRANT UPDATE (name, notes, stay_code, home_flag) ON api.moorages TO user_role;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA api TO user_role;
 -- explicitly limit EXECUTE privileges to pgrest db-pre-request function
-GRANT EXECUTE ON FUNCTION api.export_logbook_geojson_linestring_fn(int4) TO user_role;
-GRANT EXECUTE ON FUNCTION public.check_jwt() TO user_role;
-GRANT EXECUTE ON FUNCTION public.st_asgeojson(text) TO user_role;
-GRANT EXECUTE ON FUNCTION public.geography_eq(geography, geography) TO user_role;
+--GRANT EXECUTE ON FUNCTION public.check_jwt() TO user_role;
+-- Allow others functions or allow all in public !! ??
+--GRANT EXECUTE ON FUNCTION api.export_logbook_geojson_linestring_fn(int4) TO user_role;
+--GRANT EXECUTE ON FUNCTION public.st_asgeojson(text) TO user_role;
+--GRANT EXECUTE ON FUNCTION public.geography_eq(geography, geography) TO user_role;
 -- TODO should not be need !! ??
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO user_role;
 
@@ -71,10 +75,12 @@ ALTER VIEW api.stays_view OWNER TO user_role;
 ALTER VIEW api.moorages_view OWNER TO user_role;
 ALTER VIEW api.logs_view OWNER TO user_role;
 ALTER VIEW api.vessel_p_view OWNER TO user_role;
+ALTER VIEW api.monitoring_view OWNER TO user_role;
 -- Remove all permissions except select
 REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.stays_view FROM user_role;
 REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.moorages_view FROM user_role;
 REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.logs_view FROM user_role;
+REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.monitoring_view FROM user_role;
 
 -- Allow read and update on VIEWS
 -- Web detail view
@@ -105,7 +111,7 @@ GRANT EXECUTE ON FUNCTION public.check_jwt() to vessel_role;
 
 --- Scheduler:
 -- TODO: currently cron function are run as super user, switch to scheduler role.
--- Scheduler read-only all, and write on logbook, stays, moorage, process_queue
+-- Scheduler read-only all, and write on api.logbook, api.stays, api.moorages, public.process_queue, auth.otp
 -- Crons
 --CREATE ROLE scheduler WITH NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION;
 CREATE ROLE scheduler WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 10 LOGIN;
@@ -115,9 +121,10 @@ GRANT SELECT ON TABLE api.metrics,api.metadata TO scheduler;
 GRANT INSERT, UPDATE, SELECT ON TABLE api.logbook,api.moorages,api.stays TO scheduler;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO scheduler;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO scheduler;
-GRANT SELECT,UPDATE ON TABLE process_queue TO scheduler;
+GRANT SELECT,UPDATE ON TABLE public.process_queue TO scheduler;
 GRANT USAGE ON SCHEMA auth TO scheduler;
 GRANT SELECT ON ALL TABLES IN SCHEMA auth TO scheduler;
+GRANT SELECT,UPDATE ON TABLE auth.otp TO scheduler;
 
 ---------------------------------------------------------------------------
 -- Security policy
@@ -130,12 +137,12 @@ CREATE POLICY admin_all ON api.metadata TO current_user
     WITH CHECK (true);
 -- Allow vessel_role to insert and select on their own records
 CREATE POLICY api_vessel_role ON api.metadata TO vessel_role
-    USING (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%')
+    USING (client_id = current_setting('vessel.client_id', false))
     WITH CHECK (true);
 -- Allow user_role to update and select on their own records
 CREATE POLICY api_user_role ON api.metadata TO user_role
-    USING (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%')
-    WITH CHECK (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%');
+    USING (client_id = current_setting('vessel.client_id', true))
+    WITH CHECK (client_id = current_setting('vessel.client_id', false));
 -- Allow scheduler to update and select based on the client_id
 CREATE POLICY api_scheduler_role ON api.metadata TO scheduler
     USING (client_id = current_setting('vessel.client_id', false))
@@ -148,12 +155,12 @@ CREATE POLICY admin_all ON api.metrics TO current_user
     WITH CHECK (true);
 -- Allow vessel_role to insert and select on their own records
 CREATE POLICY api_vessel_role ON api.metrics TO vessel_role
-    USING (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%')
+    USING (client_id = current_setting('vessel.client_id', false))
     WITH CHECK (true);
 -- Allow user_role to update and select on their own records
 CREATE POLICY api_user_role ON api.metrics TO user_role
-    USING (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%')
-    WITH CHECK (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%');
+    USING (client_id = current_setting('vessel.client_id', true))
+    WITH CHECK (client_id = current_setting('vessel.client_id', false));
 -- Allow scheduler to update and select based on the client_id
 CREATE POLICY api_scheduler_role ON api.metrics TO scheduler
     USING (client_id = current_setting('vessel.client_id', false))
@@ -168,12 +175,12 @@ CREATE POLICY admin_all ON api.logbook TO current_user
     WITH CHECK (true);
 -- Allow vessel_role to insert and select on their own records
 CREATE POLICY api_vessel_role ON api.logbook TO vessel_role
-    USING (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%')
+    USING (client_id = current_setting('vessel.client_id', false))
     WITH CHECK (true);
 -- Allow user_role to update and select on their own records
 CREATE POLICY api_user_role ON api.logbook TO user_role
-    USING (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%')
-    WITH CHECK (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%');
+    USING (client_id = current_setting('vessel.client_id', true))
+    WITH CHECK (client_id = current_setting('vessel.client_id', false));
 -- Allow scheduler to update and select based on the client_id
 CREATE POLICY api_scheduler_role ON api.logbook TO scheduler
     USING (client_id = current_setting('vessel.client_id', false))
@@ -187,12 +194,12 @@ CREATE POLICY admin_all ON api.stays TO current_user
     WITH CHECK (true);
 -- Allow vessel_role to insert and select on their own records
 CREATE POLICY api_vessel_role ON api.stays TO vessel_role
-    USING (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%')
+    USING (client_id = current_setting('vessel.client_id', false))
     WITH CHECK (true);
 -- Allow user_role to update and select on their own records
 CREATE POLICY api_user_role ON api.stays TO user_role
-    USING (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%')
-    WITH CHECK (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%');
+    USING (client_id = current_setting('vessel.client_id', true))
+    WITH CHECK (client_id = current_setting('vessel.client_id', false));
 -- Allow scheduler to update and select based on the client_id
 CREATE POLICY api_scheduler_role ON api.stays TO scheduler
     USING (client_id = current_setting('vessel.client_id', false))
@@ -206,12 +213,12 @@ CREATE POLICY admin_all ON api.moorages TO current_user
     WITH CHECK (true);
 -- Allow vessel_role to insert and select on their own records
 CREATE POLICY api_vessel_role ON api.moorages TO vessel_role
-    USING (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%')
+    USING (client_id = current_setting('vessel.client_id', false))
     WITH CHECK (true);
 -- Allow user_role to update and select on their own records
 CREATE POLICY api_user_role ON api.moorages TO user_role
-    USING (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%')
-    WITH CHECK (client_id LIKE '%' || current_setting('vessel.mmsi', false) || '%');
+    USING (client_id = current_setting('vessel.client_id', true))
+    WITH CHECK (client_id = current_setting('vessel.client_id', false));
 -- Allow scheduler to update and select based on the client_id
 CREATE POLICY api_scheduler_role ON api.moorages TO scheduler
     USING (client_id = current_setting('vessel.client_id', false))
@@ -225,9 +232,22 @@ CREATE POLICY admin_all ON auth.vessels TO current_user
     WITH CHECK (true);
 -- Allow user_role to update and select on their own records
 CREATE POLICY api_user_role ON auth.vessels TO user_role
-    USING (mmsi = current_setting('vessel.mmsi', false)
+    USING (mmsi = current_setting('vessel.mmsi', true)
         AND owner_email = current_setting('request.jwt.claims', false)::json->>'email'
     )
     WITH CHECK (mmsi = current_setting('vessel.mmsi', false)
         AND owner_email = current_setting('request.jwt.claims', false)::json->>'email'
+    );
+
+-- Be sure to enable row level security on the table
+ALTER TABLE auth.accounts ENABLE ROW LEVEL SECURITY;
+-- Administrator can see all rows and add any rows
+CREATE POLICY admin_all ON auth.accounts TO current_user
+    USING (true)
+    WITH CHECK (true);
+-- Allow user_role to update and select on their own records
+CREATE POLICY api_user_role ON auth.accounts TO user_role
+    USING (email = current_setting('request.jwt.claims', false)::json->>'email'
+    )
+    WITH CHECK (email = current_setting('request.jwt.claims', false)::json->>'email'
     );
