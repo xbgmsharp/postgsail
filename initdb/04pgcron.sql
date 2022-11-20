@@ -11,7 +11,7 @@ CREATE EXTENSION IF NOT EXISTS pg_cron; -- provides a simple cron-based job sche
 TRUNCATE TABLE cron.job CONTINUE IDENTITY RESTRICT;
 
 -- Create a every 5 minutes or minute job cron_process_new_logbook_fn ??
-SELECT cron.schedule('cron_new_logbook', '*/5 * * * *', 'select public.cron_process_new_logbook_fn()') ;
+SELECT cron.schedule('cron_new_logbook', '*/5 * * * *', 'select public.cron_process_new_logbook_fn()');
 --UPDATE cron.job SET database = 'signalk' where jobname = 'cron_new_logbook';
 
 -- Create a every 5 minute job cron_process_new_stay_fn
@@ -43,8 +43,13 @@ SELECT cron.schedule('cron_new_vessel', '*/5 * * * *', 'select public.cron_proce
 SELECT cron.schedule('cron_vacumm', '1 1 * * 0', 'select public.cron_vaccum_fn()');
 -- Any other maintenance require?
 
+-- OTP
+-- Create a every 15 minute job cron_process_prune_otp_fn
+SELECT cron.schedule('cron_prune_otp', '*/15 * * * *', 'select public.cron_process_prune_otp_fn()');
 
+-- Cron job settings
 UPDATE cron.job SET database = 'signalk';
+UPDATE cron.job SET username = 'username'; -- TODO update to scheduler
 UPDATE cron.job SET nodename = '/var/run/postgresql/'; -- VS default localhost ??
 -- check job lists
 SELECT * FROM cron.job;
