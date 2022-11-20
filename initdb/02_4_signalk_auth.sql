@@ -25,31 +25,37 @@ CREATE TABLE IF NOT EXISTS auth.accounts (
   pass          text not null check (length(pass) < 512),
   role          name not null check (length(role) < 512),
   preferences   JSONB null,
-  created_at    TIMESTAMP WITHOUT TIME ZONE default NOW()
+  created_at    TIMESTAMP WITHOUT TIME ZONE default NOW(),
+  CONSTRAINT valid_first CHECK (length(first) > 1),
+  CONSTRAINT valid_last CHECK (length(last) > 1),
+  CONSTRAINT valid_pass CHECK (length(pass) > 4)
 );
--- Preferences jsonb
----- PushOver Notification, bool
----- PushOver user key, varchar
----- Email notification, bool
----- Instagram Handle, varchar
----- Timezone, TZ
----- Unit, bool
----- Preferred Homepage
----- Website, varchar or text
----- Public Profile
----- References to users ?
+-- Description
+COMMENT ON TABLE
+    auth.accounts
+    IS 'users account table';
+-- Indexes
+CREATE INDEX accounts_role_idx ON auth.accounts (role);
+CREATE INDEX accounts_preferences_idx ON auth.accounts using GIN (preferences);
 
 DROP TABLE IF EXISTS auth.vessels;
 CREATE TABLE IF NOT EXISTS auth.vessels (
 --  vesselId    UUID PRIMARY KEY REFERENCES auth.accounts(id) ON DELETE RESTRICT,
   owner_email TEXT PRIMARY KEY REFERENCES auth.accounts(email) ON DELETE RESTRICT,
-  mmsi		    TEXT UNIQUE,
-  name        TEXT,
---  owner_email TEXT,
+  mmsi		    TEXT UNIQUE, -- Should be a numeric range between 100000000 and 800000000.
+--  mmsi        NUMERIC UNIQUE,
+  name        TEXT NOT NULL CHECK (length(name) >= 3 AND length(name) < 512),
   pass        UUID,
   role        name not null check (length(role) < 512),
-  created_at  TIMESTAMP WITHOUT TIME ZONE default NOW()
+  created_at  TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+  uid         TEXT NOT NULL UNIQUE DEFAULT RIGHT(gen_random_uuid()::text, 12),
+  CONSTRAINT valid_mmsi CHECK (length(mmsi) < 10 AND mmsi <> '')
+--  CONSTRAINT valid_mmsi CHECK (mmsi > 100000000 AND mmsi < 800000000)
 );
+-- Description
+COMMENT ON TABLE
+    auth.vessels
+    IS 'vessels table link to accounts email column';
 
 create or replace function
 auth.check_role_exists() returns trigger as $$
@@ -74,8 +80,8 @@ CREATE TRIGGER new_account_entry AFTER INSERT ON auth.accounts
     FOR EACH ROW EXECUTE FUNCTION public.new_account_entry_fn();
 
 -- trigger check role on vessel
-drop trigger if exists ensure_user_role_exists on auth.vessels;
-create constraint trigger ensure_user_role_exists
+drop trigger if exists ensure_vessel_role_exists on auth.vessels;
+create constraint trigger ensure_vessel_role_exists
   after insert or update on auth.vessels
   for each row
   execute procedure auth.check_role_exists();
@@ -169,8 +175,8 @@ begin
   select auth.user_role(email, pass) into _role;
   if _role is null then
 	  RAISE WARNING 'Register new account email:[%]', email;
-	  INSERT INTO auth.accounts ( email, pass, first, last, role)
-	    VALUES (email, pass, firstname, lastname, 'user_role');
+	  INSERT INTO auth.accounts ( email, pass, first, last, role, preferences)
+	    VALUES (email, pass, firstname, lastname, 'user_role', '{"email_notifications":true}');
   end if;
   return ( api.login(email, pass) );
 end;
