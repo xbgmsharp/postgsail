@@ -15,17 +15,21 @@ CREATE SCHEMA IF NOT EXISTS auth;
 COMMENT ON SCHEMA auth IS 'auth postgrest for users and vessels';
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp"; -- provides functions to generate universally unique identifiers (UUIDs)
+CREATE EXTENSION IF NOT EXISTS "moddatetime"; -- provides functions for tracking last modification time
+CREATE EXTENSION IF NOT EXISTS "citext"; -- provides data type for case-insensitive character strings
+CREATE EXTENSION IF NOT EXISTS "pgcrypto"; -- provides cryptographic functions
 
 DROP TABLE IF EXISTS auth.accounts CASCADE;
 CREATE TABLE IF NOT EXISTS auth.accounts (
---  id            UUID DEFAULT uuid_generate_v4() NOT NULL,
-  email         text primary key check ( email ~* '^.+@.+\..+$' ),
+  userid        UUID NOT NULL UNIQUE DEFAULT uuid_generate_v4(),
+  email         citext primary key check ( email ~* '^.+@.+\..+$' ),
   first         text not null check (length(pass) < 512),
   last          text not null check (length(pass) < 512),
   pass          text not null check (length(pass) < 512),
   role          name not null check (length(role) < 512),
   preferences   JSONB null,
-  created_at    TIMESTAMP WITHOUT TIME ZONE default NOW(),
+  created_at    TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
   CONSTRAINT valid_first CHECK (length(first) > 1),
   CONSTRAINT valid_last CHECK (length(last) > 1),
   CONSTRAINT valid_pass CHECK (length(pass) > 4)
@@ -37,25 +41,40 @@ COMMENT ON TABLE
 -- Indexes
 CREATE INDEX accounts_role_idx ON auth.accounts (role);
 CREATE INDEX accounts_preferences_idx ON auth.accounts using GIN (preferences);
+CREATE INDEX accounts_userid_idx ON auth.accounts (userid);
+
+CREATE TRIGGER accounts_moddatetime
+	BEFORE UPDATE ON auth.accounts
+	FOR EACH ROW
+	EXECUTE PROCEDURE moddatetime (updated_at);
 
 DROP TABLE IF EXISTS auth.vessels;
 CREATE TABLE IF NOT EXISTS auth.vessels (
---  vesselId    UUID PRIMARY KEY REFERENCES auth.accounts(id) ON DELETE RESTRICT,
-  owner_email TEXT PRIMARY KEY REFERENCES auth.accounts(email) ON DELETE RESTRICT,
+  vesseid     TEXT NOT NULL UNIQUE DEFAULT RIGHT(gen_random_uuid()::text, 12),
+  owner_email CITEXT PRIMARY KEY REFERENCES auth.accounts(email) ON DELETE RESTRICT,
   mmsi		    TEXT UNIQUE, -- Should be a numeric range between 100000000 and 800000000.
---  mmsi        NUMERIC UNIQUE,
+--  mmsi        NUMERIC UNIQUE, -- MMSI can be optional but if present must be a valid one
   name        TEXT NOT NULL CHECK (length(name) >= 3 AND length(name) < 512),
-  pass        UUID,
+--  pass        text not null check (length(pass) < 512), -- unused
   role        name not null check (length(role) < 512),
   created_at  TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
-  uid         TEXT NOT NULL UNIQUE DEFAULT RIGHT(gen_random_uuid()::text, 12),
-  CONSTRAINT valid_mmsi CHECK (length(mmsi) < 10 AND mmsi <> '')
+  updated_at  TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+--  CONSTRAINT valid_mmsi CHECK (length(mmsi) < 10 AND mmsi <> '')
 --  CONSTRAINT valid_mmsi CHECK (mmsi > 100000000 AND mmsi < 800000000)
 );
 -- Description
 COMMENT ON TABLE
     auth.vessels
     IS 'vessels table link to accounts email column';
+-- Indexes
+CREATE INDEX vessels_role_idx ON auth.vessels (role);
+CREATE INDEX vessels_name_idx ON auth.vessels (name);
+CREATE INDEX vessels_vesseid_idx ON auth.vessels (vesseid);
+
+CREATE TRIGGER vessels_moddatetime
+	BEFORE UPDATE ON auth.vessels
+	FOR EACH ROW
+	EXECUTE PROCEDURE moddatetime (updated_at);
 
 create or replace function
 auth.check_role_exists() returns trigger as $$
@@ -88,8 +107,6 @@ create constraint trigger ensure_vessel_role_exists
 -- trigger add queue new vessel
 CREATE TRIGGER new_vessel_entry AFTER INSERT ON auth.vessels
     FOR EACH ROW EXECUTE FUNCTION public.new_vessel_entry_fn();
-
-create extension if not exists pgcrypto;
 
 create or replace function
 auth.encrypt_pass() returns trigger as $$
