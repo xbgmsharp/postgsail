@@ -716,7 +716,7 @@ COMMENT ON FUNCTION
     IS 'Find all stay within 100m of moorage geopoint';
 
 ---------------------------------------------------------------------------
--- API helper view
+-- API helper views
 --
 ---------------------------------------------------------------------------
 
@@ -792,7 +792,7 @@ COMMENT ON VIEW
 -- Stays web view
 -- TODO group by month
 DROP VIEW IF EXISTS api.stays_view;
-CREATE VIEW api.stays_view AS
+CREATE VIEW api.stays_view AS -- TODO
     SELECT 
         concat(
             extract(DAYS FROM (s.departed-s.arrived)::interval),
@@ -820,6 +820,36 @@ COMMENT ON VIEW
     api.stays_view
     IS 'Stays web view';
 
+DROP VIEW IF EXISTS api.stay_view;
+CREATE VIEW api.stay_view AS -- TODO missing arrival/departured from
+    SELECT
+        concat(
+            extract(DAYS FROM (s.departed-s.arrived)::interval),
+            ' days',
+            --DATE_TRUNC('day', s.departed-s.arrived),
+            ' stay at ',
+            s.name,
+            ' in ',
+            RTRIM(TO_CHAR(s.departed, 'Month')),
+            ' ',
+            TO_CHAR(s.departed, 'YYYY')
+            ) as Name,
+		s.name AS Moorage,
+        (s.departed-s.arrived) AS Duration,
+		sa.description AS "Stayed at",
+		s.arrived AS "Arrival Time",
+		s.departed AS "Arrival Time",
+        s.notes AS "Notes"
+	FROM api.stays s, api.stays_at sa
+	WHERE departed is not null
+        AND s.name is not null
+        AND s.stay_code = sa.stay_code
+    ORDER BY s.arrived DESC;
+-- Description
+COMMENT ON VIEW
+    api.stay_view
+    IS 'Stay web view';
+
 -- Moorages web view
 -- TODO, this is wrong using distinct (m.name) should be using postgis geog feature
 --DROP VIEW IF EXISTS api.moorages_view_old;
@@ -838,7 +868,7 @@ COMMENT ON VIEW
 
 -- the good way?
 DROP VIEW IF EXISTS api.moorages_view;
-CREATE OR REPLACE VIEW api.moorages_view AS
+CREATE OR REPLACE VIEW api.moorages_view AS -- TODO
     SELECT
         m.name AS Moorage,
         sa.description AS "Default Stay",
@@ -857,6 +887,23 @@ CREATE OR REPLACE VIEW api.moorages_view AS
 COMMENT ON VIEW
     api.moorages_view
     IS 'Moorages web view';
+
+DROP VIEW IF EXISTS api.moorage_view;
+CREATE OR REPLACE VIEW api.moorage_view AS -- TODO
+    SELECT
+        m.name AS "Preferred Name",
+        m.stay_code AS "Default Stay Type",
+        m.home_flag AS "Home",
+        EXTRACT(DAY FROM justify_hours ( m.stay_duration )) AS "Total Stay",
+        m.reference_count AS "Arrivals & Departures",
+        m.notes,
+        m.geog,
+    FROM api.moorages m
+    WHERE m.name is not null;
+-- Description
+COMMENT ON VIEW
+    api.moorage_view
+    IS 'Moorage web view';
 
 -- All moorage in 100 meters from the start of a logbook.
 -- ST_DistanceSphere Returns minimum distance in meters between two lon/lat points.
@@ -882,7 +929,7 @@ COMMENT ON VIEW
 ----> select sum(l.duration) as "Total Time Underway" from api.logbook l;
 -- Longest Nonstop Sail from logbook, eg longest trip duration and distance
 ----> select max(l.duration),max(l.distance) from api.logbook l;
-CREATE VIEW api.stats_logs_view AS -- todo
+CREATE VIEW api.stats_logs_view AS -- TODO
     WITH
         meta AS ( 
             SELECT m.name FROM api.metadata m ),
@@ -905,6 +952,9 @@ CREATE VIEW api.stats_logs_view AS -- todo
         lm.time AS last,
         l.* 
     FROM first_metric fm, last_metric lm, logbook l, meta m;
+COMMENT ON VIEW
+    api.stats_logs_view
+    IS 'Statistics Logs web view';
 
 -- Home Ports / Unique Moorages
 ----> select count(*) as "Home Ports" from api.moorages m where home_flag is true;
@@ -918,9 +968,40 @@ CREATE VIEW api.stats_logs_view AS -- todo
 ----> select sum(m.stay_duration) as "Time Spent Away" from api.moorages m where home_flag is false;
 -- Time Spent Away order by, group by stay_code (Dock, Anchor, Mooring Buoys, Unclassified)
 ----> select sa.description,sum(m.stay_duration) as "Time Spent Away" from api.moorages m, api.stays_at sa where home_flag is false AND m.stay_code = sa.stay_code group by m.stay_code,sa.description order by m.stay_code;
-CREATE VIEW api.stats_moorages_view AS -- todo
-    select *
-        from api.moorages;
+CREATE VIEW api.stats_moorages_view AS -- TODO
+    WITH
+        home_ports AS (
+            select count(*) as home_ports from api.moorages m where home_flag is true
+        ),
+        unique_moorage AS (
+            select count(*) as unique_moorage from api.moorages m
+        ),
+        time_at_home_ports AS (
+            select sum(m.stay_duration) as time_at_home_ports from api.moorages m where home_flag is true
+        ),
+        time_spent_away AS (
+            select sum(m.stay_duration) as time_spent_away from api.moorages m where home_flag is false
+        )
+    SELECT
+        home_ports.home_ports as "Home Ports",
+        unique_moorage.unique_moorage as "Unique Moorages",
+        time_at_home_ports.time_at_home_ports "Time Spent at Home Port(s)",
+        time_spent_away.time_spent_away as "Time Spent Away"
+    FROM home_ports, unique_moorage, time_at_home_ports, time_spent_away;
+COMMENT ON VIEW
+    api.stats_moorages_view
+    IS 'Statistics Moorages web view';
+
+CREATE VIEW api.stats_moorages_away_view AS -- TODO
+    SELECT sa.description,sum(m.stay_duration) as time_spent_away_by
+    FROM api.moorages m, api.stays_at sa
+    WHERE home_flag IS false
+        AND m.stay_code = sa.stay_code
+    GROUP BY m.stay_code,sa.description
+    ORDER BY m.stay_code;
+COMMENT ON VIEW
+    api.stats_moorages_away_view
+    IS 'Statistics Moorages Time Spent Away web view';
 
 --CREATE VIEW api.stats_view AS -- todo
 --    WITH
@@ -935,7 +1016,7 @@ CREATE VIEW api.stats_moorages_view AS -- todo
 
 -- global timelapse
 -- TODO
-CREATE VIEW timelapse AS -- todo
+CREATE VIEW timelapse AS -- TODO
     SELECT latitude, longitude from api.metrics;
 
 -- View main monitoring for grafana
