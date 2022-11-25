@@ -18,8 +18,8 @@ select current_database();
 -- api_anonymous role in the database with which to execute anonymous web requests, limit 10 connections
 -- api_anonymous allows JWT token generation with an expiration time via function api.login() from auth.accounts table
 create role api_anonymous WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOLOGIN NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 10;
---comment on role api_anonymous is
---    'The role that PostgREST will switch to when a user is not authenticated.';
+comment on role api_anonymous is
+    'The role that PostgREST will switch to when a user is not authenticated.';
 -- Limit to 10 connections
 --alter user api_anonymous connection limit 10;
 grant usage on schema api to api_anonymous;
@@ -44,8 +44,8 @@ grant api_anonymous to authenticator;
 
 -- Grafana user and role with login, read-only, limit 10 connections
 CREATE ROLE grafana WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 10 LOGIN PASSWORD 'mysecretpassword';
---comment on role grafana is
---    'Role that grafana will use for authenticated web users.';
+comment on role grafana is
+    'Role that grafana will use for authenticated web users.';
 GRANT USAGE ON SCHEMA api TO grafana;
 GRANT USAGE, SELECT ON SEQUENCE api.logbook_id_seq,api.metadata_id_seq,api.moorages_id_seq,api.stays_id_seq TO grafana;
 GRANT SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata TO grafana;
@@ -57,8 +57,8 @@ GRANT SELECT ON TABLE api.logs_view,api.moorages_view,api.stays_view TO grafana;
 -- nologin, web api only
 -- read-only for all and Read-Write on logbook, stays and moorage except for specific (name, notes) COLUMNS
 CREATE ROLE user_role WITH NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION;
---comment on role user_role is
---    'Role that PostgREST will switch to for authenticated web users.';
+comment on role user_role is
+    'Role that PostgREST will switch to for authenticated web users.';
 GRANT user_role to authenticator;
 GRANT USAGE ON SCHEMA api TO user_role;
 GRANT USAGE, SELECT ON SEQUENCE api.logbook_id_seq,api.metadata_id_seq,api.moorages_id_seq,api.stays_id_seq TO user_role;
@@ -110,8 +110,8 @@ REVOKE TRUNCATE, DELETE, TRIGGER, INSERT ON TABLE api.vessel_p_view FROM user_ro
 -- nologin
 -- insert-update-only for api.metrics,api.logbook,api.moorages,api.stays,api.metadata and sequences and process_queue
 CREATE ROLE vessel_role WITH NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION;
---comment on role vessel_role is
---    'Role that PostgREST will switch to for authenticated web vessels.';
+comment on role vessel_role is
+    'Role that PostgREST will switch to for authenticated web vessels.';
 GRANT vessel_role to authenticator;
 GRANT USAGE ON SCHEMA api TO vessel_role;
 GRANT INSERT, UPDATE, SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata TO vessel_role;
@@ -127,6 +127,8 @@ GRANT EXECUTE ON FUNCTION public.check_jwt() to vessel_role;
 -- Crons
 --CREATE ROLE scheduler WITH NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION;
 CREATE ROLE scheduler WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 10 LOGIN;
+comment on role vessel_role is
+    'Role that pgcron will use to process notification logbook,moorages,stays,monitoring.';
 GRANT scheduler to authenticator;
 GRANT USAGE ON SCHEMA api TO scheduler;
 GRANT SELECT ON TABLE api.metrics,api.metadata TO scheduler;
