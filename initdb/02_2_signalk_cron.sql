@@ -240,6 +240,35 @@ COMMENT ON FUNCTION
     public.cron_process_new_account_fn 
     IS 'init by pg_cron to check for new account pending update, if so perform process_account_queue_fn';
 
+-- CRON for new account pending otp validation notification
+CREATE FUNCTION cron_process_new_account_otp_validation_fn() RETURNS void AS $$
+declare
+    process_rec record;
+begin
+    -- Check for new account pending update
+    RAISE NOTICE 'cron_process_new_account_otp_validation_fn';
+    FOR process_rec in
+        SELECT * from process_queue
+            where channel = 'new_account_otp' and processed is null
+            order by stored asc
+    LOOP
+        RAISE NOTICE '-> cron_process_new_account_otp_validation_fn [%]', process_rec.payload;
+        -- update account
+        PERFORM process_account_otp_validation_queue_fn(process_rec.payload::TEXT);
+        -- update process_queue entry as processed
+        UPDATE process_queue
+            SET
+                processed = NOW()
+            WHERE id = process_rec.id;
+        RAISE NOTICE '-> cron_process_new_account_otp_validation_fn updated process_queue table [%]', process_rec.id;
+    END LOOP;
+END;
+$$ language plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.cron_process_new_account_otp_validation_fn
+    IS 'init by pg_cron to check for new account otp pending update, if so perform process_account_otp_validation_queue_fn';
+
 -- CRON for new vessel pending notification
 CREATE FUNCTION cron_process_new_vessel_fn() RETURNS void AS $$
 declare
