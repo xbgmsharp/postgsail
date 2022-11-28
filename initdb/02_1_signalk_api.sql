@@ -838,7 +838,7 @@ CREATE VIEW api.stay_view AS -- TODO missing arrival/departured from
         (s.departed-s.arrived) AS Duration,
 		sa.description AS "Stayed at",
 		s.arrived AS "Arrival Time",
-		s.departed AS "Arrival Time",
+		s.departed AS "Departure Time",
         s.notes AS "Notes"
 	FROM api.stays s, api.stays_at sa
 	WHERE departed is not null
@@ -897,7 +897,7 @@ CREATE OR REPLACE VIEW api.moorage_view AS -- TODO
         EXTRACT(DAY FROM justify_hours ( m.stay_duration )) AS "Total Stay",
         m.reference_count AS "Arrivals & Departures",
         m.notes,
-        m.geog,
+        m.geog
     FROM api.moorages m
     WHERE m.name is not null;
 -- Description
