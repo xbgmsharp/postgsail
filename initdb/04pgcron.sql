@@ -38,6 +38,10 @@ SELECT cron.schedule('cron_new_account', '*/5 * * * *', 'select public.cron_proc
 SELECT cron.schedule('cron_new_vessel', '*/5 * * * *', 'select public.cron_process_new_vessel_fn()');
 --UPDATE cron.job SET database = 'signalk' where jobname = 'cron_new_vessel';
 
+-- Create a every 6 minute job cron_process_new_account_otp_validation_queue_fn, delay from cron_new_account
+SELECT cron.schedule('cron_new_account_otp', '*/6 * * * *', 'select public.cron_process_new_account_otp_validation_fn()');
+--UPDATE cron.job SET database = 'signalk' where jobname = 'cron_new_account_otp';
+
 -- Maintenance
 -- Vacuum database at “At 01:01 on Sunday.”
 SELECT cron.schedule('cron_vacumm', '1 1 * * 0', 'select public.cron_vaccum_fn()');
