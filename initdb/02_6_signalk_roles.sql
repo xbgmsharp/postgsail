@@ -56,7 +56,7 @@ GRANT SELECT ON TABLE api.logs_view,api.moorages_view,api.stays_view TO grafana;
 -- Grafana_auth authticator user and role with login, read-only on auth.accounts, limit 10 connections
 CREATE ROLE grafana_auth WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 10 LOGIN PASSWORD 'mysecretpassword';
 comment on role grafana_auth is
-    'Role that grafana as authenticator via apache.';
+    'Role that grafana auth proxy authenticator via apache.';
 GRANT USAGE ON SCHEMA auth TO grafana_auth;
 --GRANT USAGE, SELECT ON SEQUENCE auth.accounts_pkey TO grafana_auth;
 GRANT SELECT ON TABLE auth.accounts TO grafana_auth;
