@@ -22,7 +22,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto"; -- provides cryptographic functions
 DROP TABLE IF EXISTS auth.accounts CASCADE;
 CREATE TABLE IF NOT EXISTS auth.accounts (
   userid        UUID NOT NULL UNIQUE DEFAULT uuid_generate_v4(),
-  email         citext primary key check ( email ~* '^.+@.+\..+$' ),
+  email         text primary key check ( email ~* '^.+@.+\..+$' ),
   first         text not null check (length(pass) < 512),
   last          text not null check (length(pass) < 512),
   pass          text not null check (length(pass) < 512),
@@ -51,14 +51,14 @@ CREATE TRIGGER accounts_moddatetime
 DROP TABLE IF EXISTS auth.vessels;
 CREATE TABLE IF NOT EXISTS auth.vessels (
   vesseid     TEXT NOT NULL UNIQUE DEFAULT RIGHT(gen_random_uuid()::text, 12),
-  owner_email CITEXT PRIMARY KEY REFERENCES auth.accounts(email) ON DELETE RESTRICT,
+  owner_email TEXT PRIMARY KEY REFERENCES auth.accounts(email) ON DELETE RESTRICT,
   mmsi		    TEXT UNIQUE, -- Should be a numeric range between 100000000 and 800000000.
 --  mmsi        NUMERIC UNIQUE, -- MMSI can be optional but if present must be a valid one
   name        TEXT NOT NULL CHECK (length(name) >= 3 AND length(name) < 512),
 --  pass        text not null check (length(pass) < 512), -- unused
   role        name not null check (length(role) < 512),
   created_at  TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
-  updated_at  TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
 --  CONSTRAINT valid_mmsi CHECK (length(mmsi) < 10 AND mmsi <> '')
 --  CONSTRAINT valid_mmsi CHECK (mmsi > 100000000 AND mmsi < 800000000)
 );
@@ -97,6 +97,9 @@ create constraint trigger ensure_user_role_exists
 -- trigger add queue new account
 CREATE TRIGGER new_account_entry AFTER INSERT ON auth.accounts
     FOR EACH ROW EXECUTE FUNCTION public.new_account_entry_fn();
+-- trigger add queue new account OTP validation
+CREATE TRIGGER new_account_otp_validation_entry AFTER INSERT ON auth.accounts
+    FOR EACH ROW EXECUTE FUNCTION public.new_account_otp_validation_entry_fn();
 
 -- trigger check role on vessel
 drop trigger if exists ensure_vessel_role_exists on auth.vessels;
