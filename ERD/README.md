@@ -2,7 +2,7 @@
 The Entity-Relationship Diagram (ERD) provides a graphical representation of database tables, columns, and inter-relationships. ERD can give sufficient information for the database administrator to follow when developing and maintaining the database.
 
 ## A global overview
-![API Schem](https://github.com/xbgmsharp/postgsail/ERD/postgsail.pgerd.png "API Schema")
+![API Schema](https://github.com/xbgmsharp/postgsail/ERD/postgsail.pgerd.png?raw=true "API Schema")
 
 ## Further
 There is 3 main schemas:
@@ -13,7 +13,7 @@ There is 3 main schemas:
       - ...
     - functions
       - ...
-![API Schem](https://github.com/xbgmsharp/postgsail/ERD/ERD_schema_api.png "API Schema")
+![API Schem](https://github.com/xbgmsharp/postgsail/ERD/ERD_schema_api.png?raw=true "API Schema")
 
 - Auth Schema ERD
   - tables
@@ -22,7 +22,7 @@ There is 3 main schemas:
     - ...
   - functions
     - ...
-![Auth Schema](https://github.com/xbgmsharp/postgsail/ERD/ERD_schema_auth.png "Auth Schema")
+![Auth Schema](https://github.com/xbgmsharp/postgsail/ERD/ERD_schema_auth.png?raw=true "Auth Schema")
 
 - Public Schema ERD
   - tables
@@ -31,5 +31,5 @@ There is 3 main schemas:
     - ...
   - functions
     - ...
-![Public Schema](https://github.com/xbgmsharp/postgsail/ERD/ERD_schema_public.png "Public Schema")
+![Public Schema](https://github.com/xbgmsharp/postgsail/ERD/ERD_schema_public.png?raw=true "Public Schema")
 
