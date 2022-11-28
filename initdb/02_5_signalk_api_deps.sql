@@ -1,5 +1,5 @@
 ---------------------------------------------------------------------------
--- singalk db api schema
+-- signalk db api schema
 -- View and Function that have dependency with auth schema
 
 -- List current database
@@ -181,13 +181,18 @@ BEGIN
 		--RAISE WARNING '-> first_c:[%] last_c:[%] pg_typeof:[%]', first_c,last_c,pg_typeof(value);
 		_value := to_jsonb(value)::jsonb;
 	END IF;
+    --RAISE WARNING '-> update_user_preferences_fn update preferences for user [%]', current_setting('request.jwt.claims', true)::json->>'email';
     UPDATE auth.accounts
 		SET preferences =
 				jsonb_set(preferences::jsonb, key::text[], _value::jsonb)
-		WHERE lower(email) = lower(current_setting('request.jwt.claims', true)::json->>'email');
+		WHERE
+			lower(email) = lower(current_setting('request.jwt.claims', true)::json->>'email')
+			OR (lower(email) = lower(current_setting('telegram.email', true)));
 	IF FOUND THEN
+        --RAISE WARNING '-> update_user_preferences_fn True';
 		RETURN True;
 	END IF;
+	--RAISE WARNING '-> update_user_preferences_fn False';
 	RETURN False;
 END;
 $update_user_preferences$ language plpgsql security definer;
