@@ -88,7 +88,7 @@ AS $verify_otp$
             WHERE otp_timestamp > NOW() AT TIME ZONE 'UTC' - INTERVAL '15 MINUTES'
                 AND otp_tries < 3 
                 AND otp_pass = token;
-        RETURN email;        
+        RETURN email;
     END;
 $verify_otp$ language plpgsql security definer;
 -- Description
@@ -124,6 +124,37 @@ COMMENT ON FUNCTION
     public.cron_process_prune_otp_fn
     IS 'init by pg_cron to purge older than 15 minutes OTP token';
 
+-- Email OTP validation
+-- Expose as an API endpoint
+DROP FUNCTION IF EXISTS api.email_fn;
+CREATE OR REPLACE FUNCTION api.email_fn(IN token TEXT) RETURNS BOOLEAN
+AS $email_validation$
+	DECLARE
+		_email TEXT := NULL;
+    BEGIN
+        -- Check parameters
+        IF token IS NULL THEN
+            RAISE EXCEPTION 'invalid input' USING HINT = 'check your parameter';
+        END IF;
+        -- Verify token
+        SELECT auth.verify_otp_fn(token) INTO _email;
+		IF _email IS NOT NULL THEN
+            -- Set user email into env to allow RLS update 
+            PERFORM set_config('user.email', _email, false);
+	        -- Enable email_validation
+            PERFORM api.update_user_preferences_fn('{email_valid}'::TEXT, True::TEXT);
+            -- Send Notification
+            --SELECT public.send_notification_fn();
+			RETURN True;
+		END IF;
+		RETURN False;
+    END;
+$email_validation$ language plpgsql security definer;
+-- Description
+COMMENT ON FUNCTION
+    api.email_fn
+    IS 'Store email_valid into user preferences if valid token/otp';
+
 -- Pushover Subscription API
 -- Web-Based Subscription Process
 -- https://pushover.net/api/subscriptions#web
@@ -141,10 +172,12 @@ AS $pushover$
         -- Verify token
         SELECT auth.verify_otp_fn(token) INTO _email;
 		IF _email IS NOT NULL THEN
-	        -- Add pushover_user_key
+            -- Set user email into env to allow RLS update 
+            PERFORM set_config('user.email', _email, false);
+            -- Add pushover_user_key
             PERFORM api.update_user_preferences_fn('{pushover_user_key}'::TEXT, pushover_user_key::TEXT);
             -- Enable phone_notifications
-            PERFORM api.update_user_preferences_fn('{phone_notifications}', True);
+            PERFORM api.update_user_preferences_fn('{phone_notifications}'::TEXT, True::TEXT);
             -- Send Notification
             --SELECT public.send_notification_fn();
 			RETURN True;
@@ -173,7 +206,8 @@ AS $telegram$
         -- Verify token
         SELECT auth.verify_otp_fn(token) INTO _email;
 		IF _email IS NOT NULL THEN
-			PERFORM set_config('telegram.email', _email, false);
+            -- Set user email into env to allow RLS update 
+            PERFORM set_config('user.email', _email, false);
 	        -- Add telegram
             SELECT api.update_user_preferences_fn('{telegram}'::TEXT, telegram_obj::TEXT) INTO _updated;
             -- Send Notification
