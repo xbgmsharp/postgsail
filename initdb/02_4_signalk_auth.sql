@@ -47,6 +47,10 @@ CREATE TRIGGER accounts_moddatetime
 	BEFORE UPDATE ON auth.accounts
 	FOR EACH ROW
 	EXECUTE PROCEDURE moddatetime (updated_at);
+-- Description
+COMMENT ON TRIGGER accounts_moddatetime
+  ON auth.accounts
+  IS 'Automatic update of updated_at on table modification';
 
 DROP TABLE IF EXISTS auth.vessels;
 CREATE TABLE IF NOT EXISTS auth.vessels (
@@ -75,6 +79,10 @@ CREATE TRIGGER vessels_moddatetime
 	BEFORE UPDATE ON auth.vessels
 	FOR EACH ROW
 	EXECUTE PROCEDURE moddatetime (updated_at);
+-- Description
+COMMENT ON TRIGGER vessels_moddatetime
+  ON auth.vessels
+  IS 'Automatic update of updated_at on table modification';
 
 create or replace function
 auth.check_role_exists() returns trigger as $$
