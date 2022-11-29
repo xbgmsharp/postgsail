@@ -49,6 +49,12 @@ AS $reverse_geocode_py$
     rv = plpy.execute(plan, [geocoder], 1)
     url = rv[0]['url']
 
+    # Validate input
+    if not lon or not lat:
+        plpy.notice('reverse_geocode_py_fn Parameters [{}] [{}]'.format(lon, lat))
+        plpy.error('Error missing parameters')
+        return None
+
     # Make the request to the geocoder API
     payload = {"lon": lon, "lat": lat, "format": "jsonv2", "zoom": 18}
     r = requests.get(url, params=payload)
@@ -113,12 +119,31 @@ INSERT INTO email_templates VALUES
     'New Badge!',
     E'Hello __RECIPIENT__,\nCongratulations! You have just unlocked a new badge: __BADGE_NAME__\nSee more details at __APP_URL__/badges\nHappy sailing!\nThe PostgSail Team',
     'New Badge!',
-    E'Congratulations!\nYou have just unlocked a new badge: __BADGE_NAME__\nSee more details at __APP_URL__/badges\nHappy sailing!\nThe PostgSail Team');
+    E'Congratulations!\nYou have just unlocked a new badge: __BADGE_NAME__\nSee more details at __APP_URL__/badges\nHappy sailing!\nThe PostgSail Team'),
+('pushover',
+    'Pushover integration',
+    E'Hello __RECIPIENT__,\nCongratulations! You have just connect your account to pushover.\n\nThe PostgSail Team',
+    'Pushover integration!',
+    E'Congratulations!\nYou have just connect your account to pushover.\n\nThe PostgSail Team'),
+('email_otp',
+    'Email verification',
+    E'Hello __RECIPIENT__,\nPlease active your account using the following code: __OTP_CODE__.\nThe code is valid 15 minutes.\nThe PostgSail Team',
+    'Email verification',
+    E'Congratulations!\nPlease validate your account. Check your email!'),
+('telegram_otp',
+    'Telegram bot',
+    E'Hello __RECIPIENT__,\nTo connect your account to a @postgsail_bot. Please type this verification code __OTP_CODE__ back to the bot.\nThe code is valid 15 minutes.\nThe PostgSail Team',
+    'Telegram bot',
+    E'Congratulations!\nTo connect your account to a @postgsail_bot. Check your email!'),
+('telegram_valid',
+    'Telegram bot',
+    E'Hello __RECIPIENT__,\nCongratulations! You have just connect your account to a @postgsail_bot.\n\nThe PostgSail Team',
+    'Telegram bot!',
+    E'Congratulations!\nYou have just connect your account to a @postgsail_bot.\n\nHappy sailing!\nThe PostgSail Team');
 
 ---------------------------------------------------------------------------
 -- python send email
 --
--- TODO read table from python or send email data as params?
 -- https://www.programcreek.com/python/example/3684/email.utils.formatdate
 DROP FUNCTION IF EXISTS send_email_py_fn;
 CREATE OR REPLACE FUNCTION send_email_py_fn(IN email_type TEXT, IN _user JSONB, IN app JSONB) RETURNS void
@@ -159,13 +184,15 @@ AS $send_email_py$
         email_content = email_content.replace('__BOAT__', _user['boat'])
     if 'badge' in _user and _user['badge']:
         email_content = email_content.replace('__BADGE_NAME__', _user['badge'])
+    if 'otp_code' in _user and _user['otp_code']:
+        email_content = email_content.replace('__OTP_CODE__', _user['otp_code'])
 
     if 'app.url' in app and app['app.url']:
         email_content = email_content.replace('__APP_URL__', app['app.url'])
 
     email_from = 'root@localhost'
     if 'app.email_from' in app and app['app.email_from']:
-        email_from = app['app.email_from']
+        email_from = 'PostgSail <' + app['app.email_from'] + '>'
     #plpy.notice('Sending email from [{}] [{}]'.format(email_from, app['app.email_from']))
 
     email_to = 'root@localhost'
@@ -216,9 +243,7 @@ COMMENT ON FUNCTION
     IS 'Send email notification using plpython3u';
 
 ---------------------------------------------------------------------------
--- python send pushover
---
--- TODO read app and user key from table?
+-- python send pushover message
 -- https://pushover.net/
 DROP FUNCTION IF EXISTS send_pushover_py_fn;
 CREATE OR REPLACE FUNCTION send_pushover_py_fn(IN message_type TEXT, IN _user JSONB, IN app JSONB) RETURNS void
@@ -254,14 +279,14 @@ AS $send_pushover_py$
         pushover_message = pushover_message.replace('__APP_URL__', app['app.url'])
 
     pushover_token = None
-    if 'app.pushover_token' in app and app['app.pushover_token']:
-        pushover_token = app['app.pushover_token']
+    if 'app.pushover_app_token' in app and app['app.pushover_app_token']:
+        pushover_token = app['app.pushover_app_token']
     else:
         plpy.error('Error no pushover token defined, check app settings')
         return None
     pushover_user = None
-    if 'pushover_key' in _user and _user['pushover_key']:
-        pushover_user = _user['pushover_key']
+    if 'pushover_user_key' in _user and _user['pushover_user_key']:
+        pushover_user = _user['pushover_user_key']
     else:
         plpy.error('Error no pushover user token defined, check user settings')
         return None
@@ -275,7 +300,7 @@ AS $send_pushover_py$
     })
 
     #print(r.text)
-    # Return the full address or None if not found
+    # Return ?? or None if not found
     plpy.notice('Sent pushover successfully to [{}] [{}]'.format(r.text, r.status_code))
     if r.status_code == 200:
         plpy.notice('Sent pushover successfully to [{}] [{}] [{}]'.format("__USER__", pushover_title, r.text))
@@ -287,6 +312,86 @@ $send_pushover_py$ TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
 COMMENT ON FUNCTION
     public.send_pushover_py_fn
     IS 'Send pushover notification using plpython3u';
+
+---------------------------------------------------------------------------
+-- python send telegram message
+-- https://core.telegram.org/
+DROP FUNCTION IF EXISTS send_telegram_py_fn;
+CREATE OR REPLACE FUNCTION send_telegram_py_fn(IN message_type TEXT, IN _user JSONB, IN app JSONB) RETURNS void
+AS $send_telegram_py$
+    """
+    Send a message to a telegram user or group specified on chatId
+    chat_id must be a number!
+    """
+    import requests
+    import json
+
+    # Use the shared cache to avoid preparing the email metadata
+    if message_type in SD:
+        plan = SD[message_type]
+    # A prepared statement from Python
+    else:
+        plan = plpy.prepare("SELECT * FROM email_templates WHERE name = $1", ["text"])
+        SD[message_type] = plan
+
+    # Execute the statement with the message_type param and limit to 1 result
+    rv = plpy.execute(plan, [message_type], 1)
+    telegram_title = rv[0]['pushover_title']
+    telegram_message = rv[0]['pushover_message']
+
+    # Replace fields using input jsonb obj
+    if 'logbook_name' in _user and _user['logbook_name']:
+        telegram_message = telegram_message.replace('__LOGBOOK_NAME__', _user['logbook_name'])
+    if 'logbook_link' in _user and _user['logbook_link']:
+        telegram_message = telegram_message.replace('__LOGBOOK_LINK__', str(_user['logbook_link']))
+    if 'recipient' in _user and _user['recipient']:
+        telegram_message = telegram_message.replace('__RECIPIENT__', _user['recipient'])
+    if 'boat' in _user and _user['boat']:
+        telegram_message = telegram_message.replace('__BOAT__', _user['boat'])
+    if 'badge' in _user and _user['badge']:
+        telegram_message = telegram_message.replace('__BADGE_NAME__', _user['badge'])
+
+    if 'app.url' in app and app['app.url']:
+        telegram_message = telegram_message.replace('__APP_URL__', app['app.url'])
+
+    telegram_token = None
+    if 'app.telegram_bot_token' in app and app['app.telegram_bot_token']:
+        telegram_token = app['app.telegram_bot_token']
+    else:
+        plpy.error('Error no telegram token defined, check app settings')
+        return None
+    telegram_chat_id = None
+    if 'telegram_chat_id' in _user and _user['telegram_chat_id']:
+        telegram_chat_id = _user['telegram_chat_id']
+    else:
+        plpy.error('Error no telegram user token defined, check user settings')
+        return None
+
+    # requests
+    headers = {'Content-Type': 'application/json',
+            'Proxy-Authorization': 'Basic base64'}
+    data_dict = {'chat_id': telegram_chat_id,
+                'text': telegram_message,
+                'parse_mode': 'HTML',
+                'disable_notification': False}
+    data = json.dumps(data_dict)
+    url = f'https://api.telegram.org/bot{telegram_token}/sendMessage'
+    r = requests.post(url,
+                        data=data,
+                        headers=headers)
+    print(r.text)
+    # Return the full address or None if not found
+    plpy.notice('Sent telegram successfully to [{}] [{}]'.format(r.text, r.status_code))
+    if r.status_code == 200:
+        plpy.notice('Sent telegram successfully to [{}] [{}] [{}]'.format("__USER__", telegram_title, r.text))
+    else:
+        plpy.error('Failed to send telegram')
+    return None
+$send_telegram_py$ TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
+-- Description
+COMMENT ON FUNCTION
+    public.send_telegram_py_fn
+    IS 'Send a message to a telegram user or group specified on chatId using plpython3u';
 
 ---------------------------------------------------------------------------
 -- Functions public schema
@@ -321,6 +426,7 @@ COMMENT ON FUNCTION
 -- Create a LINESTRING for Geometry
 -- Todo validate st_length unit?
 -- https://postgis.net/docs/ST_Length.html
+DROP FUNCTION IF EXISTS logbook_update_geom_distance_fn;
 CREATE FUNCTION logbook_update_geom_distance_fn(IN _id integer, IN _start text, IN _end text,
     OUT _track_geom Geometry(LINESTRING),
     OUT _track_distance double precision
@@ -503,7 +609,7 @@ CREATE OR REPLACE FUNCTION process_stay_queue_fn(IN _id integer) RETURNS void AS
         SELECT * INTO stay_rec
             FROM api.stays
             WHERE id = _id;
-
+        PERFORM set_config('vessel.client_id', stay_rec.client_id, false);
         -- geo reverse _lng _lat
         _name := reverse_geocode_py_fn('nominatim', stay_rec.longitude::NUMERIC, stay_rec.latitude::NUMERIC);
 
@@ -627,11 +733,13 @@ CREATE OR REPLACE FUNCTION process_account_queue_fn(IN _email TEXT) RETURNS void
         END IF;
         -- Gather email and pushover app settings
         app_settings := get_app_settings_fn();
+        -- set user email variable
+        PERFORM set_config('user.email', account_rec.email, false);
         -- Gather user settings
         user_settings := '{"email": "' || account_rec.email || '", "recipient": "' || account_rec.first || '"}';
         -- Send notification email, pushover
-        --PERFORM send_notification_fn('user'::TEXT, account_rec::RECORD);
-        PERFORM send_email_py_fn('user'::TEXT, user_settings::JSONB, app_settings::JSONB);
+        PERFORM send_notification_fn('user'::TEXT, user_settings::JSONB);
+        --PERFORM send_email_py_fn('user'::TEXT, user_settings::JSONB, app_settings::JSONB);
         --PERFORM send_pushover_py_fn('user'::TEXT, user_settings::JSONB, app_settings::JSONB);
     END;
 $process_account_queue$ LANGUAGE plpgsql;
@@ -639,6 +747,46 @@ $process_account_queue$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION
     public.process_account_queue_fn
     IS 'process new account notification';
+
+-- process new account otp validation notification
+DROP FUNCTION IF EXISTS process_account_otp_validation_queue_fn;
+CREATE OR REPLACE FUNCTION process_account_otp_validation_queue_fn(IN _email TEXT) RETURNS void AS $process_account_otp_validation_queue$
+    DECLARE
+        account_rec record;
+        user_settings jsonb;
+        app_settings jsonb;
+        otp_code text;
+    BEGIN
+        IF _email IS NULL OR _email = '' THEN
+            RAISE EXCEPTION 'Invalid email'
+                USING HINT = 'Unkown email';
+            RETURN;
+        END IF;
+        SELECT * INTO account_rec
+            FROM auth.accounts
+            WHERE email = _email;
+        IF account_rec.email IS NULL OR account_rec.email = '' THEN
+            RAISE EXCEPTION 'Invalid email'
+                USING HINT = 'Unkown email';
+            RETURN;
+        END IF;
+        -- Gather email and pushover app settings
+        app_settings := get_app_settings_fn();
+        otp_code := api.generate_otp_fn(_email);
+        -- set user email variable
+        PERFORM set_config('user.email', account_rec.email, false);
+        -- Gather user settings
+        user_settings := '{"email": "' || account_rec.email || '", "recipient": "' || account_rec.first || '", "otp_code": "' || otp_code || '"}';
+        -- Send notification email, pushover
+        PERFORM send_notification_fn('email_otp'::TEXT, user_settings::JSONB);
+        --PERFORM send_email_py_fn('email_otp'::TEXT, user_settings::JSONB, app_settings::JSONB);
+        --PERFORM send_pushover_py_fn('user'::TEXT, user_settings::JSONB, app_settings::JSONB);
+    END;
+$process_account_otp_validation_queue$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.process_account_otp_validation_queue_fn
+    IS 'process new account otp validation notification';
 
 -- process new vessel notification
 DROP FUNCTION IF EXISTS process_vessel_queue_fn;
@@ -661,12 +809,10 @@ CREATE OR REPLACE FUNCTION process_vessel_queue_fn(IN _email TEXT) RETURNS void 
                 USING HINT = 'Unkown email';
             RETURN;
         END IF;
-        -- Gather user_settings from 
-        -- if notification email
-        -- -- Send email
-        --
         -- Gather email and pushover app settings
         app_settings := get_app_settings_fn();
+        -- set user email variable
+        PERFORM set_config('user.email', vessel_rec.owner_email, false);
         -- Gather user settings
         user_settings := '{"email": "' || vessel_rec.owner_email || '", "boat": "' || vessel_rec.name || '"}';
         --user_settings := get_user_settings_from_clientid_fn();
@@ -695,15 +841,26 @@ BEGIN
     WHERE
         name LIKE '%app.email%'
         OR name LIKE '%app.pushover%'
-        OR name LIKE '%app.url';
+        OR name LIKE '%app.url'
+        OR name LIKE '%app.telegram%';
 END;
 $get_app_settings$
 LANGUAGE plpgsql;
-
 -- Description
 COMMENT ON FUNCTION
     public.get_app_settings_fn
-    IS 'get app settings details, email, pushover';
+    IS 'get app settings details, email, pushover, telegram';
+
+CREATE FUNCTION jsonb_key_exists(some_json jsonb, outer_key text)
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN (some_json->outer_key) IS NOT NULL;
+END;
+$$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.jsonb_key_exists
+    IS 'function that checks if an outer key exists in some_json and returns a boolean';
 
 -- Send notifications
 DROP FUNCTION IF EXISTS send_notification_fn;
@@ -713,20 +870,52 @@ CREATE OR REPLACE FUNCTION send_notification_fn(
 AS $send_notification$
     DECLARE
         app_settings JSONB;
+        _email_notifications BOOLEAN := False;
+        _phone_notifications BOOLEAN := False;
+        _pushover_user_key TEXT := NULL;
+        pushover_settings JSONB := NULL;
+        _telegram_notifications BOOLEAN := False;
+        _telegram_chat_id TEXT := NULL;
+        telegram_settings JSONB := NULL;
     BEGIN
-        -- Gather email and pushover app settings
+        RAISE NOTICE '--> send_notification_fn type [%]', email_type;
+        -- Gather notification app settings, eg: email, pushover, telegram
         app_settings := get_app_settings_fn();
-        -- Gather user settings
-        --user_settings := '{"email": "' || vessel_rec.owner_email || '", "boat": "' || vessel_rec.name || '}';
-        --user_settings := get_user_settings_from_clientid_fn();
-        --user_settings := '{"email": "' || account_rec.email || '", "recipient": "' || account_rec.first || '}';
-        --user_settings := get_user_settings_from_metadata_fn();
-        --user_settings := '{"logbook_name": "' || log_name || '"}';
-        --user_settings := get_user_settings_from_log_fn();
+        --RAISE NOTICE '--> send_notification_fn app_settings [%]', app_settings;
+        -- Gather notifications settings and merge with user settings
         -- Send notification email
-        PERFORM send_email_py_fn(email_type::TEXT, user_settings::JSONB, app_settings::JSONB);
+        SELECT preferences['email_notifications'] INTO _email_notifications
+            FROM auth.accounts a
+            WHERE a.email = current_setting('user.email', true);
+        RAISE NOTICE '--> send_notification_fn email_notifications [%]', _email_notifications;
+        -- If email server app settings set and if email user settings set
+        IF app_settings['app.email_server'] IS NOT NULL AND _email_notifications IS True THEN
+            PERFORM send_email_py_fn(email_type::TEXT, user_settings::JSONB, app_settings::JSONB);
+        END IF;
         -- Send notification pushover
-        --PERFORM send_pushover_py_fn(email_type::TEXT, user_settings::JSONB, app_settings::JSONB);
+        SELECT preferences['phone_notifications'],preferences->>'pushover_user_key' INTO _phone_notifications,_pushover_user_key
+            FROM auth.accounts a
+            WHERE a.email = current_setting('user.email', true);
+        RAISE NOTICE '--> send_notification_fn phone_notifications [%]', _phone_notifications;
+        -- If pushover app settings set and if pushover user settings set
+        IF app_settings['app.pushover_app_token'] IS NOT NULL AND _phone_notifications IS True THEN
+            SELECT json_build_object('pushover_user_key', _pushover_user_key) into pushover_settings;
+            SELECT user_settings::JSONB || pushover_settings::JSONB into user_settings;
+            --RAISE NOTICE '--> send_notification_fn user_settings + pushover [%]', user_settings;
+            PERFORM send_pushover_py_fn(email_type::TEXT, user_settings::JSONB, app_settings::JSONB);
+        END IF;
+        -- Send notification telegram
+        SELECT (preferences->'telegram'->'id') IS NOT NULL,preferences['telegram']['id'] INTO _telegram_notifications,_telegram_chat_id
+            FROM auth.accounts a
+            WHERE a.email = current_setting('user.email', true);
+        RAISE NOTICE '--> send_notification_fn telegram_notifications [%]', _telegram_notifications;
+        -- If telegram app settings set and if telegram user settings set
+        IF app_settings['app.telegram_bot_token'] IS NOT NULL AND _telegram_notifications IS True THEN
+            SELECT json_build_object('telegram_chat_id', _telegram_chat_id) into telegram_settings;
+            SELECT user_settings::JSONB || telegram_settings::JSONB into user_settings;
+            --RAISE NOTICE '--> send_notification_fn user_settings + telegram [%]', user_settings;
+            PERFORM send_telegram_py_fn(email_type::TEXT, user_settings::JSONB, app_settings::JSONB);
+        END IF;
     END;
 $send_notification$ LANGUAGE plpgsql;
 -- Description
@@ -750,14 +939,15 @@ AS $get_user_settings_from_clientid$
             json_build_object( 
                     'boat' , v.name,
                     'recipient', a.first,
-                    'email', v.owner_email ,
+                    'email', v.owner_email,
                     'settings', a.preferences,
                     'pushover_key', a.preferences->'pushover_key',
                     'badges', a.preferences->'badges'
                     ) INTO user_settings
             FROM auth.accounts a, auth.vessels v, api.metadata m
             WHERE m.mmsi = v.mmsi
-                AND m.client_id = clientid;
+                AND m.client_id = clientid
+                AND lower(a.email) = lower(v.owner_email);
     END;
 $get_user_settings_from_clientid$ LANGUAGE plpgsql;
 -- Description
@@ -796,7 +986,6 @@ COMMENT ON FUNCTION
     public.set_vessel_settings_from_clientid_fn
     IS 'set_vessel settings details from a clientid, initiate for process queue functions';
 
-
 ---------------------------------------------------------------------------
 -- Queue handling
 --
@@ -816,22 +1005,32 @@ CREATE TABLE IF NOT EXISTS public.process_queue (
     id SERIAL PRIMARY KEY,
     channel TEXT NOT NULL,
     payload TEXT NOT NULL,
-    stored timestamptz NOT NULL,
-    processed timestamptz
+    stored TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    processed TIMESTAMP WITHOUT TIME ZONE DEFAULT NULL
 );
+-- Description
 COMMENT ON TABLE
     public.process_queue
     IS 'process queue for async job';
-
+-- Index
 CREATE INDEX ON public.process_queue (channel);
+CREATE INDEX ON public.process_queue (stored);
 CREATE INDEX ON public.process_queue (processed);
 
+-- Function process_queue helpers
 create function new_account_entry_fn() returns trigger as $new_account_entry$
 begin
     insert into process_queue (channel, payload, stored) values ('new_account', NEW.email, now());
     return NEW;
 END;
 $new_account_entry$ language plpgsql;
+
+create function new_account_otp_validation_entry_fn() returns trigger as $new_account_otp_validation_entry$
+begin
+    insert into process_queue (channel, payload, stored) values ('new_account_otp', NEW.email, now());
+    return NEW;
+END;
+$new_account_otp_validation_entry$ language plpgsql;
 
 create function new_vessel_entry_fn() returns trigger as $new_vessel_entry$
 begin
@@ -850,6 +1049,7 @@ CREATE TABLE IF NOT EXISTS public.app_settings (
   name TEXT NOT NULL UNIQUE,
   value TEXT NOT NULL
 );
+-- Description
 COMMENT ON TABLE public.app_settings IS 'application settings';
 COMMENT ON COLUMN public.app_settings.name IS 'application settings name key';
 COMMENT ON COLUMN public.app_settings.value IS 'application settings value';
@@ -947,11 +1147,14 @@ DECLARE
   _email name;
   _mmsi name;
   _path name;
+  _clientid text;
   account_rec record;
   vessel_rec record;
 BEGIN
-  RAISE WARNING 'jwt %', current_setting('request.jwt.claims', true);
+  -- Extract email and role from jwt token
+  --RAISE WARNING 'check_jwt jwt %', current_setting('request.jwt.claims', true);
   SELECT current_setting('request.jwt.claims', true)::json->>'email' INTO _email;
+  PERFORM set_config('user.email', _email, false);
   SELECT current_setting('request.jwt.claims', true)::json->>'role' INTO _role;
   --RAISE WARNING 'jwt email %', current_setting('request.jwt.claims', true)::json->>'email';
   --RAISE WARNING 'jwt role %', current_setting('request.jwt.claims', true)::json->>'role';
@@ -965,12 +1168,14 @@ BEGIN
         RAISE EXCEPTION 'Invalid user'
             USING HINT = 'Unkown user or password';
     END IF;
-    RAISE WARNING 'req path %', current_setting('request.path', true);
+    --RAISE WARNING 'req path %', current_setting('request.path', true);
     -- Function allow without defined vessel
     -- openapi doc, user settings and vessel registration
     SELECT current_setting('request.path', true) into _path;
     IF _path = '/rpc/settings_fn'
         OR _path = '/rpc/register_vessel'
+        OR _path = '/rpc/update_user_preferences_fn'
+        OR _path = '/rpc/versions_fn'
         OR _path = '/' THEN
         RETURN;
     END IF;
@@ -988,14 +1193,27 @@ BEGIN
 		  hint = 'Unkown vessel';
         --RETURN; -- ignore if not exist
     END IF;
+    -- Redundant?
     IF vessel_rec.mmsi IS NULL THEN
         RAISE EXCEPTION 'Invalid vessel'
             USING HINT = 'Unkown vessel mmsi';
     END IF;
+    -- Set session variables
     PERFORM set_config('vessel.mmsi', vessel_rec.mmsi, false);
     PERFORM set_config('vessel.name', vessel_rec.name, false);
-    RAISE WARNING 'public.check_jwt() user_role vessel.mmsi %', current_setting('vessel.mmsi', false);
-    RAISE WARNING 'public.check_jwt() user_role vessel.name %', current_setting('vessel.name', false);
+    -- ensure vessel is connected
+    SELECT m.client_id INTO _clientid
+        FROM auth.vessels v, api.metadata m
+        WHERE
+            m.mmsi = current_setting('vessel.mmsi')
+            AND m.mmsi = v.mmsi
+            AND lower(v.owner_email) = lower(_email);
+    IF FOUND THEN
+       PERFORM set_config('vessel.client_id', _clientid, false);
+    --RAISE WARNING 'public.check_jwt() user_role vessel.client_id %', current_setting('vessel.client_id', false);
+    END IF;
+    --RAISE WARNING 'public.check_jwt() user_role vessel.mmsi %', current_setting('vessel.mmsi', false);
+    --RAISE WARNING 'public.check_jwt() user_role vessel.name %', current_setting('vessel.name', false);
   ELSIF _role = 'vessel_role' THEN
     -- Check the vessel and user exist
     SELECT * INTO vessel_rec
@@ -1012,8 +1230,12 @@ BEGIN
             USING HINT = 'Unkown vessel mmsi';
     END IF;
     PERFORM set_config('vessel.mmsi', vessel_rec.mmsi, false);
-    --RAISE WARNING 'vessel.mmsi %', current_setting('vessel.mmsi', false);
     PERFORM set_config('vessel.name', vessel_rec.name, false);
+    -- TODO add client_id
+    --PERFORM set_config('vessel.client_id', vessel_rec.client_id, false);
+    --RAISE WARNING 'public.check_jwt() user_role vessel.mmsi %', current_setting('vessel.mmsi', false);
+    --RAISE WARNING 'public.check_jwt() user_role vessel.name %', current_setting('vessel.name', false);
+    --RAISE WARNING 'public.check_jwt() user_role vessel.client_id %', current_setting('vessel.client_id', false);
   ELSIF _role <> 'api_anonymous' THEN
     RAISE EXCEPTION 'Invalid role'
       USING HINT = 'Stop being so evil and maybe you can log in';
