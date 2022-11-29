@@ -23,6 +23,28 @@ COMMENT ON TABLE
 CREATE INDEX otp_pass_idx ON auth.otp (otp_pass);
 CREATE INDEX otp_user_email_idx ON auth.otp (user_email);
 
+DROP FUNCTION IF EXISTS public.generate_uid_fn;
+CREATE OR REPLACE FUNCTION public.generate_uid_fn(size INT) RETURNS TEXT
+AS $generate_uid_fn$
+    DECLARE
+    characters TEXT := '0123456789';
+    bytes BYTEA := gen_random_bytes(size);
+    l INT := length(characters);
+    i INT := 0;
+    output TEXT := '';
+    BEGIN
+    WHILE i < size LOOP
+        output := output || substr(characters, get_byte(bytes, i) % l + 1, 1);
+        i := i + 1;
+    END LOOP;
+    RETURN output;
+    END;
+$generate_uid_fn$ LANGUAGE plpgsql VOLATILE;
+-- Description
+COMMENT ON FUNCTION
+    public.generate_uid_fn
+    IS 'Generate a random digit';
+
 -- gerenate a OTP code by email
 -- Expose as an API endpoint
 DROP FUNCTION IF EXISTS api.generate_otp_fn;
@@ -40,7 +62,8 @@ AS $generate_otp$
         IF _email_check IS NULL THEN
             RETURN NULL;
         END IF;
-        SELECT substr(gen_random_uuid()::text, 1, 8) INTO otp_pass;
+        --SELECT substr(gen_random_uuid()::text, 1, 6) INTO otp_pass;
+        SELECT generate_uid_fn(6) INTO otp_pass;
         INSERT INTO auth.otp (user_email, otp_pass) VALUES (_email_check, otp_pass);
         RETURN otp_pass;
     END;
@@ -48,7 +71,7 @@ $generate_otp$ language plpgsql security definer;
 -- Description
 COMMENT ON FUNCTION
     api.generate_otp_fn
-    IS 'Generate OTP';
+    IS 'Generate otp code';
 
 DROP FUNCTION IF EXISTS auth.verify_otp_fn;
 CREATE OR REPLACE FUNCTION auth.verify_otp_fn(IN token TEXT) RETURNS TEXT
@@ -174,7 +197,7 @@ AS $telegram_user_exists$
 		_chat_id BIGINT := chat_id;
     BEGIN
         IF _email IS NULL OR _chat_id IS NULL THEN
-            RAISE EXCEPTION 'invalid input3' USING HINT = 'check your parameter3';
+            RAISE EXCEPTION 'invalid input' USING HINT = 'check your parameter';
         END IF;
         -- Does user and telegram obj
         SELECT preferences->'telegram'->'id' INTO _chat_id
