@@ -172,7 +172,7 @@ AS $pushover$
         -- Verify token
         SELECT auth.verify_otp_fn(token) INTO _email;
 		IF _email IS NOT NULL THEN
-            -- Set user email into env to allow RLS update 
+            -- Set user email into env to allow RLS update
             PERFORM set_config('user.email', _email, false);
             -- Add pushover_user_key
             PERFORM api.update_user_preferences_fn('{pushover_user_key}'::TEXT, pushover_user_key::TEXT);
@@ -206,7 +206,7 @@ AS $telegram$
         -- Verify token
         SELECT auth.verify_otp_fn(token) INTO _email;
 		IF _email IS NOT NULL THEN
-            -- Set user email into env to allow RLS update 
+            -- Set user email into env to allow RLS update
             PERFORM set_config('user.email', _email, false);
 	        -- Add telegram
             SELECT api.update_user_preferences_fn('{telegram}'::TEXT, telegram_obj::TEXT) INTO _updated;
