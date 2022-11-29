@@ -14,12 +14,12 @@ INSERT INTO app_settings (name, value) VALUES
         ('app.email_user', '${PGSAIL_EMAIL_USER}'),
         ('app.email_pass', '${PGSAIL_EMAIL_PASS}'),
         ('app.email_from', '${PGSAIL_EMAIL_FROM}'),
-        ('app.pushover_token', '${PGSAIL_PUSHOVER_TOKEN}'),
-        ('app.pushover_app', '_todo_'),
+        ('app.pushover_app_token', '${PGSAIL_PUSHOVER_APP_TOKEN}'),
+        ('app.telegram_bot_token', '${PGSAIL_TELEGRAM_BOT_TOKEN}'),
         ('app.url', '${PGSAIL_APP_URL}'),
         ('app.version', '${PGSAIL_VERSION}');
 -- Update comment with version
-COMMENT ON DATABASE signalk IS 'version ${PGSAIL_VERSION}';
+COMMENT ON DATABASE signalk IS 'PostgSail version ${PGSAIL_VERSION}';
 -- Update password from env
 ALTER ROLE authenticator WITH PASSWORD '${PGSAIL_AUTHENTICATOR_PASSWORD}';
 ALTER ROLE grafana WITH PASSWORD '${PGSAIL_GRAFANA_PASSWORD}';
