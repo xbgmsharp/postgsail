@@ -259,10 +259,10 @@ CREATE POLICY admin_all ON auth.vessels TO current_user
 -- Allow user_role to update and select on their own records
 CREATE POLICY api_user_role ON auth.vessels TO user_role
     USING (mmsi = current_setting('vessel.mmsi', true)
-        AND owner_email = current_setting('request.jwt.claims', false)::json->>'email'
+        AND owner_email = current_setting('user.email', true)
     )
     WITH CHECK (mmsi = current_setting('vessel.mmsi', false)
-        AND owner_email = current_setting('request.jwt.claims', false)::json->>'email'
+        AND owner_email = current_setting('user.email', true)
     );
 --CREATE POLICY grafana_role ON auth.vessels TO grafana
 --    USING (owner_email = owner_email)
@@ -276,7 +276,7 @@ CREATE POLICY admin_all ON auth.accounts TO current_user
     WITH CHECK (true);
 -- Allow user_role to update and select on their own records
 CREATE POLICY api_user_role ON auth.accounts TO user_role
-    USING (email = current_setting('request.jwt.claims', false)::json->>'email'
+    USING (email = current_setting('user.email', true)
     )
-    WITH CHECK (email = current_setting('request.jwt.claims', false)::json->>'email'
+    WITH CHECK (email = current_setting('user.email', true)
     );

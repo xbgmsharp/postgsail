@@ -186,8 +186,7 @@ BEGIN
 		SET preferences =
 				jsonb_set(preferences::jsonb, key::text[], _value::jsonb)
 		WHERE
-			lower(email) = lower(current_setting('request.jwt.claims', true)::json->>'email')
-			OR (lower(email) = lower(current_setting('telegram.email', true)));
+			lower(email) = lower(current_setting('user.email', true));
 	IF FOUND THEN
         --RAISE WARNING '-> update_user_preferences_fn True';
 		RETURN True;
