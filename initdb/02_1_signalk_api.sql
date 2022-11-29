@@ -47,6 +47,8 @@ select version();
 
 -- Database
 CREATE DATABASE signalk;
+-- Limit connection to 100
+ALTER DATABASE signalk WITH CONNECTION LIMIT = 100;
 
 -- connext to the DB
 \c signalk
