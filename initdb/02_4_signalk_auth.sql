@@ -54,7 +54,7 @@ COMMENT ON TRIGGER accounts_moddatetime
 
 DROP TABLE IF EXISTS auth.vessels;
 CREATE TABLE IF NOT EXISTS auth.vessels (
-  vesseid     TEXT NOT NULL UNIQUE DEFAULT RIGHT(gen_random_uuid()::text, 12),
+  vesselid     TEXT NOT NULL UNIQUE DEFAULT RIGHT(gen_random_uuid()::text, 12),
   owner_email TEXT PRIMARY KEY REFERENCES auth.accounts(email) ON DELETE RESTRICT,
   mmsi		    TEXT UNIQUE, -- Should be a numeric range between 100000000 and 800000000.
 --  mmsi        NUMERIC UNIQUE, -- MMSI can be optional but if present must be a valid one
