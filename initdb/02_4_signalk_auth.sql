@@ -22,7 +22,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto"; -- provides cryptographic functions
 DROP TABLE IF EXISTS auth.accounts CASCADE;
 CREATE TABLE IF NOT EXISTS auth.accounts (
   userid        UUID NOT NULL UNIQUE DEFAULT uuid_generate_v4(),
-  email         text primary key check ( email ~* '^.+@.+\..+$' ),
+  email         CITEXT primary key check ( email ~* '^.+@.+\..+$' ),
   first         text not null check (length(pass) < 512),
   last          text not null check (length(pass) < 512),
   pass          text not null check (length(pass) < 512),
@@ -55,7 +55,7 @@ COMMENT ON TRIGGER accounts_moddatetime
 DROP TABLE IF EXISTS auth.vessels;
 CREATE TABLE IF NOT EXISTS auth.vessels (
   vesselid     TEXT NOT NULL UNIQUE DEFAULT RIGHT(gen_random_uuid()::text, 12),
-  owner_email TEXT PRIMARY KEY REFERENCES auth.accounts(email) ON DELETE RESTRICT,
+  owner_email CITEXT PRIMARY KEY REFERENCES auth.accounts(email) ON DELETE RESTRICT,
   mmsi		    TEXT UNIQUE, -- Should be a numeric range between 100000000 and 800000000.
 --  mmsi        NUMERIC UNIQUE, -- MMSI can be optional but if present must be a valid one
   name        TEXT NOT NULL CHECK (length(name) >= 3 AND length(name) < 512),
@@ -73,7 +73,7 @@ COMMENT ON TABLE
 -- Indexes
 CREATE INDEX vessels_role_idx ON auth.vessels (role);
 CREATE INDEX vessels_name_idx ON auth.vessels (name);
-CREATE INDEX vessels_vesseid_idx ON auth.vessels (vesseid);
+CREATE INDEX vessels_vesselid_idx ON auth.vessels (vesselid);
 
 CREATE TRIGGER vessels_moddatetime
 	BEFORE UPDATE ON auth.vessels

@@ -10,7 +10,8 @@ select current_database();
 
 DROP TABLE IF EXISTS auth.otp;
 CREATE TABLE IF NOT EXISTS auth.otp (
-  user_email TEXT NOT NULL PRIMARY KEY REFERENCES auth.accounts(email) ON DELETE RESTRICT,
+  -- update type to CITEXT, https://www.postgresql.org/docs/current/citext.html
+  user_email CITEXT NOT NULL PRIMARY KEY REFERENCES auth.accounts(email) ON DELETE RESTRICT,
   otp_pass VARCHAR(10) NOT NULL,
   otp_timestamp TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
   otp_tries SMALLINT NOT NULL DEFAULT '0'
@@ -51,14 +52,14 @@ DROP FUNCTION IF EXISTS api.generate_otp_fn;
 CREATE OR REPLACE FUNCTION api.generate_otp_fn(IN email TEXT) RETURNS TEXT
 AS $generate_otp$
 	DECLARE
-        _email TEXT := email;
+        _email CITEXT := email;
 		_email_check TEXT := NULL;
         otp_pass VARCHAR(10) := NULL;
     BEGIN
         IF email IS NULL OR _email IS NULL OR _email = '' THEN
             RAISE EXCEPTION 'invalid input' USING HINT = 'check your parameter';
         END IF;
-        SELECT lower(a.email) INTO _email_check FROM auth.accounts a WHERE lower(a.email) = lower(_email);
+        SELECT lower(a.email) INTO _email_check FROM auth.accounts a WHERE a.email = _email;
         IF _email_check IS NULL THEN
             RETURN NULL;
         END IF;
@@ -227,7 +228,7 @@ DROP FUNCTION IF EXISTS auth.telegram_user_exists_fn;
 CREATE OR REPLACE FUNCTION auth.telegram_user_exists_fn(IN email TEXT, IN chat_id BIGINT) RETURNS BOOLEAN
 AS $telegram_user_exists$
 	declare
-		_email TEXT := email;
+		_email CITEXT := email;
 		_chat_id BIGINT := chat_id;
     BEGIN
         IF _email IS NULL OR _chat_id IS NULL THEN
@@ -236,7 +237,7 @@ AS $telegram_user_exists$
         -- Does user and telegram obj
         SELECT preferences->'telegram'->'id' INTO _chat_id
             FROM auth.accounts a
-            WHERE lower(a.email) = lower(_email)
+            WHERE a.email = _email
 			AND cast(preferences->'telegram'->'id' as BIGINT) = _chat_id::BIGINT;
         IF FOUND THEN
             RETURN TRUE;
