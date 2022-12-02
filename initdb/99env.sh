@@ -15,6 +15,7 @@ INSERT INTO app_settings (name, value) VALUES
         ('app.email_pass', '${PGSAIL_EMAIL_PASS}'),
         ('app.email_from', '${PGSAIL_EMAIL_FROM}'),
         ('app.pushover_app_token', '${PGSAIL_PUSHOVER_APP_TOKEN}'),
+        ('app.pushover_app_url', '${PGSAIL_PUSHOVER_APP_URL}'),
         ('app.telegram_bot_token', '${PGSAIL_TELEGRAM_BOT_TOKEN}'),
         ('app.url', '${PGSAIL_APP_URL}'),
         ('app.version', '${PGSAIL_VERSION}');
