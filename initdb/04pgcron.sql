@@ -31,16 +31,21 @@ SELECT cron.schedule('cron_monitor_online', '*/10 * * * *', 'select public.cron_
 --UPDATE cron.job SET database = 'signalk' where jobname = 'cron_monitor_online';
 
 -- Create a every 5 minute job cron_process_new_account_fn
-SELECT cron.schedule('cron_new_account', '*/5 * * * *', 'select public.cron_process_new_account_fn()');
+--SELECT cron.schedule('cron_new_account', '*/5 * * * *', 'select public.cron_process_new_account_fn()');
 --UPDATE cron.job SET database = 'signalk' where jobname = 'cron_new_account';
 
 -- Create a every 5 minute job cron_process_new_vessel_fn
-SELECT cron.schedule('cron_new_vessel', '*/5 * * * *', 'select public.cron_process_new_vessel_fn()');
+--SELECT cron.schedule('cron_new_vessel', '*/5 * * * *', 'select public.cron_process_new_vessel_fn()');
 --UPDATE cron.job SET database = 'signalk' where jobname = 'cron_new_vessel';
 
 -- Create a every 6 minute job cron_process_new_account_otp_validation_queue_fn, delay from cron_new_account
-SELECT cron.schedule('cron_new_account_otp', '*/6 * * * *', 'select public.cron_process_new_account_otp_validation_fn()');
+--SELECT cron.schedule('cron_new_account_otp', '*/6 * * * *', 'select public.cron_process_new_account_otp_validation_fn()');
 --UPDATE cron.job SET database = 'signalk' where jobname = 'cron_new_account_otp';
+
+-- Notification
+-- Create a every 1 minute job cron_process_new_notification_queue_fn, new_account, new_vessel, _new_account_otp
+SELECT cron.schedule('cron_new_notification', '*/6 * * * *', 'select public.cron_process_new_notification_fn()');
+--UPDATE cron.job SET database = 'signalk' where jobname = 'cron_new_notification';
 
 -- Maintenance
 -- Vacuum database at “At 01:01 on Sunday.”

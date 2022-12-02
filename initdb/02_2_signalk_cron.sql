@@ -154,7 +154,7 @@ begin
 END;
 $$ language plpgsql;
 -- Description
-COMMENT ON FUNCTION 
+COMMENT ON FUNCTION
     public.cron_process_monitor_offline_fn
     IS 'init by pg_cron to monitor offline pending notification, if so perform send_email o send_pushover base on user preferences';
 
@@ -207,7 +207,7 @@ begin
 END;
 $$ language plpgsql;
 -- Description
-COMMENT ON FUNCTION 
+COMMENT ON FUNCTION
     public.cron_process_monitor_online_fn 
     IS 'init by pg_cron to monitor back online pending notification, if so perform send_email or send_pushover base on user preferences';
 
@@ -236,7 +236,7 @@ begin
 END;
 $$ language plpgsql;
 -- Description
-COMMENT ON FUNCTION 
+COMMENT ON FUNCTION
     public.cron_process_new_account_fn 
     IS 'init by pg_cron to check for new account pending update, if so perform process_account_queue_fn';
 
@@ -297,6 +297,37 @@ $$ language plpgsql;
 COMMENT ON FUNCTION 
     public.cron_process_new_vessel_fn 
     IS 'init by pg_cron to check for new vessel pending update, if so perform process_vessel_queue_fn';
+
+-- CRON for new event notification
+CREATE FUNCTION cron_process_new_notification_fn() RETURNS void AS $$
+declare
+    process_rec record;
+begin
+    -- Check for new event notification pending update
+    RAISE NOTICE 'cron_process_new_notification_fn';
+    FOR process_rec in
+        SELECT * FROM process_queue
+            WHERE
+            (channel = 'new_account' OR channel = 'new_vessel' OR channel = 'email_otp')
+                and processed is null
+            order by stored asc
+    LOOP
+        RAISE NOTICE '-> cron_process_new_notification_fn for [%]', process_rec.payload;
+        -- process_notification_queue
+        PERFORM process_notification_queue_fn(process_rec.payload::TEXT, process_rec.channel::TEXT);
+        -- update process_queue entry as processed
+        UPDATE process_queue
+            SET
+                processed = NOW()
+            WHERE id = process_rec.id;
+        RAISE NOTICE '-> cron_process_new_notification_fn updated process_queue table [%]', process_rec.id;
+    END LOOP;
+END;
+$$ language plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.cron_process_new_notification_fn
+    IS 'init by pg_cron to check for new event pending notifications, if so perform process_notification_queue_fn';
 
 -- CRON for Vacuum database
 CREATE FUNCTION cron_vaccum_fn() RETURNS void AS $$

@@ -406,6 +406,59 @@ COMMENT ON FUNCTION
     public.process_account_otp_validation_queue_fn
     IS 'process new account otp validation notification';
 
+-- process new event notification
+DROP FUNCTION IF EXISTS process_notification_queue_fn;
+CREATE OR REPLACE FUNCTION process_notification_queue_fn(IN _email TEXT, IN message_type TEXT) RETURNS void
+AS $process_notification_queue$
+    DECLARE
+        account_rec record;
+        vessel_rec record;
+        user_settings jsonb := null;
+        otp_code text;
+    BEGIN
+        IF _email IS NULL OR _email = '' THEN
+            RAISE EXCEPTION 'Invalid email'
+                USING HINT = 'Unkown email';
+            RETURN;
+        END IF;
+        SELECT * INTO account_rec
+            FROM auth.accounts
+            WHERE email = _email;
+        IF account_rec.email IS NULL OR account_rec.email = '' THEN
+            RAISE EXCEPTION 'Invalid email'
+                USING HINT = 'Unkown email';
+            RETURN;
+        END IF;
+
+        RAISE NOTICE '--> process_notification_queue_fn type [%] [%]', _email,message_type;
+        -- set user email variable
+        PERFORM set_config('user.email', account_rec.email, false);
+        -- Generate user_settings user settings
+        IF message_type = 'new_account' THEN
+            user_settings := '{"email": "' || account_rec.email || '", "recipient": "' || account_rec.first || '"}';
+        ELSEIF message_type = 'new_vessel' THEN
+            -- Gather vessel data
+            SELECT * INTO vessel_rec
+                FROM auth.vessels
+                WHERE owner_email = _email;
+            IF vessel_rec.owner_email IS NULL OR vessel_rec.owner_email = '' THEN
+                RAISE EXCEPTION 'Invalid email'
+                    USING HINT = 'Unkown email';
+                RETURN;
+            END IF;
+            user_settings := '{"email": "' || vessel_rec.owner_email || '", "boat": "' || vessel_rec.name || '"}';
+        ELSEIF message_type = 'email_otp' THEN
+            otp_code := api.generate_otp_fn(_email);
+            user_settings := '{"email": "' || account_rec.email || '", "recipient": "' || account_rec.first || '", "otp_code": "' || otp_code || '"}';
+        END IF;
+        PERFORM send_notification_fn(message_type::TEXT, user_settings::JSONB);
+    END;
+$process_notification_queue$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.process_notification_queue_fn
+    IS 'process new event type notification';
+
 -- process new vessel notification
 DROP FUNCTION IF EXISTS process_vessel_queue_fn;
 CREATE OR REPLACE FUNCTION process_vessel_queue_fn(IN _email TEXT) RETURNS void AS $process_vessel_queue$

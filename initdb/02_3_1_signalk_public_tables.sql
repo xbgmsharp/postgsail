@@ -55,12 +55,12 @@ INSERT INTO email_templates VALUES
     E'Hello __RECIPIENT__,\n\nWe just wanted to let you know that you have a new entry on openplotter.cloud: "__LOGBOOK_NAME__"\r\n\r\nSee more details at __APP_URL__/log/__LOGBOOK_LINK__\n\nHappy sailing!\nThe PostgSail Team',
     'New Logbook Entry',
     E'We just wanted to let you know that you have a new entry on openplotter.cloud: "__LOGBOOK_NAME__"\r\n\r\nSee more details at __APP_URL__/log/__LOGBOOK_LINK__\n\nHappy sailing!\nThe PostgSail Team'),
-('user',
+('new_account',
     'Welcome',
     E'Hello __RECIPIENT__,\nCongratulations!\nYou successfully created an account.\nKeep in mind to register your vessel.\nHappy sailing!',
     'Welcome',
     E'Hi!\nYou successfully created an account\nKeep in mind to register your vessel.\nHappy sailing!'),
-('vessel',
+('new_vessel',
     'New vessel',
     E'Hi!\nHow are you?\n__BOAT__ is now linked to your account.',
     'New vessel',
@@ -80,16 +80,21 @@ INSERT INTO email_templates VALUES
     E'Hello __RECIPIENT__,\nCongratulations! You have just unlocked a new badge: __BADGE_NAME__\nSee more details at __APP_URL__/badges\nHappy sailing!\nThe PostgSail Team',
     'New Badge!',
     E'Congratulations!\nYou have just unlocked a new badge: __BADGE_NAME__\nSee more details at __APP_URL__/badges\nHappy sailing!\nThe PostgSail Team'),
-('pushover',
+('pushover_valid',
     'Pushover integration',
-    E'Hello __RECIPIENT__,\nCongratulations! You have just connect your account to pushover.\n\nThe PostgSail Team',
+    E'Hello __RECIPIENT__,\nCongratulations! You have just connect your account to Pushover.\n\nThe PostgSail Team',
     'Pushover integration!',
-    E'Congratulations!\nYou have just connect your account to pushover.\n\nThe PostgSail Team'),
+    E'Congratulations!\nYou have just connect your account to Pushover.\n\nThe PostgSail Team'),
 ('email_otp',
     'Email verification',
     E'Hello __RECIPIENT__,\nPlease active your account using the following code: __OTP_CODE__.\nThe code is valid 15 minutes.\nThe PostgSail Team',
     'Email verification',
     E'Congratulations!\nPlease validate your account. Check your email!'),
+('email_valid',
+    'Email verified',
+    E'Hello __RECIPIENT__,\nCongratulations!\nYou successfully validate your account.\nThe PostgSail Team',
+    'Email verified',
+    E'Hi!\nYou successfully validate your account.\nHappy sailing!'),
 ('telegram_otp',
     'Telegram bot',
     E'Hello __RECIPIENT__,\nTo connect your account to a @postgsail_bot. Please type this verification code __OTP_CODE__ back to the bot.\nThe code is valid 15 minutes.\nThe PostgSail Team',
@@ -97,9 +102,9 @@ INSERT INTO email_templates VALUES
     E'Congratulations!\nTo connect your account to a @postgsail_bot. Check your email!'),
 ('telegram_valid',
     'Telegram bot',
-    E'Hello __RECIPIENT__,\nCongratulations! You have just connect your account to a @postgsail_bot.\n\nThe PostgSail Team',
+    E'Hello __RECIPIENT__,\nCongratulations! You have just connect your account to your vessel, @postgsail_bot.\n\nThe PostgSail Team',
     'Telegram bot!',
-    E'Congratulations!\nYou have just connect your account to a @postgsail_bot.\n\nHappy sailing!\nThe PostgSail Team');
+    E'Congratulations!\nYou have just connect your account to your vessel, @postgsail_bot.\n\nHappy sailing!\nThe PostgSail Team');
 
 ---------------------------------------------------------------------------
 -- Queue handling
@@ -142,7 +147,7 @@ $new_account_entry$ language plpgsql;
 
 create function new_account_otp_validation_entry_fn() returns trigger as $new_account_otp_validation_entry$
 begin
-    insert into process_queue (channel, payload, stored) values ('new_account_otp', NEW.email, now());
+    insert into process_queue (channel, payload, stored) values ('email_otp', NEW.email, now());
     return NEW;
 END;
 $new_account_otp_validation_entry$ language plpgsql;
