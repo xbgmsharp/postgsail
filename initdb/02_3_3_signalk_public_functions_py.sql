@@ -215,9 +215,9 @@ AS $send_pushover_py$
 
     #print(r.text)
     # Return ?? or None if not found
-    plpy.notice('Sent pushover successfully to [{}] [{}]'.format(r.text, r.status_code))
+    #plpy.notice('Sent pushover successfully to [{}] [{}]'.format(r.text, r.status_code))
     if r.status_code == 200:
-        plpy.notice('Sent pushover successfully to [{}] [{}] [{}]'.format("__USER__", pushover_title, r.text))
+        plpy.notice('Sent pushover successfully to [{}] [{}] [{}]'.format(pushover_user, pushover_title, r.text))
     else:
         plpy.error('Failed to send pushover')
     return None
@@ -293,11 +293,11 @@ AS $send_telegram_py$
     r = requests.post(url,
                         data=data,
                         headers=headers)
-    print(r.text)
-    # Return the full address or None if not found
-    plpy.notice('Sent telegram successfully to [{}] [{}]'.format(r.text, r.status_code))
+    #print(r.text)
+    # Return something boolean?
+    #plpy.notice('Sent telegram successfully to [{}] [{}]'.format(r.text, r.status_code))
     if r.status_code == 200:
-        plpy.notice('Sent telegram successfully to [{}] [{}] [{}]'.format("__USER__", telegram_title, r.text))
+        plpy.notice('Sent telegram successfully to [{}] [{}] [{}]'.format(telegram_chat_id, telegram_title, r.text))
     else:
         plpy.error('Failed to send telegram')
     return None
@@ -306,3 +306,12 @@ $send_telegram_py$ TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
 COMMENT ON FUNCTION
     public.send_telegram_py_fn
     IS 'Send a message to a telegram user or group specified on chatId using plpython3u';
+
+---------------------------------------------------------------------------
+-- python url encode
+CREATE OR REPLACE FUNCTION urlencode_py_fn(uri text) RETURNS text
+AS $urlencode_py$
+    import urllib.parse
+    return urllib.parse.quote(uri, safe="");
+$urlencode_py$ LANGUAGE plpython3u;
+IMMUTABLE STRICT;
