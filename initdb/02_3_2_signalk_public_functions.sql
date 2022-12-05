@@ -27,12 +27,14 @@ CREATE OR REPLACE FUNCTION logbook_update_avg_fn(
 ) AS $logbook_update_avg$
     BEGIN
         RAISE NOTICE '-> Updating avg for logbook id=%, start: "%", end: "%"', _id, _start, _end;
-        SELECT AVG(speedOverGround), MAX(speedOverGround), MAX(windspeedapparent) INTO
+        SELECT AVG(speedoverground), MAX(speedoverground), MAX(windspeedapparent) INTO
                 avg_speed, max_speed, max_wind_speed
-            FROM api.metrics 
-            WHERE time >= _start::TIMESTAMP WITHOUT TIME ZONE
-                    AND time <= _end::TIMESTAMP WITHOUT TIME ZONE
-                    AND client_id = current_setting('vessel.client_id', false);
+            FROM api.metrics m
+            WHERE m.latitude IS NOT NULL
+                AND m.longitude IS NOT NULL
+                AND m.time >= _start::TIMESTAMP WITHOUT TIME ZONE
+                AND m.time <= _end::TIMESTAMP WITHOUT TIME ZONE
+                AND client_id = current_setting('vessel.client_id', false);
         RAISE NOTICE '-> Updated avg for logbook id=%, avg_speed:%, max_speed:%, max_wind_speed:%', _id, avg_speed, max_speed, max_wind_speed;
     END;
 $logbook_update_avg$ LANGUAGE plpgsql;
@@ -149,12 +151,17 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         -- If _id is not NULL
         IF _id IS NULL OR _id < 1 THEN
             RAISE WARNING '-> process_logbook_queue_fn invalid input %', _id;
+            RETURN;
         END IF;
+        -- Get the logbook record with all necesary fields exist
         SELECT * INTO logbook_rec
             FROM api.logbook
             WHERE active IS false
-                AND id = _id;
-
+                AND id = _id
+                AND _from_lng IS NOT NULL
+                AND _from_lat IS NOT NULL
+                AND _to_lng IS NOT NULL
+                AND _to_lat IS NOT NULL;
         PERFORM set_config('vessel.client_id', logbook_rec.client_id, false);
         --RAISE WARNING 'public.process_logbook_queue_fn() scheduler vessel.client_id %', current_setting('vessel.client_id', false);
 
@@ -202,8 +209,8 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         --user_settings := '{"logbook_name": "' || log_name || '"}, "{"email": "' || account_rec.email || '", "recipient": "' || account_rec.first || '}';
         --user_settings := '{"logbook_name": "' || log_name || '"}';
         -- Send notification email, pushover
-        --PERFORM send_notification('logbook'::TEXT, logbook_rec::RECORD);
-        PERFORM send_email_py_fn('logbook'::TEXT, user_settings::JSONB, app_settings::JSONB);
+        PERFORM send_notification_fn('logbook'::TEXT, user_settings::JSONB);
+        --PERFORM send_email_py_fn('logbook'::TEXT, user_settings::JSONB, app_settings::JSONB);
         --PERFORM send_pushover_py_fn('logbook'::TEXT, user_settings::JSONB, app_settings::JSONB);
     END;
 $process_logbook_queue$ LANGUAGE plpgsql;
@@ -220,13 +227,16 @@ CREATE OR REPLACE FUNCTION process_stay_queue_fn(IN _id integer) RETURNS void AS
         _name varchar;
     BEGIN
         RAISE NOTICE 'process_stay_queue_fn';
-        -- If _id is not NULL
+        -- If _id is valid, not NULL
         IF _id IS NULL OR _id < 1 THEN
             RAISE WARNING '-> process_stay_queue_fn invalid input %', _id;
         END IF;
+        -- Get the stay record with all necesary fields exist
         SELECT * INTO stay_rec
             FROM api.stays
-            WHERE id = _id;
+            WHERE id = _id
+                AND longitude IS NOT NULL
+                AND latitude IS NOT NULL;
         PERFORM set_config('vessel.client_id', stay_rec.client_id, false);
         -- geo reverse _lng _lat
         _name := reverse_geocode_py_fn('nominatim', stay_rec.longitude::NUMERIC, stay_rec.latitude::NUMERIC);
@@ -260,10 +270,14 @@ CREATE OR REPLACE FUNCTION process_moorage_queue_fn(IN _id integer) RETURNS void
         IF _id IS NULL OR _id < 1 THEN
             RAISE WARNING '-> process_moorage_queue_fn invalid input %', _id;
         END IF;
+        -- Get the stay record with all necesary fields exist
         SELECT * INTO stay_rec
             FROM api.stays
             WHERE active IS false 
                 AND departed IS NOT NULL
+                AND arrived IS NOT NULL
+                AND longitude IS NOT NULL
+                AND latitude IS NOT NULL
                 AND id = _id;
 
 	    FOR moorage_rec in 
@@ -302,8 +316,8 @@ CREATE OR REPLACE FUNCTION process_moorage_queue_fn(IN _id integer) RETURNS void
 		 		WHERE id = moorage_rec.id;
 		else
 			RAISE NOTICE 'Insert new moorage entry from stay %', stay_rec;
-            -- Ensure the stay as a name
-            IF stay_rec.name IS NULL THEN
+            -- Ensure the stay as a name if lat,lon
+            IF stay_rec.name IS NULL AND stay_rec.longitude IS NOT NULL AND stay_rec.latitude IS NOT NULL THEN
                 stay_rec.name := reverse_geocode_py_fn('nominatim', stay_rec.longitude::NUMERIC, stay_rec.latitude::NUMERIC);
             END IF;
             -- Insert new moorage from stay
@@ -548,25 +562,29 @@ AS $send_notification$
         _telegram_notifications BOOLEAN := False;
         _telegram_chat_id TEXT := NULL;
         telegram_settings JSONB := NULL;
+		_email TEXT := NULL;
     BEGIN
-        RAISE NOTICE '--> send_notification_fn type [%]', email_type;
+        --RAISE NOTICE '--> send_notification_fn type [%]', email_type;
         -- Gather notification app settings, eg: email, pushover, telegram
         app_settings := get_app_settings_fn();
         --RAISE NOTICE '--> send_notification_fn app_settings [%]', app_settings;
+        --RAISE NOTICE '--> user_settings [%]', user_settings->>'email'::TEXT;
+
         -- Gather notifications settings and merge with user settings
         -- Send notification email
         SELECT preferences['email_notifications'] INTO _email_notifications
             FROM auth.accounts a
-            WHERE a.email = current_setting('user.email', true);
+            WHERE a.email = user_settings->>'email'::TEXT;
         RAISE NOTICE '--> send_notification_fn email_notifications [%]', _email_notifications;
         -- If email server app settings set and if email user settings set
         IF app_settings['app.email_server'] IS NOT NULL AND _email_notifications IS True THEN
             PERFORM send_email_py_fn(email_type::TEXT, user_settings::JSONB, app_settings::JSONB);
         END IF;
+
         -- Send notification pushover
         SELECT preferences['phone_notifications'],preferences->>'pushover_user_key' INTO _phone_notifications,_pushover_user_key
             FROM auth.accounts a
-            WHERE a.email = current_setting('user.email', true);
+            WHERE a.email = user_settings->>'email'::TEXT;
         RAISE NOTICE '--> send_notification_fn phone_notifications [%]', _phone_notifications;
         -- If pushover app settings set and if pushover user settings set
         IF app_settings['app.pushover_app_token'] IS NOT NULL AND _phone_notifications IS True THEN
@@ -575,10 +593,11 @@ AS $send_notification$
             --RAISE NOTICE '--> send_notification_fn user_settings + pushover [%]', user_settings;
             PERFORM send_pushover_py_fn(email_type::TEXT, user_settings::JSONB, app_settings::JSONB);
         END IF;
+
         -- Send notification telegram
         SELECT (preferences->'telegram'->'id') IS NOT NULL,preferences['telegram']['id'] INTO _telegram_notifications,_telegram_chat_id
             FROM auth.accounts a
-            WHERE a.email = current_setting('user.email', true);
+            WHERE a.email = user_settings->>'email'::TEXT;
         RAISE NOTICE '--> send_notification_fn telegram_notifications [%]', _telegram_notifications;
         -- If telegram app settings set and if telegram user settings set
         IF app_settings['app.telegram_bot_token'] IS NOT NULL AND _telegram_notifications IS True THEN
@@ -708,10 +727,11 @@ $process_badge_queue$ language plpgsql;
 CREATE OR REPLACE FUNCTION public.check_jwt() RETURNS void AS $$
 DECLARE
   _role name;
-  _email name;
+  _email text;
   _mmsi name;
   _path name;
   _clientid text;
+  _vid text;
   account_rec record;
   vessel_rec record;
 BEGIN
@@ -744,9 +764,9 @@ BEGIN
         RETURN;
     END IF;
     -- Check a vessel and user exist
-    SELECT * INTO vessel_rec
+    SELECT auth.vessels.* INTO vessel_rec
         FROM auth.vessels, auth.accounts
-        WHERE auth.vessels.owner_email = _email
+        WHERE auth.vessels.owner_email = auth.accounts.email
             AND auth.accounts.email = _email;
     -- check if boat exist yet?
     IF vessel_rec.owner_email IS NULL THEN
@@ -763,15 +783,15 @@ BEGIN
             USING HINT = 'Unkown vessel mmsi';
     END IF;
     -- Set session variables
-    PERFORM set_config('vessel.mmsi', vessel_rec.mmsi, false);
+    PERFORM set_config('vessel.id', vessel_rec.vessel_id, false);
     PERFORM set_config('vessel.name', vessel_rec.name, false);
     -- ensure vessel is connected
     SELECT m.client_id INTO _clientid
         FROM auth.vessels v, api.metadata m
         WHERE
-            m.mmsi = current_setting('vessel.mmsi')
-            AND m.mmsi = v.mmsi
-            AND lower(v.owner_email) = lower(_email);
+            m.vessel_id = current_setting('vessel.id')
+            AND m.vessel_id = v.vessel_id
+            AND v.owner_email =_email;
     IF FOUND THEN
        PERFORM set_config('vessel.client_id', _clientid, false);
     --RAISE WARNING 'public.check_jwt() user_role vessel.client_id %', current_setting('vessel.client_id', false);
@@ -779,21 +799,18 @@ BEGIN
     --RAISE WARNING 'public.check_jwt() user_role vessel.mmsi %', current_setting('vessel.mmsi', false);
     --RAISE WARNING 'public.check_jwt() user_role vessel.name %', current_setting('vessel.name', false);
   ELSIF _role = 'vessel_role' THEN
+    SELECT current_setting('request.jwt.claims', true)::json->>'vid' INTO _vid;
     -- Check the vessel and user exist
-    SELECT * INTO vessel_rec
+    SELECT auth.vessels.* INTO vessel_rec
         FROM auth.vessels, auth.accounts
-        WHERE auth.vessels.owner_email = _email
-            AND auth.accounts.email = _email;
+        WHERE auth.vessels.owner_email = auth.accounts.email
+            AND auth.accounts.email = _email
+            AND auth.vessels.vessel_id = _vid;
     IF vessel_rec.owner_email IS NULL THEN
         RAISE EXCEPTION 'Invalid vessel'
             USING HINT = 'Unkown vessel owner_email';
     END IF;
-    SELECT current_setting('request.jwt.claims', true)::json->>'mmsi' INTO _mmsi;
-    IF vessel_rec.mmsi IS NULL OR vessel_rec.mmsi <> _mmsi THEN
-        RAISE EXCEPTION 'Invalid vessel'
-            USING HINT = 'Unkown vessel mmsi';
-    END IF;
-    PERFORM set_config('vessel.mmsi', vessel_rec.mmsi, false);
+    PERFORM set_config('vessel.id', vessel_rec.vessel_id, false);
     PERFORM set_config('vessel.name', vessel_rec.name, false);
     -- TODO add client_id
     --PERFORM set_config('vessel.client_id', vessel_rec.client_id, false);
@@ -811,15 +828,15 @@ $$ language plpgsql security definer;
 -- Function to trigger cron_jobs using API for tests.
 -- Todo limit access and permision
 -- Run con jobs
-CREATE OR REPLACE FUNCTION api.run_cron_jobs() RETURNS void AS $$
-BEGIN
-    -- In correct order
-    select public.cron_process_new_account_fn();
-    select public.cron_process_new_vessel_fn();
-    select public.cron_process_monitor_online_fn();
-    select public.cron_process_new_logbook_fn();
-    select public.cron_process_new_stay_fn();
-    select public.cron_process_new_moorage_fn();
-    select public.cron_process_monitor_offline_fn();
-END
-$$ language plpgsql security definer;
+--CREATE OR REPLACE FUNCTION api.run_cron_jobs() RETURNS void AS $$
+--BEGIN
+--    -- In correct order
+--    select public.cron_process_new_account_fn();
+--    select public.cron_process_new_vessel_fn();
+--    select public.cron_process_monitor_online_fn();
+--    select public.cron_process_new_logbook_fn();
+--    select public.cron_process_new_stay_fn();
+--    select public.cron_process_new_moorage_fn();
+--    select public.cron_process_monitor_offline_fn();
+--END
+--$$ language plpgsql security definer;
