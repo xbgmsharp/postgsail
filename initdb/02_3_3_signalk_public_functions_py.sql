@@ -313,5 +313,4 @@ CREATE OR REPLACE FUNCTION urlencode_py_fn(uri text) RETURNS text
 AS $urlencode_py$
     import urllib.parse
     return urllib.parse.quote(uri, safe="");
-$urlencode_py$ LANGUAGE plpython3u;
-IMMUTABLE STRICT;
+$urlencode_py$ LANGUAGE plpython3u IMMUTABLE STRICT;
