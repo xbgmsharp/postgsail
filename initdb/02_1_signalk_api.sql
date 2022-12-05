@@ -49,6 +49,8 @@ select version();
 CREATE DATABASE signalk;
 -- Limit connection to 100
 ALTER DATABASE signalk WITH CONNECTION LIMIT = 100;
+-- Set timezone to UTC
+ALTER DATABASE signalk SET TIMEZONE='UTC';
 
 -- connext to the DB
 \c signalk
@@ -80,23 +82,24 @@ UPDATE pg_language SET lanpltrusted = true WHERE lanname = 'plpython3u';
 CREATE TABLE IF NOT EXISTS api.metadata(
   id SERIAL PRIMARY KEY,
   name VARCHAR(150) NULL,
-  mmsi VARCHAR(10) NULL,
+  mmsi NUMERIC NULL,
   client_id VARCHAR(255) UNIQUE NOT NULL,
   length DOUBLE PRECISION NULL,
   beam DOUBLE PRECISION NULL,
   height DOUBLE PRECISION NULL,
-  ship_type VARCHAR(255) NULL, -- Should be an INT !?
+  ship_type NUMERIC NULL,
   plugin_version VARCHAR(10) NOT NULL,
   signalk_version VARCHAR(10) NOT NULL,
   time TIMESTAMP WITHOUT TIME ZONE NOT NULL, -- should be rename to last_update !?
-  active BOOLEAN DEFAULT True -- monitor online/offline
+  active BOOLEAN DEFAULT True -- trigger monitor online/offline
+  -- vessel_id link auth.vessels with api.metadata
 );
 -- Description
 COMMENT ON TABLE
     api.metadata
     IS 'Stores metadata from vessel';
-
--- Index todo!
+COMMENT ON COLUMN api.metadata.active IS 'trigger monitor online/offline';
+-- Index
 CREATE INDEX metadata_client_id_idx ON api.metadata (client_id);
 CREATE INDEX metadata_mmsi_idx ON api.metadata (mmsi);
 CREATE INDEX metadata_name_idx ON api.metadata (name);
@@ -113,14 +116,19 @@ CREATE TABLE IF NOT EXISTS api.metrics (
   windSpeedApparent DOUBLE PRECISION NULL,
   angleSpeedApparent DOUBLE PRECISION NULL,
   status VARCHAR(100) NULL,
-  metrics jsonb NULL
+  metrics jsonb NULL,
+  CONSTRAINT valid_client_id CHECK (length(client_id) > 10),
+  CONSTRAINT valid_latitude CHECK (latitude >= -90 and latitude <= 90),
+  CONSTRAINT valid_longitude CHECK (longitude >= -180 and longitude <= 180)
 );
 -- Description
 COMMENT ON TABLE
     api.metrics
     IS 'Stores metrics from vessel';
+COMMENT ON COLUMN api.metrics.latitude IS 'With CONSTRAINT but allow NULL value to be ignored silently by trigger';
+COMMENT ON COLUMN api.metrics.longitude IS 'With CONSTRAINT but allow NULL value to be ignored silently by trigger';
 
--- Index todo!
+-- Index
 CREATE INDEX ON api.metrics (client_id, time DESC);
 CREATE INDEX ON api.metrics (status, time DESC);
 -- json index??
@@ -271,9 +279,9 @@ CREATE FUNCTION metadata_upsert_trigger_fn() RETURNS trigger AS $metadata_upsert
         PERFORM set_config('vessel.client_id', NEW.client_id, false);
         -- UPSERT - Insert vs Update for Metadata
         RAISE NOTICE 'metadata_upsert_trigger_fn';
-        SELECT m.id,m.active INTO metadata_id,metadata_active
+        SELECT m.id,m.active INTO metadata_id, metadata_active
             FROM api.metadata m
-            WHERE (m.mmsi IS NOT NULL AND m.mmsi = NEW.mmsi) 
+            WHERE (m.vessel_id IS NOT NULL AND m.vessel_id = current_setting('vessel.id', true))
                     OR (m.client_id IS NOT NULL AND m.client_id = NEW.client_id);
         RAISE NOTICE 'metadata_id %', metadata_id;
         IF metadata_id IS NOT NULL THEN
@@ -300,7 +308,11 @@ CREATE FUNCTION metadata_upsert_trigger_fn() RETURNS trigger AS $metadata_upsert
                 WHERE id = metadata_id;
             RETURN NULL; -- Ignore insert
         ELSE
-            -- Insert new vessel metadata
+            IF NEW.vessel_id IS NULL THEN
+                -- set vessel_id from jwt if not present in INSERT query
+                NEW.vessel_id = current_setting('vessel.id');
+            END IF;
+            -- Insert new vessel metadata and
             RETURN NEW; -- Insert new vessel metadata
         END IF;
     END;
@@ -310,7 +322,7 @@ COMMENT ON FUNCTION
     public.metadata_upsert_trigger_fn
     IS 'process metadata from vessel, upsert';
 
--- Metadata notification for new vessel after insert
+-- FUNCTION Metadata notification for new vessel after insert
 DROP FUNCTION IF EXISTS metadata_notification_trigger_fn; 
 CREATE FUNCTION metadata_notification_trigger_fn() RETURNS trigger AS $metadata_notification$
     DECLARE
@@ -326,12 +338,15 @@ COMMENT ON FUNCTION
     public.metadata_notification_trigger_fn
     IS 'process metadata notification from vessel, monitoring_online';
 
+---------------------------------------------------------------------------
+-- Trigger metadata table
+--
 -- Metadata trigger BEFORE INSERT
 CREATE TRIGGER metadata_upsert_trigger BEFORE INSERT ON api.metadata
     FOR EACH ROW EXECUTE FUNCTION metadata_upsert_trigger_fn();
 -- Description
-COMMENT ON TRIGGER 
-    metadata_upsert_trigger ON api.metadata 
+COMMENT ON TRIGGER
+    metadata_upsert_trigger ON api.metadata
     IS 'BEFORE INSERT ON api.metadata run function metadata_upsert_trigger_fn';
 
 -- Metadata trigger AFTER INSERT
@@ -357,7 +372,9 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
         logbook_id integer;
         stay_id integer;
     BEGIN
-        RAISE NOTICE 'metrics_trigger_fn';
+        -- Set client_id to new value to allow RLS
+        PERFORM set_config('vessel.client_id', NEW.client_id, false);
+        RAISE NOTICE 'metrics_trigger_fn client_id [%]', NEW.client_id;
         -- todo: Check we have the boat metadata?
         -- Do we have a log in progress?
         -- Do we have a stay in progress?
@@ -368,6 +385,16 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                 AND m.client_id = NEW.client_id
             ORDER BY m.time DESC LIMIT 1;
         RAISE NOTICE 'Metrics Status, New:[%] Previous:[%]', NEW.status, previous_status;
+        IF previous_time = NEW.time THEN
+            -- Ignore entry if same time
+            RAISE WARNING 'Metrics Ignoring metric, duplicate time [%] = [%]', previous_time, NEW.time;
+            RETURN NULL;
+        END IF;
+        IF NEW.latitude IS NULL OR NEW.longitude IS NULL THEN
+            -- Ignore entry if null latitude,longitude
+            RAISE WARNING 'Metrics Ignoring metric, null latitude,longitude [%] [%]', NEW.latitude, NEW.longitude;
+            RETURN NULL;
+        END IF;
         IF NEW.status IS NULL THEN
             RAISE WARNING 'Metrics Unknow NEW.status from vessel [%], set to default moored', NEW.status;
             NEW.status := 'moored';
@@ -383,11 +410,6 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
             -- Add stay entry to process queue for further processing
             INSERT INTO process_queue (channel, payload, stored) values ('new_stay', stay_id, now());
             RAISE WARNING 'Metrics Insert first stay as no previous metrics exist, stay_id %', stay_id;
-        END IF;
-        IF previous_time = NEW.time THEN
-            -- Ignore entry if same time
-            RAISE WARNING 'Metrics Ignoring metric, duplicate time [%] = [%]', previous_time, NEW.time;
-            RETURN NULL;
         END IF;
 
         --
