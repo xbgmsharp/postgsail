@@ -22,14 +22,16 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto"; -- provides cryptographic functions
 DROP TABLE IF EXISTS auth.accounts CASCADE;
 CREATE TABLE IF NOT EXISTS auth.accounts (
   userid        UUID NOT NULL UNIQUE DEFAULT uuid_generate_v4(),
+  user_id       TEXT NOT NULL UNIQUE DEFAULT RIGHT(gen_random_uuid()::text, 12),
   email         CITEXT primary key check ( email ~* '^.+@.+\..+$' ),
   first         text not null check (length(pass) < 512),
   last          text not null check (length(pass) < 512),
   pass          text not null check (length(pass) < 512),
   role          name not null check (length(role) < 512),
-  preferences   JSONB null,
+  preferences   JSONB NULL DEFAULT '{"email_notifications":true}',
   created_at    TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+  CONSTRAINT valid_email CHECK (length(email) > 5), -- Enforce at least 5 char, eg: a@b.io
   CONSTRAINT valid_first CHECK (length(first) > 1),
   CONSTRAINT valid_last CHECK (length(last) > 1),
   CONSTRAINT valid_pass CHECK (length(pass) > 4)
@@ -54,17 +56,18 @@ COMMENT ON TRIGGER accounts_moddatetime
 
 DROP TABLE IF EXISTS auth.vessels;
 CREATE TABLE IF NOT EXISTS auth.vessels (
-  vesselid     TEXT NOT NULL UNIQUE DEFAULT RIGHT(gen_random_uuid()::text, 12),
+  vessel_id     TEXT NOT NULL UNIQUE DEFAULT RIGHT(gen_random_uuid()::text, 12),
+--  user_id       REFERENCES auth.accounts(user_id) ON DELETE RESTRICT,
   owner_email CITEXT PRIMARY KEY REFERENCES auth.accounts(email) ON DELETE RESTRICT,
-  mmsi		    TEXT UNIQUE, -- Should be a numeric range between 100000000 and 800000000.
---  mmsi        NUMERIC UNIQUE, -- MMSI can be optional but if present must be a valid one
+--  mmsi		    TEXT UNIQUE, -- Should be a numeric range between 100000000 and 800000000.
+  mmsi        NUMERIC UNIQUE, -- MMSI can be optional but if present must be a valid one and unique
   name        TEXT NOT NULL CHECK (length(name) >= 3 AND length(name) < 512),
 --  pass        text not null check (length(pass) < 512), -- unused
   role        name not null check (length(role) < 512),
   created_at  TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
   updated_at  TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
---  CONSTRAINT valid_mmsi CHECK (length(mmsi) < 10 AND mmsi <> '')
---  CONSTRAINT valid_mmsi CHECK (mmsi > 100000000 AND mmsi < 800000000)
+--  CONSTRAINT valid_length_mmsi CHECK (length(mmsi) < 10 OR length(mmsi) = 0)
+  CONSTRAINT valid_range_mmsi CHECK (mmsi > 100000000 AND mmsi < 800000000)
 );
 -- Description
 COMMENT ON TABLE
@@ -73,7 +76,7 @@ COMMENT ON TABLE
 -- Indexes
 CREATE INDEX vessels_role_idx ON auth.vessels (role);
 CREATE INDEX vessels_name_idx ON auth.vessels (name);
-CREATE INDEX vessels_vesselid_idx ON auth.vessels (vesselid);
+CREATE INDEX vessels_vesselid_idx ON auth.vessels (vessel_id);
 
 CREATE TRIGGER vessels_moddatetime
 	BEFORE UPDATE ON auth.vessels
@@ -199,10 +202,16 @@ api.signup(in email text, in pass text, in firstname text, in lastname text) ret
 declare
   _role name;
 begin
+  IF email IS NULL AND email = ''
+	 AND pass IS NULL AND pass = '' THEN
+    RAISE EXCEPTION 'Invalid input'
+        USING HINT = 'Check your parameter';
+  END IF;
   -- check email and password
   select auth.user_role(email, pass) into _role;
   if _role is null then
 	  RAISE WARNING 'Register new account email:[%]', email;
+    -- TODO replace preferences default into table rather than trigger
 	  INSERT INTO auth.accounts ( email, pass, first, last, role, preferences)
 	    VALUES (email, pass, firstname, lastname, 'user_role', '{"email_notifications":true}');
   end if;
@@ -219,20 +228,24 @@ declare
   result auth.jwt_token;
   app_jwt_secret text;
   vessel_rec record;
+  _vessel_id text;
 begin
+  IF vessel_email IS NULL AND vessel_email = ''
+	AND vessel_name IS NULL AND vessel_name = '' THEN
+    RAISE EXCEPTION 'Invalid input'
+        USING HINT = 'Check your parameter';
+  END IF;
   -- check vessel exist
   SELECT * INTO vessel_rec
     FROM auth.vessels vessel
-    WHERE LOWER(vessel.owner_email) = LOWER(vessel_email)
-      AND vessel.mmsi = vessel_mmsi
-      AND LOWER(vessel.name) = LOWER(vessel_name);
+    WHERE vessel.owner_email = vessel_email;
   if vessel_rec is null then
       RAISE WARNING 'Register new vessel name:[%] mmsi:[%] for [%]', vessel_name, vessel_mmsi, vessel_email;
       INSERT INTO auth.vessels (owner_email, mmsi, name, role)
-	      VALUES (vessel_email, vessel_mmsi, vessel_name, 'vessel_role');
+	      VALUES (vessel_email, vessel_mmsi::NUMERIC, vessel_name, 'vessel_role') RETURNING vessel_id INTO _vessel_id;
     vessel_rec.role := 'vessel_role';
     vessel_rec.owner_email = vessel_email;
-    vessel_rec.mmsi = vessel_mmsi;
+    vessel_rec.vessel_id = _vessel_id;
   end if;
 
   -- Get app_jwt_secret
@@ -246,7 +259,7 @@ begin
     from (
       select vessel_rec.role as role,
       vessel_rec.owner_email as email,
-      vessel_rec.mmsi as mmsi
+      vessel_rec.vessel_id as vid
     ) r
     into result;
   return result;
