@@ -31,7 +31,7 @@ grant execute on function public.check_jwt() to api_anonymous;
 -- explicitly limit EXECUTE privileges to only telegram bot auth function
 grant execute on function api.bot(text,bigint) to api_anonymous;
 -- explicitly limit EXECUTE privileges to only pushover subscription validation function
-grant execute on function api.generate_otp_fn(text) to api_anonymous;
+grant execute on function api.email_fn(text) to api_anonymous;
 grant execute on function api.pushover_fn(text,text) to api_anonymous;
 grant execute on function api.telegram_fn(text,text) to api_anonymous;
 
@@ -136,7 +136,7 @@ GRANT EXECUTE ON FUNCTION public.check_jwt() to vessel_role;
 --CREATE ROLE scheduler WITH NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION;
 CREATE ROLE scheduler WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 10 LOGIN;
 comment on role vessel_role is
-    'Role that pgcron will use to process notification logbook,moorages,stays,monitoring.';
+    'Role that pgcron will use to process logbook,moorages,stays,monitoring and notification.';
 GRANT scheduler to authenticator;
 GRANT USAGE ON SCHEMA api TO scheduler;
 GRANT SELECT ON TABLE api.metrics,api.metadata TO scheduler;
@@ -146,7 +146,7 @@ GRANT SELECT ON ALL TABLES IN SCHEMA public TO scheduler;
 GRANT SELECT,UPDATE ON TABLE public.process_queue TO scheduler;
 GRANT USAGE ON SCHEMA auth TO scheduler;
 GRANT SELECT ON ALL TABLES IN SCHEMA auth TO scheduler;
-GRANT SELECT,UPDATE ON TABLE auth.otp TO scheduler;
+GRANT SELECT,UPDATE,DELETE ON TABLE auth.otp TO scheduler;
 
 ---------------------------------------------------------------------------
 -- Security policy
@@ -258,15 +258,12 @@ CREATE POLICY admin_all ON auth.vessels TO current_user
     WITH CHECK (true);
 -- Allow user_role to update and select on their own records
 CREATE POLICY api_user_role ON auth.vessels TO user_role
-    USING (mmsi = current_setting('vessel.mmsi', true)
+    USING (vessel_id = current_setting('vessel.id', true)
         AND owner_email = current_setting('user.email', true)
     )
-    WITH CHECK (mmsi = current_setting('vessel.mmsi', false)
+    WITH CHECK (vessel_id = current_setting('vessel.id', true)
         AND owner_email = current_setting('user.email', true)
     );
---CREATE POLICY grafana_role ON auth.vessels TO grafana
---    USING (owner_email = owner_email)
---    WITH CHECK (owner_email = owner_email);
 
 -- Be sure to enable row level security on the table
 ALTER TABLE auth.accounts ENABLE ROW LEVEL SECURITY;
@@ -280,3 +277,6 @@ CREATE POLICY api_user_role ON auth.accounts TO user_role
     )
     WITH CHECK (email = current_setting('user.email', true)
     );
+--CREATE POLICY grafana_proxy_role ON auth.accounts TO grafana_auth
+--    USING (owner_email = owner_email)
+--    WITH CHECK (owner_email = owner_email);

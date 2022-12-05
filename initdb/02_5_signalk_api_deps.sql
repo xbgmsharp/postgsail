@@ -8,20 +8,29 @@ select current_database();
 -- connect to the DB
 \c signalk
 
+-- Link auth.vessels with api.metadata
+ALTER TABLE api.metadata ADD vessel_id text NOT NULL REFERENCES auth.vessels(vessel_id) ON DELETE RESTRICT;
+COMMENT ON COLUMN api.metadata.vessel_id IS 'Link auth.vessels with api.metadata';
+
 -- List vessel
 --TODO add geojson with position
 DROP VIEW IF EXISTS api.vessels_view;
 CREATE OR REPLACE VIEW api.vessels_view AS
+    WITH metadata AS (
+        SELECT COALESCE(
+            (SELECT  m.time
+                FROM api.metadata m
+                WHERE m.vessel_id = current_setting('vessel.id')
+            )::TEXT ,
+            'Never'::TEXT ) as last_contact
+    )
     SELECT
         v.name as name,
         v.mmsi as mmsi,
         v.created_at as created_at,
-        coalesce(m.time, null) as last_contact
-        FROM auth.vessels v, api.metadata m
-        WHERE
-            m.mmsi = current_setting('vessel.mmsi')
-            AND m.mmsi = v.mmsi
-            AND lower(v.owner_email) = lower(current_setting('request.jwt.claims', true)::json->>'email');
+        m.last_contact as last_contact
+    FROM auth.vessels v, metadata m
+    WHERE v.owner_email = current_setting('user.email');
 
 DROP VIEW IF EXISTS api.vessel_p_view;
 CREATE OR REPLACE VIEW api.vessel_p_view AS
@@ -31,7 +40,7 @@ CREATE OR REPLACE VIEW api.vessel_p_view AS
         v.created_at as created_at,
         null as last_contact
         FROM auth.vessels v
-        WHERE lower(v.owner_email) = lower(current_setting('request.jwt.claims', true)::json->>'email');
+        WHERE v.owner_email = current_setting('user.email');
 
 -- Or function?
 -- TODO Improve: return null until the vessel has sent metadata?
@@ -43,7 +52,7 @@ AS $vessel$
         SELECT
             json_build_object( 
 	            'name', v.name,
-	            'mmsi', v.mmsi,
+	            'mmsi', coalesce(v.mmsi, null),
 	            'created_at', v.created_at,
 	            'last_contact', coalesce(m.time, null),
 	            'geojson', coalesce(ST_AsGeoJSON(geojson_t.*)::json, null)
@@ -69,8 +78,8 @@ AS $vessel$
 			            ) AS t
 	            ) AS geojson_t
             WHERE
-                m.mmsi = current_setting('vessel.mmsi')
-                AND m.mmsi = v.mmsi;
+                m.vessel_id = current_setting('vessel.id')
+                AND m.vessel_id = v.vessel_id;
 		--RAISE notice 'api.vessel_fn %', obj;
     END;
 $vessel$ language plpgsql security definer;
@@ -89,7 +98,7 @@ AS $user_settings$
 		    select email,first,last,preferences,created_at,
                 INITCAP(CONCAT (LEFT(first, 1), ' ', last)) AS username
             from auth.accounts
-            where lower(email) = lower(current_setting('request.jwt.claims', true)::json->>'email')
+            where email = current_setting('user.email')
 		) row;
     END;
 $user_settings$ language plpgsql security definer;
@@ -186,7 +195,7 @@ BEGIN
 		SET preferences =
 				jsonb_set(preferences::jsonb, key::text[], _value::jsonb)
 		WHERE
-			lower(email) = lower(current_setting('user.email', true));
+			email = current_setting('user.email', true);
 	IF FOUND THEN
         --RAISE WARNING '-> update_user_preferences_fn True';
 		RETURN True;
