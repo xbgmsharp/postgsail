@@ -331,6 +331,7 @@ COMMENT ON FUNCTION
 
 -- CRON for Vacuum database
 CREATE FUNCTION cron_vaccum_fn() RETURNS void AS $$
+-- ERROR:  VACUUM cannot be executed from a function
 declare
 begin
     -- Vacuum
