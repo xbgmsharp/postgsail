@@ -40,12 +40,23 @@ AS $reverse_geocode_py$
         return None
 
     # Make the request to the geocoder API
+    # https://operations.osmfoundation.org/policies/nominatim/
     payload = {"lon": lon, "lat": lat, "format": "jsonv2", "zoom": 18}
     r = requests.get(url, params=payload)
 
     # Return the full address or nothing if not found
+    # Option1: If name is null fallback to address field road,neighbourhood,suburb
+    # Option2: Return the json for future reference like country
     if r.status_code == 200 and "name" in r.json():
-      return r.json()["name"]
+      r_dict = r.json()
+      if r_dict["name"]:
+        return r_dict["name"]
+      elif "address" in r_dict and r_dict["address"] and r_dict["address"]["road"]:
+        return r_dict["address"]["road"]
+      elif "address" in r_dict and r_dict["address"] and r_dict["address"]["neighbourhood"]:
+        return r_dict["address"]["neighbourhood"]
+      elif "address" in r_dict and r_dict["address"] and r_dict["address"]["suburb"]:
+        return r_dict["address"]["suburb"]
     else:
       plpy.error('Failed to received a geo full address %s', r.json())
       return 'unknow'
