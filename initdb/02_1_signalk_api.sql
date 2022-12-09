@@ -135,6 +135,11 @@ CREATE INDEX ON api.metrics (status, time DESC);
 CREATE INDEX ON api.metrics using GIN (metrics);
 -- timescaledb hypertable
 SELECT create_hypertable('api.metrics', 'time');
+-- timescaledb hypertable with space partitions
+--SELECT create_hypertable('api.metrics', 'time', 'client_id',
+--    number_partitions => 2,
+--    chunk_time_interval => INTERVAL '1 day',
+--    if_not_exists => true);
 
 ---------------------------------------------------------------------------
 -- Logbook
@@ -374,17 +379,15 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
     BEGIN
         -- Set client_id to new value to allow RLS
         PERFORM set_config('vessel.client_id', NEW.client_id, false);
-        RAISE NOTICE 'metrics_trigger_fn client_id [%]', NEW.client_id;
-        -- todo: Check we have the boat metadata?
-        -- Do we have a log in progress?
-        -- Do we have a stay in progress?
+        --RAISE NOTICE 'metrics_trigger_fn client_id [%]', NEW.client_id;
+        -- Boat metadata are check using api.metrics REFERENCES to api.metadata
         -- Fetch the latest entry to compare status against the new status to be insert
         SELECT coalesce(m.status, 'moored'), m.time INTO previous_status, previous_time
             FROM api.metrics m 
             WHERE m.client_id IS NOT NULL
                 AND m.client_id = NEW.client_id
             ORDER BY m.time DESC LIMIT 1;
-        RAISE NOTICE 'Metrics Status, New:[%] Previous:[%]', NEW.status, previous_status;
+        --RAISE NOTICE 'Metrics Status, New:[%] Previous:[%]', NEW.status, previous_status;
         IF previous_time = NEW.time THEN
             -- Ignore entry if same time
             RAISE WARNING 'Metrics Ignoring metric, duplicate time [%] = [%]', previous_time, NEW.time;
@@ -412,62 +415,78 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
             RAISE WARNING 'Metrics Insert first stay as no previous metrics exist, stay_id %', stay_id;
         END IF;
 
-        --
         -- Check the state and if any previous/current entry
+        -- If new status is sailing or motoring
         IF previous_status <> NEW.status AND (NEW.status = 'sailing' OR NEW.status = 'motoring') THEN
+            RAISE WARNING 'Metrics Update status, try new logbook, New:[%] Previous:[%]', NEW.status, previous_status;
             -- Start new log
-            RAISE WARNING 'Metrics Start new log, New:[%] Previous:[%]', NEW.status, previous_status;
-            RAISE NOTICE 'Metrics Inserting new trip [%]', NEW.status;
-            INSERT INTO api.logbook 
-                (client_id, active, _from_time, _from_lat, _from_lng)
-                VALUES (NEW.client_id, true, NEW.time, NEW.latitude, NEW.longitude);
+            logbook_id := public.trip_in_progress_fn(NEW.client_id::TEXT);
+            IF logbook_id IS NULL THEN
+                INSERT INTO api.logbook
+                    (client_id, active, _from_time, _from_lat, _from_lng)
+                    VALUES (NEW.client_id, true, NEW.time, NEW.latitude, NEW.longitude)
+                    RETURNING id INTO logbook_id;
+                RAISE WARNING 'Metrics Insert new logbook, logbook_id %', logbook_id;
+            ELSE
+                UPDATE api.logbook
+                    SET
+                        active = false,
+                        _to_time = NEW.time,
+                        _to_lat = NEW.latitude,
+                        _to_lng = NEW.longitude
+                    WHERE id = logbook_id;
+                RAISE WARNING 'Metrics Existing Logbook logbook_id [%] [%] [%]', logbook_id, NEW.status, NEW.time;
+            END IF;
+
             -- End current stay
-            -- Fetch stay_id by client_id
-            SELECT id INTO stay_id
-                FROM api.stays s
-                WHERE s.client_id IS NOT NULL
-                    AND s.client_id = NEW.client_id
-                    AND active IS true
-                LIMIT 1;
-            RAISE NOTICE 'Metrics Updating stay status [%] [%] [%]', stay_id, NEW.status, NEW.time;
+            stay_id := public.stay_in_progress_fn(NEW.client_id::TEXT);
             IF stay_id IS NOT NULL THEN
                 UPDATE api.stays
                     SET
-                        active = false, 
+                        active = false,
                         departed = NEW.time
-                    WHERE id = stay_id;       
+                    WHERE id = stay_id;
+                RAISE WARNING 'Metrics Updating Stay end current stay_id [%] [%] [%]', stay_id, NEW.status, NEW.time;
                 -- Add moorage entry to process queue for further processing
                 INSERT INTO process_queue (channel, payload, stored) values ('new_moorage', stay_id, now());
             ELSE
                 RAISE WARNING 'Metrics Invalid stay_id [%] [%]', stay_id, NEW.time;
             END IF;
+
+        -- If new status is moored or anchored
         ELSIF previous_status <> NEW.status AND (NEW.status = 'moored' OR NEW.status = 'anchored') THEN
             -- Start new stays
-            RAISE WARNING 'Metrics new stay, New:[%] Previous:[%]', NEW.status, previous_status;
-            RAISE NOTICE 'Metrics Inserting new stay [%]', NEW.status;
-            -- if metric status is anchored set stay_code accordingly
-            stay_code = 1;
-            IF NEW.status = 'anchored' THEN
-                stay_code = 2;
+            RAISE WARNING 'Metrics Update status, try  new stay, New:[%] Previous:[%]', NEW.status, previous_status;
+            stay_id := public.stay_in_progress_fn(NEW.client_id::TEXT);
+            IF stay_id IS NULL THEN
+                RAISE WARNING 'Metrics Inserting new stay [%]', NEW.status;
+                -- If metric status is anchored set stay_code accordingly
+                stay_code = 1;
+                IF NEW.status = 'anchored' THEN
+                    stay_code = 2;
+                END IF;
+                -- Add new stay
+                INSERT INTO api.stays
+                    (client_id, active, arrived, latitude, longitude, stay_code)
+                    VALUES (NEW.client_id, true, NEW.time, NEW.latitude, NEW.longitude, stay_code)
+                    RETURNING id INTO stay_id;
+                -- Add stay entry to process queue for further processing
+                INSERT INTO process_queue (channel, payload, stored) values ('new_stay', stay_id, now());
+            ELSE
+                RAISE WARNING 'Metrics Invalid stay_id [%] [%]', stay_id, NEW.time;
+                UPDATE api.stays
+                    SET
+                        active = false,
+                        departed = NEW.time
+                    WHERE id = stay_id;
             END IF;
-            -- Add new stay
-            INSERT INTO api.stays 
-                (client_id, active, arrived, latitude, longitude, stay_code) 
-                VALUES (NEW.client_id, true, NEW.time, NEW.latitude, NEW.longitude, stay_code)
-                RETURNING id INTO stay_id;
-            -- Add stay entry to process queue for further processing
-            INSERT INTO process_queue (channel, payload, stored) values ('new_stay', stay_id, now());
+
             -- End current log/trip
             -- Fetch logbook_id by client_id
-            SELECT id INTO logbook_id
-                FROM api.logbook l
-                WHERE l.client_id IS NOT NULL
-                    AND l.client_id = NEW.client_id
-                    AND active IS true
-                LIMIT 1;
+            logbook_id := public.trip_in_progress_fn(NEW.client_id::TEXT);
             IF logbook_id IS NOT NULL THEN
                 -- todo check on time start vs end
-                RAISE NOTICE 'Metrics Updating trip status [%] [%] [%]', logbook_id, NEW.status, NEW.time;
+                RAISE WARNING 'Metrics Updating trip status [%] [%] [%]', logbook_id, NEW.status, NEW.time;
                 UPDATE api.logbook 
                     SET 
                         active = false, 
@@ -738,6 +757,46 @@ $find_stay_from_moorage$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION
     api.find_stay_from_moorage_fn
     IS 'Find all stay within 100m of moorage geopoint';
+
+-- trip_in_progress_fn
+DROP FUNCTION IF EXISTS public.trip_in_progress_fn;
+CREATE FUNCTION public.trip_in_progress_fn(IN _client_id TEXT) RETURNS INT AS $trip_in_progress$
+    DECLARE
+        logbook_id INT := NULL;
+    BEGIN
+        SELECT id INTO logbook_id
+            FROM api.logbook l
+            WHERE l.client_id IS NOT NULL
+                AND l.client_id = _client_id
+                AND active IS true
+            LIMIT 1;
+        RETURN logbook_id;
+    END;
+$trip_in_progress$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.trip_in_progress_fn
+    IS 'trip_in_progress';
+
+-- stay_in_progress_fn
+DROP FUNCTION IF EXISTS public.stay_in_progress_fn;
+CREATE FUNCTION public.stay_in_progress_fn(IN _client_id TEXT) RETURNS INT AS $stay_in_progress$
+    DECLARE
+        stay_id INT := NULL;
+    BEGIN
+        SELECT id INTO stay_id
+                FROM api.stays s
+                WHERE s.client_id IS NOT NULL
+                    AND s.client_id = _client_id
+                    AND active IS true
+                LIMIT 1;
+        RETURN stay_id;
+    END;
+$stay_in_progress$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.stay_in_progress_fn
+    IS 'stay_in_progress';
 
 ---------------------------------------------------------------------------
 -- API helper views
