@@ -4,6 +4,10 @@ Effortless cloud based solution for storing and sharing your SignalK data. Allow
 ### Context
 It is all about SQL, object-relational, time-series, spatial databases with a bit of python.
 
+
+For more clarity and visibility the complete [Entity-Relationship Diagram (ERD)](https://github.com/xbgmsharp/postgsail/tree/main/ERD/README.md)
+is export as PNG and SVG file.
+
 ### Features
 - Automatically log your voyages without manually starting or stopping a trip.
 - Automatically capture the details of your voyages (boat speed, heading, wind speed, etc).
