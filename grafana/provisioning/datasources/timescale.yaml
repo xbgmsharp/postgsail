@@ -6,9 +6,9 @@ datasources:
     type: postgres
     url: 172.30.0.1:5432
     database: signalk
-    user: username
+    user: grafana
     secureJsonData:
-      password: 'password'
+      password: '${PGSAIL_GRAFANA_PASSWORD}'
     jsonData:
       sslmode: 'disable' # disable/require/verify-ca/verify-full
       maxOpenConns: 10 # Grafana v5.4+
