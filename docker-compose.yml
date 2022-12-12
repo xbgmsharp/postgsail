@@ -9,6 +9,7 @@ services:
       - POSTGRES_DB=postgres
       - TIMESCALEDB_TELEMETRY=off
       - PGDATA=/var/lib/postgresql/data/pgdata
+      - TZ=UTC
     ports:
       - "5432:5432"
     volumes:
@@ -31,6 +32,28 @@ services:
       PGRST_OPENAPI_SERVER_PROXY_URI: http://127.0.0.1:3000
       PGRST_DB_PRE_REQUEST: public.check_jwt
     network_mode: "host"
+    depends_on:
+      - db
+    logging:
+      options:
+        max-size: 10m
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    volumes:
+      - data:/var/lib/grafana
+      - data:/var/log/grafana
+      - $PWD/grafana:/etc/grafana
+    ports:
+      - "3001:3000"
+    network_mode: "host"
+    env_file: .env
+    environment:
+      - GF_INSTALL_PLUGINS=pr0ps-trackmap-panel,fatcloud-windrose-panel
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SMTP_ENABLED=false
     depends_on:
       - db
     logging:
