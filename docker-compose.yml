@@ -38,9 +38,9 @@ services:
       options:
         max-size: 10m
 
-  grafana:
+  app:
     image: grafana/grafana:latest
-    container_name: grafana
+    container_name: app
     restart: unless-stopped
     volumes:
       - data:/var/lib/grafana
