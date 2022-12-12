@@ -128,6 +128,12 @@ GRANT INSERT ON TABLE public.process_queue TO vessel_role;
 GRANT USAGE, SELECT ON SEQUENCE public.process_queue_id_seq TO vessel_role;
 -- explicitly limit EXECUTE privileges to pgrest db-pre-request function
 GRANT EXECUTE ON FUNCTION public.check_jwt() to vessel_role;
+-- explicitly limit EXECUTE privileges to api.metrics triggers function
+GRANT EXECUTE ON FUNCTION public.trip_in_progress_fn(text) to vessel_role;
+GRANT EXECUTE ON FUNCTION public.stay_in_progress_fn(text) to vessel_role;
+-- hypertable get_partition_hash ?!?
+--GRANT EXECUTE ON FUNCTION public.get_partition_hash() to vessel_role;
+
 
 --- Scheduler:
 -- TODO: currently cron function are run as super user, switch to scheduler role.
