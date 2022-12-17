@@ -70,6 +70,7 @@ CREATE EXTENSION IF NOT EXISTS plpgsql; -- PL/pgSQL procedural language
 CREATE EXTENSION IF NOT EXISTS plpython3u; -- implements PL/Python based on the Python 3 language variant.
 CREATE EXTENSION IF NOT EXISTS jsonb_plpython3u CASCADE; -- tranform jsonb to python json type.
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements; -- provides a means for tracking planning and execution statistics of all SQL statements executed
+CREATE EXTENSION IF NOT EXISTS "moddatetime"; -- provides functions for tracking last modification time
 
 -- Trust plpython3u language by default
 UPDATE pg_language SET lanpltrusted = true WHERE lanname = 'plpython3u';
@@ -91,8 +92,10 @@ CREATE TABLE IF NOT EXISTS api.metadata(
   plugin_version VARCHAR(10) NOT NULL,
   signalk_version VARCHAR(10) NOT NULL,
   time TIMESTAMP WITHOUT TIME ZONE NOT NULL, -- should be rename to last_update !?
-  active BOOLEAN DEFAULT True -- trigger monitor online/offline
+  active BOOLEAN DEFAULT True, -- trigger monitor online/offline
   -- vessel_id link auth.vessels with api.metadata
+  created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
 );
 -- Description
 COMMENT ON TABLE
@@ -134,12 +137,12 @@ CREATE INDEX ON api.metrics (status, time DESC);
 -- json index??
 CREATE INDEX ON api.metrics using GIN (metrics);
 -- timescaledb hypertable
-SELECT create_hypertable('api.metrics', 'time');
+--SELECT create_hypertable('api.metrics', 'time');
 -- timescaledb hypertable with space partitions
---SELECT create_hypertable('api.metrics', 'time', 'client_id',
---    number_partitions => 2,
---    chunk_time_interval => INTERVAL '1 day',
---    if_not_exists => true);
+SELECT create_hypertable('api.metrics', 'time', 'client_id',
+    number_partitions => 2,
+    chunk_time_interval => INTERVAL '7 day',
+    if_not_exists => true);
 
 ---------------------------------------------------------------------------
 -- Logbook
@@ -326,6 +329,15 @@ $metadata_upsert$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION
     public.metadata_upsert_trigger_fn
     IS 'process metadata from vessel, upsert';
+
+CREATE TRIGGER metadata_moddatetime
+	BEFORE UPDATE ON api.metadata
+	FOR EACH ROW
+	EXECUTE PROCEDURE moddatetime (updated_at);
+-- Description
+COMMENT ON TRIGGER metadata_moddatetime
+  ON api.metadata
+  IS 'Automatic update of updated_at on table modification';
 
 -- FUNCTION Metadata notification for new vessel after insert
 DROP FUNCTION IF EXISTS metadata_notification_trigger_fn; 
@@ -828,6 +840,9 @@ CREATE VIEW stay_in_progress AS
     SELECT * 
         FROM api.stays 
         WHERE active IS true;
+
+-- list all json keys from api.metrics.metric jsonb
+--select m.time,jsonb_object_keys(m.metrics) from last_metric m where m.client_id = 'vessels.urn:mrn:imo:mmsi:787654321';
 
 -- TODO: Use materialized views instead as it is not live data
 -- Logs web view
