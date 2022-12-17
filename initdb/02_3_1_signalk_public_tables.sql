@@ -30,6 +30,8 @@ INSERT INTO geocoders VALUES
 ('nominatim',
     NULL,
     'https://nominatim.openstreetmap.org/reverse');
+-- https://photon.komoot.io/reverse?lat=48.30587233333333&lon=14.3040525
+-- https://docs.mapbox.com/playground/geocoding/?search_text=-3.1457869856990897,51.35921326434686&limit=1
 
 ---------------------------------------------------------------------------
 -- Tables for message template email/pushover/telegram
@@ -66,16 +68,16 @@ INSERT INTO email_templates VALUES
     'New vessel',
     E'Hi!\nHow are you?\n__BOAT__ is now linked to your account.'),
 ('monitor_offline',
-    'Offline',
+    'Vessel Offline',
     E'__BOAT__ has been offline for more than an hour\r\nFind more details at __APP_URL__/boats/\n',
-    'Offline',
+    'Vessel Offline',
     E'__BOAT__ has been offline for more than an hour\r\nFind more details at __APP_URL__/boats/\n'),
 ('monitor_online',
-    'Online',
+    'Vessel Online',
     E'__BOAT__ just came online\nFind more details at __APP_URL__/boats/\n',
-    'Online',
+    'Vessel Online',
     E'__BOAT__ just came online\nFind more details at __APP_URL__/boats/\n'),
-('badge',
+('new_badge',
     'New Badge!',
     E'Hello __RECIPIENT__,\nCongratulations! You have just unlocked a new badge: __BADGE_NAME__\nSee more details at __APP_URL__/badges\nHappy sailing!\nThe PostgSail Team',
     'New Badge!',
