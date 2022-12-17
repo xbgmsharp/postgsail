@@ -325,3 +325,32 @@ AS $urlencode_py$
     import urllib.parse
     return urllib.parse.quote(uri, safe="");
 $urlencode_py$ LANGUAGE plpython3u IMMUTABLE STRICT;
+
+---------------------------------------------------------------------------
+-- python
+-- https://ipapi.co/
+DROP FUNCTION IF EXISTS reverse_geoip_py_fn;
+CREATE OR REPLACE FUNCTION reverse_geoip_py_fn(IN _ip TEXT) RETURNS void
+AS $reverse_geoip_py$
+    """
+    TODO
+    """
+    import requests
+    import json
+
+    # requests
+    url = f'https://ipapi.co/{_ip}/json/'
+    r = requests.get(url)
+    #print(r.text)
+    # Return something boolean?
+    #plpy.notice('Sent successfully to [{}] [{}]'.format(r.text, r.status_code))
+    if r.status_code == 200:
+        plpy.notice('Sent successfully to [{}] [{}]'.format(r.text, r.status_code))
+    else:
+        plpy.error('Failed to send')
+    return None
+$reverse_geoip_py$ TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
+-- Description
+COMMENT ON FUNCTION
+    public.reverse_geoip_py_fn
+    IS 'Retrieve reverse geo IP location via ipapi.co using plpython3u';
