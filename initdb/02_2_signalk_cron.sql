@@ -135,13 +135,13 @@ begin
         RAISE NOTICE '-> cron_process_monitor_offline_fn updated api.metadata table to inactive for [%] [%]', metadata_rec.id, metadata_rec.client_id;
 
         -- Gather email and pushover app settings
-        app_settings = get_app_settings_fn();
+        --app_settings = get_app_settings_fn();
         -- Gather user settings
         user_settings := get_user_settings_from_clientid_fn(metadata_rec.client_id::TEXT);
         RAISE DEBUG '-> cron_process_monitor_offline_fn get_user_settings_from_clientid_fn [%]', user_settings;
         -- Send notification
-        --PERFORM send_notification_fn('monitor_offline'::TEXT, metadata_rec::RECORD);
-        PERFORM send_email_py_fn('monitor_offline'::TEXT, user_settings::JSONB, app_settings::JSONB);
+        PERFORM send_notification_fn('monitor_offline'::TEXT, user_settings::JSONB);
+        --PERFORM send_email_py_fn('monitor_offline'::TEXT, user_settings::JSONB, app_settings::JSONB);
         --PERFORM send_pushover_py_fn('monitor_offline'::TEXT, user_settings::JSONB, app_settings::JSONB);
         -- log/insert/update process_queue table with processed
         INSERT INTO process_queue
@@ -189,13 +189,13 @@ begin
         RAISE DEBUG '-> DEBUG cron_process_monitor_online_fn vessel.client_id %', current_setting('vessel.client_id', false);
 
         -- Gather email and pushover app settings
-        app_settings = get_app_settings_fn();
+        --app_settings = get_app_settings_fn();
         -- Gather user settings
         user_settings := get_user_settings_from_clientid_fn(metadata_rec.client_id::TEXT);
         RAISE DEBUG '-> DEBUG cron_process_monitor_online_fn get_user_settings_from_clientid_fn [%]', user_settings;
         -- Send notification
-        --PERFORM send_notification_fn('monitor_online'::TEXT, metadata_rec::RECORD);
-        PERFORM send_email_py_fn('monitor_online'::TEXT, user_settings::JSONB, app_settings::JSONB);
+        PERFORM send_notification_fn('monitor_online'::TEXT, user_settings::JSONB);
+        --PERFORM send_email_py_fn('monitor_online'::TEXT, user_settings::JSONB, app_settings::JSONB);
         --PERFORM send_pushover_py_fn('monitor_online'::TEXT, user_settings::JSONB, app_settings::JSONB);
         -- update process_queue entry as processed
         UPDATE process_queue 
