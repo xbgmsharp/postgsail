@@ -60,6 +60,8 @@ comment on role grafana_auth is
 GRANT USAGE ON SCHEMA auth TO grafana_auth;
 --GRANT USAGE, SELECT ON SEQUENCE auth.accounts_pkey TO grafana_auth;
 GRANT SELECT ON TABLE auth.accounts TO grafana_auth;
+-- GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO grafana_auth;
+GRANT EXECUTE ON FUNCTION public.citext_eq(citext, citext) TO grafana_auth;
 
 -- User:
 -- nologin, web api only
@@ -132,7 +134,7 @@ GRANT EXECUTE ON FUNCTION public.check_jwt() to vessel_role;
 GRANT EXECUTE ON FUNCTION public.trip_in_progress_fn(text) to vessel_role;
 GRANT EXECUTE ON FUNCTION public.stay_in_progress_fn(text) to vessel_role;
 -- hypertable get_partition_hash ?!?
---GRANT EXECUTE ON FUNCTION public.get_partition_hash() to vessel_role;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA _timescaledb_internal TO vessel_role;
 
 
 --- Scheduler:
@@ -175,10 +177,10 @@ CREATE POLICY api_user_role ON api.metadata TO user_role
 CREATE POLICY api_scheduler_role ON api.metadata TO scheduler
     USING (client_id = current_setting('vessel.client_id', false))
     WITH CHECK (client_id = current_setting('vessel.client_id', false));
--- Allow scheduler to update and select based on the client_id
---CREATE POLICY grafana_role ON api.metadata TO grafana
---   USING (client_id = client_id)
---    WITH CHECK (client_id = client_id);
+-- Allow grafana to select based on the client_id
+CREATE POLICY grafana_role ON api.metadata TO grafana
+   USING (client_id = client_id)
+    WITH CHECK (false);
 
 ALTER TABLE api.metrics ENABLE ROW LEVEL SECURITY;
 -- Administrator can see all rows and add any rows
@@ -197,6 +199,10 @@ CREATE POLICY api_user_role ON api.metrics TO user_role
 CREATE POLICY api_scheduler_role ON api.metrics TO scheduler
     USING (client_id = current_setting('vessel.client_id', false))
     WITH CHECK (client_id = current_setting('vessel.client_id', false));
+-- Allow grafana to select based on the client_id
+CREATE POLICY grafana_role ON api.metrics TO grafana
+   USING (client_id = client_id)
+    WITH CHECK (false);
 
 -- Be sure to enable row level security on the table
 ALTER TABLE api.logbook ENABLE ROW LEVEL SECURITY;
@@ -217,6 +223,9 @@ CREATE POLICY api_user_role ON api.logbook TO user_role
 CREATE POLICY api_scheduler_role ON api.logbook TO scheduler
     USING (client_id = current_setting('vessel.client_id', false))
     WITH CHECK (client_id = current_setting('vessel.client_id', false));
+CREATE POLICY grafana_role ON api.logbook TO grafana
+   USING (client_id = client_id)
+    WITH CHECK (false);
 
 -- Be sure to enable row level security on the table
 ALTER TABLE api.stays ENABLE ROW LEVEL SECURITY;
@@ -236,6 +245,10 @@ CREATE POLICY api_user_role ON api.stays TO user_role
 CREATE POLICY api_scheduler_role ON api.stays TO scheduler
     USING (client_id = current_setting('vessel.client_id', false))
     WITH CHECK (client_id = current_setting('vessel.client_id', false));
+-- Allow grafana to select based on the client_id
+CREATE POLICY grafana_role ON api.stays TO grafana
+   USING (client_id = client_id)
+    WITH CHECK (false);
 
 -- Be sure to enable row level security on the table
 ALTER TABLE api.moorages ENABLE ROW LEVEL SECURITY;
@@ -255,6 +268,10 @@ CREATE POLICY api_user_role ON api.moorages TO user_role
 CREATE POLICY api_scheduler_role ON api.moorages TO scheduler
     USING (client_id = current_setting('vessel.client_id', false))
     WITH CHECK (client_id = current_setting('vessel.client_id', false));
+-- Allow grafana to select based on the client_id
+CREATE POLICY grafana_role ON api.moorages TO grafana
+   USING (client_id = client_id)
+    WITH CHECK (false);
 
 -- Be sure to enable row level security on the table
 ALTER TABLE auth.vessels ENABLE ROW LEVEL SECURITY;
@@ -283,6 +300,7 @@ CREATE POLICY api_user_role ON auth.accounts TO user_role
     )
     WITH CHECK (email = current_setting('user.email', true)
     );
---CREATE POLICY grafana_proxy_role ON auth.accounts TO grafana_auth
---    USING (owner_email = owner_email)
---    WITH CHECK (owner_email = owner_email);
+-- Allow grafana_auth to select based on the email
+CREATE POLICY grafana_proxy_role ON auth.accounts TO grafana_auth
+    USING (email = email)
+    WITH CHECK (false);
