@@ -9,7 +9,7 @@ select current_database();
 \c signalk
 
 -- Link auth.vessels with api.metadata
-ALTER TABLE api.metadata ADD vessel_id text NOT NULL REFERENCES auth.vessels(vessel_id) ON DELETE RESTRICT;
+ALTER TABLE api.metadata ADD vessel_id TEXT NOT NULL REFERENCES auth.vessels(vessel_id) ON DELETE RESTRICT;
 COMMENT ON COLUMN api.metadata.vessel_id IS 'Link auth.vessels with api.metadata';
 
 -- List vessel
@@ -27,17 +27,28 @@ CREATE OR REPLACE VIEW api.vessels_view AS
     SELECT
         v.name as name,
         v.mmsi as mmsi,
-        v.created_at as created_at,
+        v.created_at::timestamp(0) as created_at,
         m.last_contact as last_contact
     FROM auth.vessels v, metadata m
     WHERE v.owner_email = current_setting('user.email');
+
+CREATE OR REPLACE VIEW api.vessels2_view AS
+-- TODO
+    SELECT
+        v.name as name,
+        v.mmsi as mmsi,
+        v.created_at::timestamp(0) as created_at,
+        COALESCE(m.time, null) as last_contact
+    FROM auth.vessels v
+    LEFT JOIN api.metadata m ON v.owner_email = current_setting('user.email')
+        AND m.vessel_id = current_setting('vessel.id');
 
 DROP VIEW IF EXISTS api.vessel_p_view;
 CREATE OR REPLACE VIEW api.vessel_p_view AS
     SELECT
         v.name as name,
         v.mmsi as mmsi,
-        v.created_at as created_at,
+        v.created_at::timestamp(0) as created_at,
         null as last_contact
         FROM auth.vessels v
         WHERE v.owner_email = current_setting('user.email');
@@ -53,7 +64,7 @@ AS $vessel$
             json_build_object( 
 	            'name', v.name,
 	            'mmsi', coalesce(v.mmsi, null),
-	            'created_at', v.created_at,
+	            'created_at', v.created_at::timestamp(0),
 	            'last_contact', coalesce(m.time, null),
 	            'geojson', coalesce(ST_AsGeoJSON(geojson_t.*)::json, null)
             )
