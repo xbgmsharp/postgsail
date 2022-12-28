@@ -370,7 +370,7 @@ CREATE OR REPLACE FUNCTION process_account_queue_fn(IN _email TEXT) RETURNS void
         -- Gather user settings
         user_settings := '{"email": "' || account_rec.email || '", "recipient": "' || account_rec.first || '"}';
         -- Send notification email, pushover
-        PERFORM send_notification_fn('user'::TEXT, user_settings::JSONB);
+        PERFORM send_notification_fn('new_account'::TEXT, user_settings::JSONB);
         --PERFORM send_email_py_fn('user'::TEXT, user_settings::JSONB, app_settings::JSONB);
         --PERFORM send_pushover_py_fn('user'::TEXT, user_settings::JSONB, app_settings::JSONB);
     END;
@@ -503,7 +503,7 @@ CREATE OR REPLACE FUNCTION process_vessel_queue_fn(IN _email TEXT) RETURNS void 
         --user_settings := get_user_settings_from_clientid_fn();
         -- Send notification email, pushover
         --PERFORM send_notification_fn('vessel'::TEXT, vessel_rec::RECORD);
-        PERFORM send_email_py_fn('vessel'::TEXT, user_settings::JSONB, app_settings::JSONB);
+        PERFORM send_email_py_fn('new_vessel'::TEXT, user_settings::JSONB, app_settings::JSONB);
         --PERFORM send_pushover_py_fn('vessel'::TEXT, user_settings::JSONB, app_settings::JSONB);
     END;
 $process_vessel_queue$ LANGUAGE plpgsql;
@@ -595,7 +595,7 @@ AS $send_notification$
         END IF;
 
         -- Send notification telegram
-        SELECT (preferences->'telegram'->'id') IS NOT NULL,preferences['telegram']['id'] INTO _telegram_notifications,_telegram_chat_id
+        SELECT (preferences->'telegram'->'from'->'id') IS NOT NULL,preferences['telegram']['from']['id'] INTO _telegram_notifications,_telegram_chat_id
             FROM auth.accounts a
             WHERE a.email = user_settings->>'email'::TEXT;
         RAISE NOTICE '--> send_notification_fn telegram_notifications [%]', _telegram_notifications;
@@ -828,15 +828,14 @@ $$ language plpgsql security definer;
 -- Function to trigger cron_jobs using API for tests.
 -- Todo limit access and permision
 -- Run con jobs
---CREATE OR REPLACE FUNCTION api.run_cron_jobs() RETURNS void AS $$
---BEGIN
---    -- In correct order
---    select public.cron_process_new_account_fn();
---    select public.cron_process_new_vessel_fn();
---    select public.cron_process_monitor_online_fn();
---    select public.cron_process_new_logbook_fn();
---    select public.cron_process_new_stay_fn();
---    select public.cron_process_new_moorage_fn();
---    select public.cron_process_monitor_offline_fn();
---END
---$$ language plpgsql security definer;
+CREATE OR REPLACE FUNCTION public.run_cron_jobs() RETURNS void AS $$
+BEGIN
+    -- In correct order
+    perform public.cron_process_new_notification_fn();
+    perform public.cron_process_monitor_online_fn();
+    perform public.cron_process_new_logbook_fn();
+    perform public.cron_process_new_stay_fn();
+    perform public.cron_process_new_moorage_fn();
+    perform public.cron_process_monitor_offline_fn();
+END
+$$ language plpgsql security definer;
