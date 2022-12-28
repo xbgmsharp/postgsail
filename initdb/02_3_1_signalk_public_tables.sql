@@ -89,7 +89,7 @@ INSERT INTO email_templates VALUES
     E'Congratulations!\nYou have just connect your account to Pushover.\n\nThe PostgSail Team'),
 ('email_otp',
     'Email verification',
-    E'Hello __RECIPIENT__,\nPlease active your account using the following code: __OTP_CODE__.\nThe code is valid 15 minutes.\nThe PostgSail Team',
+    E'Hello,\nPlease active your account using the following code: __OTP_CODE__.\nThe code is valid 15 minutes.\nThe PostgSail Team',
     'Email verification',
     E'Congratulations!\nPlease validate your account. Check your email!'),
 ('email_valid',
