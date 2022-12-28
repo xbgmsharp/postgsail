@@ -287,20 +287,20 @@ COMMENT ON FUNCTION
 
 -- Telegram user validation
 DROP FUNCTION IF EXISTS auth.telegram_user_exists_fn;
-CREATE OR REPLACE FUNCTION auth.telegram_user_exists_fn(IN email TEXT, IN chat_id BIGINT) RETURNS BOOLEAN
+CREATE OR REPLACE FUNCTION auth.telegram_user_exists_fn(IN email TEXT, IN user_id BIGINT) RETURNS BOOLEAN
 AS $telegram_user_exists$
-	declare
+	DECLARE
 		_email CITEXT := email;
-		_chat_id BIGINT := chat_id;
+		_user_id BIGINT := user_id;
     BEGIN
         IF _email IS NULL OR _chat_id IS NULL THEN
             RAISE EXCEPTION 'invalid input' USING HINT = 'check your parameter';
         END IF;
         -- Does user and telegram obj
-        SELECT preferences->'telegram'->'id' INTO _chat_id
+        SELECT preferences->'telegram'->'from'->'id' INTO _user_id
             FROM auth.accounts a
             WHERE a.email = _email
-			AND cast(preferences->'telegram'->'id' as BIGINT) = _chat_id::BIGINT;
+			AND cast(preferences->'telegram'->'from'->'id' as BIGINT) = _user_id::BIGINT;
         IF FOUND THEN
             RETURN TRUE;
        	END IF;
@@ -310,17 +310,45 @@ $telegram_user_exists$ language plpgsql security definer;
 -- Description
 COMMENT ON FUNCTION
     auth.telegram_user_exists_fn
-    IS 'Check if user exist base on email and telegram obj preferences';
+    IS 'Check if user exist based on email and telegram obj preferences';
+
+-- Telegram otp validation
+DROP FUNCTION IF EXISTS auth.telegram_otp_fn;
+CREATE OR REPLACE FUNCTION auth.telegram_otp_fn(IN email TEXT, OUT otp_code TEXT) RETURNS TEXT
+AS $telegram_otp$
+	DECLARE
+		_email CITEXT := email;
+		user_settings jsonb := NULL;
+    BEGIN
+        IF _email IS NULL THEN
+            RAISE EXCEPTION 'invalid input' USING HINT = 'check your parameter';
+        END IF;
+        -- Generate token
+        otp_code := api.generate_otp_fn(_email);
+		IF otp_code IS NOT NULL THEN
+            -- Set user email into env to allow RLS update
+            PERFORM set_config('user.email', _email, false);
+            -- Send Notification
+            user_settings := '{"email": "' || _email || '", "otp_code": "' || otp_code || '"}';
+            PERFORM send_notification_fn('telegram_otp'::TEXT, user_settings::JSONB);
+        END IF;
+    END;
+$telegram_otp$ language plpgsql security definer;
+
+-- Description
+COMMENT ON FUNCTION
+    auth.telegram_otp_fn
+    IS 'TODO';
 
 -- Telegram bot JWT auth
 -- Expose as an API endpoint
 -- Avoid sending a password so use email and chat_id as key pair
 DROP FUNCTION IF EXISTS api.bot(text,BIGINT);
-CREATE OR REPLACE FUNCTION api.bot(IN email TEXT, IN chat_id BIGINT) RETURNS auth.jwt_token
+CREATE OR REPLACE FUNCTION api.bot(IN email TEXT, IN user_id BIGINT) RETURNS auth.jwt_token
 AS $telegram_bot$
-	declare
+	DECLARE
 		_email TEXT := email;
-		_chat_id BIGINT := chat_id;
+		_user_id BIGINT := user_id;
         _exist BOOLEAN := False;
         result auth.jwt_token;
         app_jwt_secret text;
@@ -329,7 +357,7 @@ AS $telegram_bot$
             RAISE EXCEPTION 'invalid input' USING HINT = 'check your parameter';
         END IF;
         -- check email and _chat_id
-        select auth.telegram_user_exists_fn(_email, _chat_id) into _exist;
+        select auth.telegram_user_exists_fn(_email, _user_id) into _exist;
         if _exist is null or _exist <> True then
             RAISE EXCEPTION 'invalid input' USING HINT = 'check your parameter';
         end if;
@@ -359,45 +387,27 @@ COMMENT ON FUNCTION
 
 -- Telegram chat_id Session validation
 DROP FUNCTION IF EXISTS auth.telegram_session_exists_fn;
-CREATE OR REPLACE FUNCTION auth.telegram_session_exists_fn(IN chat_id BIGINT) RETURNS auth.jwt_token
+CREATE OR REPLACE FUNCTION auth.telegram_session_exists_fn(IN user_id BIGINT) RETURNS BOOLEAN
 AS $telegram_session_exists$
-	declare
-		_email CITEXT := NULL;
-		_chat_id BIGINT := chat_id;
-        result auth.jwt_token;
-        app_jwt_secret text;
+	DECLARE
+		_id TEXT := NULL;
+		_user_id BIGINT := user_id;
     BEGIN
         IF _chat_id IS NULL THEN
             RAISE EXCEPTION 'invalid input' USING HINT = 'check your parameter';
         END IF;
 
-        -- Find user emial based on telegram chat_id
-        SELECT preferences->'telegram'->'id' INTO _email
+        -- Find user email based on telegram chat_id
+        SELECT preferences->'telegram'->'from'->'id' INTO _id
             FROM auth.accounts a
-            WHERE cast(preferences->'telegram'->'id' as BIGINT) = _chat_id::BIGINT;
+            WHERE cast(preferences->'telegram'->'from'->'id' as BIGINT) = _user_id::BIGINT;
         IF NOT FOUND then
-            RAISE EXCEPTION 'invalid input' USING HINT = 'check your parameter';
+            RETURN False;
         END IF;
-
-        -- Get app_jwt_secret
-        SELECT value INTO app_jwt_secret
-            FROM app_settings
-            WHERE name = 'app.jwt_secret';
-
-        -- Generate JWT token, force user_role
-        select jwt.sign(
-            row_to_json(r)::json, app_jwt_secret
-            ) as token
-            from (
-            select 'user_role' as role,
-			(select lower(_email)) as email,
-                extract(epoch from now())::integer + 60*60 as exp
-            ) r
-            into result;
-        return result;
+        RETURN True;
     END;
 $telegram_session_exists$ language plpgsql security definer;
 -- Description
 COMMENT ON FUNCTION
     auth.telegram_session_exists_fn
-    IS 'Check if session/user exist based on chat_id to renew telegram user to bot jwt token';
+    IS 'Check if session/user exist based on user_id';
