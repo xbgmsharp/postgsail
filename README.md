@@ -95,16 +95,16 @@ Check the [unit test sample](https://github.com/xbgmsharp/postgsail/blob/main/te
 
 ### Docker dependencies
 
-`docker-compose` is used to start environment dependencies. Dependencies consist of 2 containers:
+`docker-compose` is used to start environment dependencies. Dependencies consist of 3 containers:
 
 - `timescaledb-postgis` alias `db`, PostgreSQL with TimescaleDB extension along with the PostGIS extension.
 - `postgrest` alias `api`, Standalone web server that turns your PostgreSQL database directly into a RESTful API.
+- `grafana` alias `app`, visualize and monitor your data
 
 ### Optional docker images
-- [Grafana](https://hub.docker.com/r/grafana/grafana), visualize and monitor your data
+
 - [pgAdmin](https://hub.docker.com/r/dpage/pgadmin4), web UI to monitor and manage multiple PostgreSQL
 - [Swagger](https://hub.docker.com/r/swaggerapi/swagger-ui), web UI to visualize documentation from PostgREST
-
 ```
 docker-compose -f docker-compose-optional.yml up
 ```
