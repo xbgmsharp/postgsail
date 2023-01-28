@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS auth.accounts (
   preferences   JSONB NULL DEFAULT '{"email_notifications":true}',
   created_at    TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+  connected_at    TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
   CONSTRAINT valid_email CHECK (length(email) > 5), -- Enforce at least 5 char, eg: a@b.io
   CONSTRAINT valid_first CHECK (length(first) > 1),
   CONSTRAINT valid_last CHECK (length(last) > 1),
