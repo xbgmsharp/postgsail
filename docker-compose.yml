@@ -59,6 +59,12 @@ services:
     logging:
       options:
         max-size: 10m
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'curl --fail http://localhost:3000/healthz || exit 1'"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 100s
 
 volumes:
   data: {}
