@@ -8,7 +8,7 @@
 
 CREATE EXTENSION IF NOT EXISTS pg_cron; -- provides a simple cron-based job scheduler for PostgreSQL
 -- TRUNCATE table jobs
-TRUNCATE TABLE cron.job CONTINUE IDENTITY RESTRICT;
+--TRUNCATE TABLE cron.job CONTINUE IDENTITY RESTRICT;
 
 -- Create a every 5 minutes or minute job cron_process_new_logbook_fn ??
 SELECT cron.schedule('cron_new_logbook', '*/5 * * * *', 'select public.cron_process_new_logbook_fn()');
@@ -44,12 +44,12 @@ SELECT cron.schedule('cron_monitor_online', '*/10 * * * *', 'select public.cron_
 
 -- Notification
 -- Create a every 1 minute job cron_process_new_notification_queue_fn, new_account, new_vessel, _new_account_otp
-SELECT cron.schedule('cron_new_notification', '*/6 * * * *', 'select public.cron_process_new_notification_fn()');
+SELECT cron.schedule('cron_new_notification', '*/5 * * * *', 'select public.cron_process_new_notification_fn()');
 --UPDATE cron.job SET database = 'signalk' where jobname = 'cron_new_notification';
 
 -- Maintenance
 -- Vacuum database at “At 01:01 on Sunday.”
-SELECT cron.schedule('cron_vacumm', '1 1 * * 0', 'select public.cron_vaccum_fn()');
+SELECT cron.schedule('cron_vacuum', '1 1 * * 0', 'VACUUM (FULL, VERBOSE, ANALYZE, INDEX_CLEANUP) api.logbook,api.stays,api.moorages,api.metadata,api.metrics;');
 -- Any other maintenance require?
 
 -- OTP
@@ -58,7 +58,8 @@ SELECT cron.schedule('cron_prune_otp', '*/15 * * * *', 'select public.cron_proce
 
 -- Cron job settings
 UPDATE cron.job SET database = 'signalk';
-UPDATE cron.job SET username = 'username'; -- TODO update to scheduler
+UPDATE cron.job SET username = 'username'; -- TODO update to scheduler, pending process_queue update
+--UPDATE cron.job SET username = 'username' where jobname = 'cron_vacuum'; -- TODO Update to superuser for vaccuum permissions
 UPDATE cron.job SET nodename = '/var/run/postgresql/'; -- VS default localhost ??
 -- check job lists
 SELECT * FROM cron.job;
@@ -67,6 +68,8 @@ SELECT * FROM cron.job;
 -- unschedule by job name
 --SELECT cron.unschedule('cron_new_logbook');
 -- TRUNCATE TABLE cron.job_run_details
-TRUNCATE TABLE cron.job_run_details CONTINUE IDENTITY RESTRICT;
+--TRUNCATE TABLE cron.job_run_details CONTINUE IDENTITY RESTRICT;
 -- check job log
 select * from cron.job_run_details ORDER BY end_time DESC LIMIT 10;
+-- DEBUG Disable all
+UPDATE cron.job SET active = False;
