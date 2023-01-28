@@ -140,8 +140,12 @@ AS $email_validation$
         -- Verify token
         SELECT auth.verify_otp_fn(token) INTO _email;
 		IF _email IS NOT NULL THEN
+            -- Check the email JWT token match the OTP email
+            IF current_setting('user.email', true) <> _email THEN
+                RETURN False;
+            END IF;
             -- Set user email into env to allow RLS update 
-            PERFORM set_config('user.email', _email, false);
+            --PERFORM set_config('user.email', _email, false);
 	        -- Enable email_validation into user preferences
             PERFORM api.update_user_preferences_fn('{email_valid}'::TEXT, True::TEXT);
             -- Enable email_notifications
