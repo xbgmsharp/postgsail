@@ -138,6 +138,7 @@ AS $send_email_py$
     server_smtp = 'localhost'
     if 'app.email_server' in app and app['app.email_server']:
         server_smtp = app['app.email_server']
+    #plpy.notice('Sending server [{}] [{}]'.format(server_smtp, app['app.email_server']))
 
     # Send the message via our own SMTP server.
     try:
@@ -154,7 +155,7 @@ AS $send_email_py$
         plpy.notice('Sent email successfully to [{}] [{}]'.format(msg["To"], msg["Subject"]))
         return None
     except OSError as error:
-        plpy.error(error)
+        plpy.error('OS Error occurred: ' + str(error))
     except smtplib.SMTPConnectError:
         plpy.error('Failed to connect to the server. Bad connection settings?')
     except smtplib.SMTPServerDisconnected:
