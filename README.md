@@ -1,14 +1,15 @@
 # PostgSail
 Effortless cloud based solution for storing and sharing your SignalK data. Allow you to effortlessly log your sails and monitor your boat with historical data.
 
-### Context
+## Context
 It is all about SQL, object-relational, time-series, spatial databases with a bit of python.
 
+PostgSail is an open-source alternative to traditional vessel data management.
+It is based on a well known open-source technology stack, Singalk, PostgreSQL, TimescaleDB, PostGIS, PostgREST. It does perfectly integrate with standard monitoring tool stack like Grafana.
 
-For more clarity and visibility the complete [Entity-Relationship Diagram (ERD)](https://github.com/xbgmsharp/postgsail/tree/main/ERD/README.md)
-is export as PNG and SVG file.
+For more clarity and visibility the complete [Entity-Relationship Diagram (ERD)](https://github.com/xbgmsharp/postgsail/tree/main/ERD/README.md) is export as PNG and SVG file.
 
-### Features
+## Features
 - Automatically log your voyages without manually starting or stopping a trip.
 - Automatically capture the details of your voyages (boat speed, heading, wind speed, etc).
 - Timelapse video your trips!
@@ -22,10 +23,13 @@ is export as PNG and SVG file.
 - Notification via email or PushOver, Telegram
 
 ### Cloud
+If you prefer not to install or administer your instance of PostgSail, hosted versions of PostgSail are available in the cloud of your choice.
+
 The cloud advantage.
 
 Hosted and fully–managed options for PostgSail, designed for all your deployment and business needs. Register and try for free at https://iot.openplotter.cloud/.
 
+## Using PostgSail
 ### pre-deploy configuration
 
 To get these running, copy `.env.example` and rename to `.env` then set the value accordinly.
@@ -116,6 +120,9 @@ Out of the box iot platform using docker with the following software:
 - [TimescaleDB, Time-series data extends PostgreSQL](https://www.timescale.com)
 - [PostGIS, a spatial database extender for PostgreSQL object-relational database.](https://postgis.net/)
 - [Grafana, open observability platform | Grafana Labs](https://grafana.com)
+
+### Releases & updates
+PostgSail Release Notes & Future Plans: see planned and in-progress updates and detailed information about current and past releases. [PostgSail project](https://github.com/xbgmsharp?tab=projects)
 
 ### Support
 
