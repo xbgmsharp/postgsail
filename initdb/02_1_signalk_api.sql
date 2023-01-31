@@ -52,7 +52,7 @@ ALTER DATABASE signalk WITH CONNECTION LIMIT = 100;
 -- Set timezone to UTC
 ALTER DATABASE signalk SET TIMEZONE='UTC';
 
--- connext to the DB
+-- connect to the DB
 \c signalk
 
 -- Schema

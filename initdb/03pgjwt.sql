@@ -8,7 +8,7 @@
 -- List current database
 select current_database();
 
--- connext to the DB
+-- connect to the DB
 \c signalk
 
 CREATE SCHEMA IF NOT EXISTS jwt;
