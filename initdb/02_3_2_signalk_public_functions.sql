@@ -162,6 +162,12 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
                 AND _from_lat IS NOT NULL
                 AND _to_lng IS NOT NULL
                 AND _to_lat IS NOT NULL;
+        -- Ensure the query is successful
+        IF logbook_rec.client_id IS NULL THEN
+            RAISE WARNING '-> process_logbook_queue_fn invalid logbook %', _id;
+            RETURN;
+        END IF;
+
         PERFORM set_config('vessel.client_id', logbook_rec.client_id, false);
         --RAISE WARNING 'public.process_logbook_queue_fn() scheduler vessel.client_id %', current_setting('vessel.client_id', false);
 
@@ -237,6 +243,12 @@ CREATE OR REPLACE FUNCTION process_stay_queue_fn(IN _id integer) RETURNS void AS
             WHERE id = _id
                 AND longitude IS NOT NULL
                 AND latitude IS NOT NULL;
+        -- Ensure the query is successful
+        IF stay_rec.client_id IS NULL THEN
+            RAISE WARNING '-> process_stay_queue_fn invalid stay %', _id;
+            RETURN;
+        END IF;
+
         PERFORM set_config('vessel.client_id', stay_rec.client_id, false);
         -- geo reverse _lng _lat
         _name := reverse_geocode_py_fn('nominatim', stay_rec.longitude::NUMERIC, stay_rec.latitude::NUMERIC);
