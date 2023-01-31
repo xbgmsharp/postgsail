@@ -1,14 +1,6 @@
 # PostgSail
 Effortless cloud based solution for storing and sharing your SignalK data. Allow you to effortlessly log your sails and monitor your boat with historical data.
 
-## Context
-It is all about SQL, object-relational, time-series, spatial databases with a bit of python.
-
-PostgSail is an open-source alternative to traditional vessel data management.
-It is based on a well known open-source technology stack, Singalk, PostgreSQL, TimescaleDB, PostGIS, PostgREST. It does perfectly integrate with standard monitoring tool stack like Grafana.
-
-For more clarity and visibility the complete [Entity-Relationship Diagram (ERD)](https://github.com/xbgmsharp/postgsail/tree/main/ERD/README.md) is export as PNG and SVG file.
-
 ## Features
 - Automatically log your voyages without manually starting or stopping a trip.
 - Automatically capture the details of your voyages (boat speed, heading, wind speed, etc).
@@ -21,6 +13,19 @@ For more clarity and visibility the complete [Entity-Relationship Diagram (ERD)]
 - History: view trends.
 - Alert monitoring: get notification on low voltage or low fuel remotely.
 - Notification via email or PushOver, Telegram
+- Offline mode
+- Low Bandwith mode
+
+## Context
+It is all about SQL, object-relational, time-series, spatial databases with a bit of python.
+
+PostgSail is an open-source alternative to traditional vessel data management.
+It is based on a well known open-source technology stack, Singalk, PostgreSQL, TimescaleDB, PostGIS, PostgREST. It does perfectly integrate with standard monitoring tool stack like Grafana.
+
+To understand the why and how, you might want to read [Why.md](https://github.com/xbgmsharp/postgsail/tree/main/Why.md)
+
+## Architecture
+For more clarity and visibility the complete [Entity-Relationship Diagram (ERD)](https://github.com/xbgmsharp/postgsail/tree/main/ERD/README.md) is export as PNG and SVG file.
 
 ### Cloud
 If you prefer not to install or administer your instance of PostgSail, hosted versions of PostgSail are available in the cloud of your choice.
@@ -42,7 +47,7 @@ Notice, that `PGRST_JWT_SECRET` must be at least 32 characters long.
 By default there is no network set and the postgresql data are store in a docker volume.
 You can update the default settings by editing `docker-compose.yml` to your need.
 Then simply excecute:
-```
+```bash
 $ docker-compose up
 ```
 
@@ -50,11 +55,11 @@ $ docker-compose up
 
 Check and update your postgsail settings via SQL in the table `app_settings`:
 
-```
-select * from app_settings;
+```sql
+SELECT * FROM app_settings;
 ```
 
-```
+```sql
 UPDATE app_settings
     SET
         value = 'new_value'
