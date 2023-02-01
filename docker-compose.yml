@@ -18,6 +18,12 @@ services:
     logging:
       options:
         max-size: 10m
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${POSTGRES_USER} -d signalk'"]
+      interval: 60s
+      timeout: 30s
+      retries: 5
+      start_period: 100s
 
   api:
     image: postgrest/postgrest
