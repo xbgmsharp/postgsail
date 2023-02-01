@@ -10,6 +10,7 @@ services:
       - TIMESCALEDB_TELEMETRY=off
       - PGDATA=/var/lib/postgresql/data/pgdata
       - TZ=UTC
+    network_mode: "host"
     ports:
       - "5432:5432"
     volumes:
@@ -21,7 +22,7 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "sh -c 'pg_isready -U ${POSTGRES_USER} -d signalk'"]
       interval: 60s
-      timeout: 30s
+      timeout: 10s
       retries: 5
       start_period: 100s
 
@@ -43,6 +44,12 @@ services:
     logging:
       options:
         max-size: 10m
+    #healthcheck:
+    #  test: ["CMD-SHELL", "sh -c 'curl --fail http://localhost:3003/live || exit 1'"]
+    #  interval: 60s
+    #  timeout: 10s
+    #  retries: 5
+    #  start_period: 100s
 
   app:
     image: grafana/grafana:latest
@@ -65,12 +72,12 @@ services:
     logging:
       options:
         max-size: 10m
-    healthcheck:
-      test: ["CMD-SHELL", "sh -c 'curl --fail http://localhost:3000/healthz || exit 1'"]
-      interval: 60s
-      timeout: 10s
-      retries: 5
-      start_period: 100s
+    #healthcheck:
+    #  test: ["CMD-SHELL", "sh -c 'curl --fail http://localhost:3000/healthz || exit 1'"]
+    #  interval: 60s
+    #  timeout: 10s
+    #  retries: 5
+    #  start_period: 100s
 
 volumes:
   data: {}
