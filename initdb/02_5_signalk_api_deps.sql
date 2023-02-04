@@ -81,10 +81,11 @@ AS $vessel$
 			                    anglespeedapparent,
 			                    longitude,latitude,
 			                    st_makepoint(longitude,latitude) AS geo_point
-			                    FROM public.last_metric
+			                    FROM api.metrics
 			                    WHERE
                                     latitude IS NOT NULL
                                     AND longitude IS NOT NULL
+                                    AND client_id = current_setting('vessel.client_id', false)
 			                )
 			            ) AS t
 	            ) AS geojson_t
