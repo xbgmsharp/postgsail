@@ -28,17 +28,17 @@ DROP FUNCTION IF EXISTS public.generate_uid_fn;
 CREATE OR REPLACE FUNCTION public.generate_uid_fn(size INT) RETURNS TEXT
 AS $generate_uid_fn$
     DECLARE
-    characters TEXT := '0123456789';
-    bytes BYTEA := gen_random_bytes(size);
-    l INT := length(characters);
-    i INT := 0;
-    output TEXT := '';
+        characters TEXT := '0123456789';
+        bytes BYTEA := gen_random_bytes(size);
+        l INT := length(characters);
+        i INT := 0;
+        output TEXT := '';
     BEGIN
-    WHILE i < size LOOP
-        output := output || substr(characters, get_byte(bytes, i) % l + 1, 1);
-        i := i + 1;
-    END LOOP;
-    RETURN output;
+        WHILE i < size LOOP
+            output := output || substr(characters, get_byte(bytes, i) % l + 1, 1);
+            i := i + 1;
+        END LOOP;
+        RETURN output;
     END;
 $generate_uid_fn$ LANGUAGE plpgsql VOLATILE;
 -- Description
@@ -73,6 +73,78 @@ $generate_otp$ language plpgsql security definer;
 COMMENT ON FUNCTION
     api.generate_otp_fn
     IS 'Generate otp code';
+
+DROP FUNCTION IF EXISTS api.recover;
+CREATE OR REPLACE FUNCTION api.recover(in email text) returns BOOLEAN
+AS $recover_fn$
+	DECLARE
+        _email CITEXT := email;
+        _user_id TEXT := NULL;
+        otp_pass VARCHAR(10) := NULL;
+        _reset_qs TEXT := NULL;
+        user_settings jsonb := NULL;
+    BEGIN
+        IF _email IS NULL OR _email = '' THEN
+            RAISE EXCEPTION 'Invalid input'
+                USING HINT = 'Check your parameter';
+        END IF;
+        SELECT user_id INTO _user_id FROM auth.accounts a WHERE a.email = _email;
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'Invalid input'
+                USING HINT = 'Check your parameter';
+        END IF;
+        -- OTP Code
+        SELECT generate_uid_fn(6) INTO otp_pass;
+        INSERT INTO auth.otp (user_email, otp_pass) VALUES (_email, otp_pass);
+        SELECT CONCAT('uuid=', _user_id, '&token=', otp_pass) INTO _reset_qs;
+        -- Send email/notifications
+        user_settings := '{"email": "' || _email || '", "reset_qs": "' || _reset_qs || '"}';
+        PERFORM send_notification_fn('email_reset'::TEXT, user_settings::JSONB);
+        RETURN TRUE;
+    END;
+$recover_fn$ language plpgsql security definer;
+-- Description
+COMMENT ON FUNCTION
+    api.reset
+    IS 'Send recover password email to reset password';
+
+DROP FUNCTION IF EXISTS api.reset;
+CREATE OR REPLACE FUNCTION api.reset(in pass text, in token text, in uuid text) returns BOOLEAN
+AS $recover_fn$
+	DECLARE
+        _email TEXT := NULL;
+    BEGIN
+         -- Check parameters
+        IF token IS NULL OR uuid IS NULL OR pass IS NULL THEN
+            RAISE EXCEPTION 'invalid input' USING HINT = 'check your parameter';
+        END IF;
+        -- Verify token
+        SELECT auth.verify_otp_fn(token) INTO _email;
+		IF _email IS NOT NULL THEN
+            SELECT email INTO _email FROM auth.accounts WHERE user_id = uuid;
+            IF _email IS NULL THEN
+                RETURN False;
+            END IF;
+            -- Set user new password
+            UPDATE auth.accounts
+                SET pass = pass
+                WHERE email = _email;
+	        -- Enable email_validation into user preferences
+            PERFORM api.update_user_preferences_fn('{email_valid}'::TEXT, True::TEXT);
+            -- Enable email_notifications
+            PERFORM api.update_user_preferences_fn('{email_notifications}'::TEXT, True::TEXT);
+            -- Delete token when validated
+            DELETE FROM auth.otp
+                WHERE user_email = _email;
+			RETURN True;
+		END IF;
+		RETURN False;
+    END;
+$recover_fn$ language plpgsql security definer;
+-- Description
+COMMENT ON FUNCTION
+    api.reset
+    IS 'Reset user password base on otp code and user_id send by email from api.recover';
 
 DROP FUNCTION IF EXISTS auth.verify_otp_fn;
 CREATE OR REPLACE FUNCTION auth.verify_otp_fn(IN token TEXT) RETURNS TEXT
