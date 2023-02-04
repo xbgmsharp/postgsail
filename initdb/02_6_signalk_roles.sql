@@ -23,9 +23,11 @@ comment on role api_anonymous is
 -- Limit to 10 connections
 --alter user api_anonymous connection limit 10;
 grant usage on schema api to api_anonymous;
--- explicitly limit EXECUTE privileges to only signup and login functions
+-- explicitly limit EXECUTE privileges to only signup and login and reset functions
 grant execute on function api.login(text,text) to api_anonymous;
 grant execute on function api.signup(text,text,text,text) to api_anonymous;
+grant execute on function api.recover(text) to api_anonymous;
+grant execute on function api.reset(text,text,text) to api_anonymous;
 -- explicitly limit EXECUTE privileges to pgrest db-pre-request function
 grant execute on function public.check_jwt() to api_anonymous;
 -- explicitly limit EXECUTE privileges to only telegram bot auth function
