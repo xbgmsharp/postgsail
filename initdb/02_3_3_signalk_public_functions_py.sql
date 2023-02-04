@@ -111,6 +111,8 @@ AS $send_email_py$
         email_content = email_content.replace('__BADGE_NAME__', _user['badge'])
     if 'otp_code' in _user and _user['otp_code']:
         email_content = email_content.replace('__OTP_CODE__', _user['otp_code'])
+    if 'reset_qs' in _user and _user['reset_qs']:
+        email_content = email_content.replace('__RESET_QS__', _user['reset_qs'])
 
     if 'app.url' in app and app['app.url']:
         email_content = email_content.replace('__APP_URL__', app['app.url'])
