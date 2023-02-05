@@ -105,12 +105,12 @@ AS $recover_fn$
 $recover_fn$ language plpgsql security definer;
 -- Description
 COMMENT ON FUNCTION
-    api.reset
+    api.recover
     IS 'Send recover password email to reset password';
 
 DROP FUNCTION IF EXISTS api.reset;
 CREATE OR REPLACE FUNCTION api.reset(in pass text, in token text, in uuid text) returns BOOLEAN
-AS $recover_fn$
+AS $reset_fn$
 	DECLARE
         _email TEXT := NULL;
     BEGIN
@@ -140,7 +140,7 @@ AS $recover_fn$
 		END IF;
 		RETURN False;
     END;
-$recover_fn$ language plpgsql security definer;
+$reset_fn$ language plpgsql security definer;
 -- Description
 COMMENT ON FUNCTION
     api.reset
