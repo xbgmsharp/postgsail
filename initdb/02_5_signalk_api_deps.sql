@@ -22,7 +22,7 @@ CREATE OR REPLACE VIEW api.vessels_view AS
                 FROM api.metadata m
                 WHERE m.vessel_id = current_setting('vessel.id')
             )::TEXT ,
-            'Never'::TEXT ) as last_contact
+            ''::TEXT ) as last_contact
     )
     SELECT
         v.name as name,
