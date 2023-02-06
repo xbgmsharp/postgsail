@@ -151,6 +151,7 @@ begin
   return (
   select role from auth.accounts
    where accounts.email = user_role.email
+     and user_role.pass is NOT NULL
      and accounts.pass = crypt(user_role.pass, accounts.pass)
   );
 end;
@@ -203,8 +204,8 @@ api.signup(in email text, in pass text, in firstname text, in lastname text) ret
 declare
   _role name;
 begin
-  IF email IS NULL AND email = ''
-	 AND pass IS NULL AND pass = '' THEN
+  IF email IS NULL OR email = ''
+	 OR pass IS NULL OR pass = '' THEN
     RAISE EXCEPTION 'Invalid input'
         USING HINT = 'Check your parameter';
   END IF;
@@ -231,23 +232,26 @@ declare
   vessel_rec record;
   _vessel_id text;
 begin
-  IF vessel_email IS NULL AND vessel_email = ''
-	AND vessel_name IS NULL AND vessel_name = '' THEN
+  IF vessel_email IS NULL OR vessel_email = ''
+	  OR vessel_name IS NULL OR vessel_name = '' THEN
     RAISE EXCEPTION 'Invalid input'
         USING HINT = 'Check your parameter';
+  END IF;
+  IF public.isnumeric(vessel_mmsi) IS False THEN
+    vessel_mmsi = NULL;
   END IF;
   -- check vessel exist
   SELECT * INTO vessel_rec
     FROM auth.vessels vessel
     WHERE vessel.owner_email = vessel_email;
-  if vessel_rec is null then
+  IF vessel_rec IS NULL THEN
       RAISE WARNING 'Register new vessel name:[%] mmsi:[%] for [%]', vessel_name, vessel_mmsi, vessel_email;
       INSERT INTO auth.vessels (owner_email, mmsi, name, role)
 	      VALUES (vessel_email, vessel_mmsi::NUMERIC, vessel_name, 'vessel_role') RETURNING vessel_id INTO _vessel_id;
     vessel_rec.role := 'vessel_role';
     vessel_rec.owner_email = vessel_email;
     vessel_rec.vessel_id = _vessel_id;
-  end if;
+  END IF;
 
   -- Get app_jwt_secret
   SELECT value INTO app_jwt_secret
