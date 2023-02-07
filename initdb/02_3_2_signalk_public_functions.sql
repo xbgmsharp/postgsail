@@ -799,18 +799,17 @@ BEGIN
     PERFORM set_config('vessel.id', vessel_rec.vessel_id, false);
     PERFORM set_config('vessel.name', vessel_rec.name, false);
     -- ensure vessel is connected
-    SELECT m.client_id INTO _clientid
+    SELECT coalesce(m.client_id, null) INTO _clientid
         FROM auth.vessels v, api.metadata m
         WHERE
             m.vessel_id = current_setting('vessel.id')
             AND m.vessel_id = v.vessel_id
             AND v.owner_email =_email;
-    IF FOUND THEN
-       PERFORM set_config('vessel.client_id', _clientid, false);
-    --RAISE WARNING 'public.check_jwt() user_role vessel.client_id %', current_setting('vessel.client_id', false);
-    END IF;
-    --RAISE WARNING 'public.check_jwt() user_role vessel.mmsi %', current_setting('vessel.mmsi', false);
-    --RAISE WARNING 'public.check_jwt() user_role vessel.name %', current_setting('vessel.name', false);
+    -- Set session variables
+    PERFORM set_config('vessel.client_id', _clientid, false);
+    --RAISE WARNING 'public.check_jwt() user_role vessel.client_id [%]', current_setting('vessel.client_id', false);
+    --RAISE WARNING 'public.check_jwt() user_role vessel.id [%]', current_setting('vessel.id', false);
+    --RAISE WARNING 'public.check_jwt() user_role vessel.name [%]', current_setting('vessel.name', false);
   ELSIF _role = 'vessel_role' THEN
     SELECT current_setting('request.jwt.claims', true)::json->>'vid' INTO _vid;
     -- Check the vessel and user exist
