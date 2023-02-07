@@ -51,14 +51,26 @@ AS $reverse_geocode_py$
       r_dict = r.json()
       if r_dict["name"]:
         return r_dict["name"]
-      elif "address" in r_dict and r_dict["address"] and r_dict["address"]["road"]:
-        return r_dict["address"]["road"]
-      elif "address" in r_dict and r_dict["address"] and r_dict["address"]["neighbourhood"]:
-        return r_dict["address"]["neighbourhood"]
-      elif "address" in r_dict and r_dict["address"] and r_dict["address"]["suburb"]:
-        return r_dict["address"]["suburb"]
+      elif "address" in r_dict and r_dict["address"]:
+        if "road" in r_dict["address"] and r_dict["address"]["road"]:
+            return r_dict["address"]["road"]
+        elif "neighbourhood" in r_dict["address"] and r_dict["address"]["neighbourhood"]:
+            return r_dict["address"]["neighbourhood"]
+        elif "suburb" in r_dict["address"] and r_dict["address"]["suburb"]:
+            return r_dict["address"]["suburb"]
+        elif "residential" in r_dict["address"] and r_dict["address"]["residential"]:
+            return r_dict["address"]["residential"]
+        elif "village" in r_dict["address"] and r_dict["address"]["village"]:
+            return r_dict["address"]["village"]
+        elif "town" in r_dict["address"] and r_dict["address"]["town"]:
+            return r_dict["address"]["town"]
+        else:
+            return 'n/a'
+      else:
+        return 'n/a'
     else:
-      plpy.error('Failed to received a geo full address %s', r.json())
+      plpy.warning('Failed to received a geo full address %s', r.json())
+      #plpy.error('Failed to received a geo full address %s', r.json())
       return 'unknow'
 $reverse_geocode_py$ LANGUAGE plpython3u;
 -- Description
