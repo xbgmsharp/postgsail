@@ -205,12 +205,13 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
                track_geojson = geojson
             WHERE id = logbook_rec.id;
         -- Gather email and pushover app settings
-        app_settings := get_app_settings_fn();
+        --app_settings := get_app_settings_fn();
         -- Gather user settings
         SELECT json_build_object('logbook_name', log_name,  'logbook_link', logbook_rec.id) into log_settings;
         user_settings := get_user_settings_from_clientid_fn(logbook_rec.client_id::TEXT);
         SELECT user_settings::JSONB || log_settings::JSONB into user_settings;
         RAISE DEBUG '-> debug process_logbook_queue_fn get_user_settings_from_clientid_fn [%]', user_settings;
+        RAISE DEBUG '-> debug process_logbook_queue_fn log_settings [%]', log_settings;
         --user_settings := get_user_settings_from_log_fn(logbook_rec::RECORD);
         --user_settings := '{"logbook_name": "' || log_name || '"}, "{"email": "' || account_rec.email || '", "recipient": "' || account_rec.first || '}';
         --user_settings := '{"logbook_name": "' || log_name || '"}';
