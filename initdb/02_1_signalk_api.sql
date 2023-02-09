@@ -409,6 +409,11 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
             RAISE WARNING 'Metrics Ignoring metric, duplicate time [%] = [%]', previous_time, NEW.time;
             RETURN NULL;
         END IF;
+        IF previous_time > NEW.time THEN
+            -- Ignore entry if same time
+            RAISE WARNING 'Metrics Ignoring metric, new time is older [%] > [%]', previous_time, NEW.time;
+            RETURN NULL;
+        END IF;
         -- Check if latitude or longitude are null
         IF NEW.latitude IS NULL OR NEW.longitude IS NULL THEN
             -- Ignore entry if null latitude,longitude
@@ -869,7 +874,7 @@ CREATE VIEW stay_in_progress AS
 -- TODO: Use materialized views instead as it is not live data
 -- Logs web view
 DROP VIEW IF EXISTS api.logs_view;
-CREATE OR REPLACE VIEW api.logs_view AS
+CREATE OR REPLACE VIEW api.logs_view WITH (security_invoker=true,security_barrier=true) AS
     SELECT id,
             name as "Name",
             _from as "From",
@@ -886,8 +891,22 @@ COMMENT ON VIEW
     api.logs_view
     IS 'Logs web view';
 
+-- Inital try of MATERIALIZED VIEW
+CREATE MATERIALIZED VIEW api.logs_mat_view AS
+    SELECT id,
+            name as "Name",
+            _from as "From",
+            _from_time as "Started",
+            _to as "To",
+            _to_time as "Ended",
+            distance as "Distance",
+            duration as "Duration"
+        FROM api.logbook l
+        WHERE _to_time IS NOT NULL
+        ORDER BY _from_time DESC;
+
 DROP VIEW IF EXISTS api.log_view;
-CREATE OR REPLACE VIEW api.log_view AS
+CREATE OR REPLACE VIEW api.log_view WITH (security_invoker=true,security_barrier=true) AS
     SELECT id,
             name as "Name",
             _from as "From",
@@ -912,8 +931,8 @@ COMMENT ON VIEW
 -- Stays web view
 -- TODO group by month
 DROP VIEW IF EXISTS api.stays_view;
-CREATE VIEW api.stays_view AS -- TODO
-    SELECT 
+CREATE VIEW api.stays_view WITH (security_invoker=true,security_barrier=true) AS -- TODO
+    SELECT id,
         concat(
             extract(DAYS FROM (s.departed-s.arrived)::interval),
     	    ' days',
@@ -928,7 +947,7 @@ CREATE VIEW api.stays_view AS -- TODO
 		s.name AS Moorage,
 		s.arrived AS Arrived,
 		s.departed AS Departed,
-		sa.description AS "Stayed at",
+		sa.description AS Stayed_at,
 		(s.departed-s.arrived) AS Duration
 	FROM api.stays s, api.stays_at sa
 	WHERE departed is not null 
@@ -941,8 +960,8 @@ COMMENT ON VIEW
     IS 'Stays web view';
 
 DROP VIEW IF EXISTS api.stay_view;
-CREATE VIEW api.stay_view AS -- TODO missing arrival/departured from
-    SELECT
+CREATE VIEW api.stay_view WITH (security_invoker=true,security_barrier=true) AS -- TODO missing arrival/departured from
+    SELECT id,
         concat(
             extract(DAYS FROM (s.departed-s.arrived)::interval),
             ' days',
@@ -1139,11 +1158,11 @@ COMMENT ON VIEW
 CREATE VIEW timelapse AS -- TODO
     SELECT latitude, longitude from api.metrics;
 
--- View main monitoring for grafana
--- LAST Monitoring data from json!
-CREATE VIEW api.monitoring_view AS
+-- View main monitoring for web app
+CREATE VIEW api.monitoring_view WITH (security_invoker=true,security_barrier=true) AS
     SELECT 
         time AS "time",
+        (NOW() AT TIME ZONE 'UTC' - time) > INTERVAL '70 MINUTES' as offline,
         metrics-> 'environment.water.temperature' AS waterTemperature,
         metrics-> 'environment.inside.temperature' AS insideTemperature,
         metrics-> 'environment.outside.temperature' AS outsideTemperature,
@@ -1152,7 +1171,16 @@ CREATE VIEW api.monitoring_view AS
         metrics-> 'environment.inside.humidity' AS insideHumidity,
         metrics-> 'environment.outside.humidity' AS outsideHumidity,
         metrics-> 'environment.outside.pressure' AS outsidePressure,
-        metrics-> 'environment.inside.pressure' AS insidePressure
+        metrics-> 'environment.inside.pressure' AS insidePressure,
+        jsonb_build_object(
+            'type', 'Feature',
+            'geometry', ST_AsGeoJSON(st_makepoint(longitude,latitude))::jsonb,
+            'properties', jsonb_build_object(
+                'name', current_setting('vessel.name', false),
+                'latitude', m.latitude,
+                'longitude', m.longitude
+                )::jsonb ) AS geojson,
+        current_setting('vessel.name', false) AS name
     FROM api.metrics m 
     ORDER BY time DESC LIMIT 1;
 
