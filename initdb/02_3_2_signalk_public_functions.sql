@@ -119,10 +119,20 @@ CREATE FUNCTION logbook_update_geojson_fn(IN _id integer, IN _start text, IN _en
     begin
 		-- GeoJson Feature Logbook linestring
 	    SELECT
-		  ST_AsGeoJSON(l.*) into log_geojson
-		FROM
-		  api.logbook l
-		WHERE l.id = _id;
+		  ST_AsGeoJSON(log.*) into log_geojson
+        FROM
+           ( select
+            name,
+            distance,
+            duration,
+            avg_speed,
+            avg_speed,
+            max_wind_speed,
+            notes,
+            track_geom
+            FROM api.logbook
+            WHERE id = _id
+           ) AS log;
 		-- GeoJson Feature Metrics point
 		SELECT
 		  json_agg(ST_AsGeoJSON(t.*)::json) into metrics_geojson
@@ -158,7 +168,6 @@ $logbook_geojson$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION
     public.logbook_update_geojson_fn
     IS 'Update log details with geojson';
-
 
 -- Update pending new logbook from process queue
 DROP FUNCTION IF EXISTS process_logbook_queue_fn;
@@ -274,9 +283,6 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         to_name := reverse_geocode_py_fn('nominatim', logbook_rec._to_lng::NUMERIC, logbook_rec._to_lat::NUMERIC);
         SELECT CONCAT(from_name, ' to ' , to_name) INTO log_name;
 
-        -- GeoJSON
-        geojson := logbook_update_geojson_fn(logbook_rec.id, logbook_rec._from_time::TEXT, logbook_rec._to_time::TEXT);
-
         RAISE NOTICE 'Updating valid logbook entry [%] [%] [%]', logbook_rec.id, logbook_rec._from_time, logbook_rec._to_time;
         UPDATE api.logbook
             SET
@@ -288,7 +294,13 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
                 _to = to_name,
                 name = log_name,
                 track_geom = geo_rec._track_geom,
-                distance = geo_rec._track_distance,
+                distance = geo_rec._track_distance
+            WHERE id = logbook_rec.id;
+
+        -- GeoJSON require track_geom field
+        geojson := logbook_update_geojson_fn(logbook_rec.id, logbook_rec._from_time::TEXT, logbook_rec._to_time::TEXT);
+        UPDATE api.logbook
+            SET
                 track_geojson = geojson
             WHERE id = logbook_rec.id;
 
