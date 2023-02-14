@@ -96,17 +96,18 @@ GRANT SELECT ON TABLE api.logs_view TO user_role;
 GRANT SELECT ON TABLE api.log_view TO user_role;
 GRANT SELECT ON TABLE api.stays_view TO user_role;
 GRANT SELECT ON TABLE api.stay_view TO user_role;
+GRANT SELECT ON TABLE api.moorages_view TO user_role;
 GRANT SELECT ON TABLE api.monitoring_view TO user_role;
 -- Update ownership for security user_role as run by web user.
 -- Web listing
 --ALTER VIEW api.stays_view OWNER TO user_role;
-ALTER VIEW api.moorages_view OWNER TO user_role;
+--ALTER VIEW api.moorages_view OWNER TO user_role;
 --ALTER VIEW api.logs_view OWNER TO user_role;
 --ALTER VIEW api.vessel_p_view OWNER TO user_role;
 --ALTER VIEW api.monitoring_view OWNER TO user_role;
 -- Remove all permissions except select
 --REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.stays_view FROM user_role;
-REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.moorages_view FROM user_role;
+--REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.moorages_view FROM user_role;
 --REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.logs_view FROM user_role;
 --REVOKE UPDATE, TRUNCATE, REFERENCES, DELETE, TRIGGER, INSERT ON TABLE api.monitoring_view FROM user_role;
 
