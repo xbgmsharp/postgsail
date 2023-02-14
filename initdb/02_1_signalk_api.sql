@@ -410,7 +410,7 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
             RETURN NULL;
         END IF;
         IF previous_time > NEW.time THEN
-            -- Ignore entry if same time
+            -- Ignore entry if new time is later than previous time
             RAISE WARNING 'Metrics Ignoring metric, new time is older [%] > [%]', previous_time, NEW.time;
             RETURN NULL;
         END IF;
@@ -436,10 +436,11 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
             -- Add new stay as no previous entry exist
             INSERT INTO api.stays 
                 (client_id, active, arrived, latitude, longitude, stay_code) 
-                VALUES (NEW.client_id, true, NEW.time, NEW.latitude, NEW.longitude, stay_code)
+                VALUES (NEW.client_id, true, NEW.time, NEW.latitude, NEW.longitude, 1)
                 RETURNING id INTO stay_id;
             -- Add stay entry to process queue for further processing
-            INSERT INTO process_queue (channel, payload, stored) values ('new_stay', stay_id, now());
+            INSERT INTO process_queue (channel, payload, stored)
+                VALUES ('new_stay', stay_id, now());
             RAISE WARNING 'Metrics Insert first stay as no previous metrics exist, stay_id %', stay_id;
         END IF;
         -- Check if status is valid enum
@@ -485,7 +486,8 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                     WHERE id = stay_id;
                 RAISE WARNING 'Metrics Updating Stay end current stay_id [%] [%] [%]', stay_id, NEW.status, NEW.time;
                 -- Add moorage entry to process queue for further processing
-                INSERT INTO process_queue (channel, payload, stored) values ('new_moorage', stay_id, now());
+                INSERT INTO process_queue (channel, payload, stored)
+                    VALUES ('new_moorage', stay_id, now());
             ELSE
                 RAISE WARNING 'Metrics Invalid stay_id [%] [%]', stay_id, NEW.time;
             END IF;
@@ -510,7 +512,8 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                     VALUES (NEW.client_id, true, NEW.time, NEW.latitude, NEW.longitude, stay_code)
                     RETURNING id INTO stay_id;
                 -- Add stay entry to process queue for further processing
-                INSERT INTO process_queue (channel, payload, stored) values ('new_stay', stay_id, now());
+                INSERT INTO process_queue (channel, payload, stored)
+                    VALUES ('new_stay', stay_id, now());
             ELSE
                 RAISE WARNING 'Metrics Invalid stay_id [%] [%]', stay_id, NEW.time;
                 UPDATE api.stays
@@ -525,7 +528,7 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
             logbook_id := public.trip_in_progress_fn(NEW.client_id::TEXT);
             IF logbook_id IS NOT NULL THEN
                 -- todo check on time start vs end
-                RAISE WARNING 'Metrics Updating trip status [%] [%] [%]', logbook_id, NEW.status, NEW.time;
+                RAISE WARNING 'Metrics Updating logbook status [%] [%] [%]', logbook_id, NEW.status, NEW.time;
                 UPDATE api.logbook 
                     SET 
                         active = false, 
@@ -534,7 +537,8 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                         _to_lng = NEW.longitude
                     WHERE id = logbook_id;
                 -- Add logbook entry to process queue for later processing
-                INSERT INTO process_queue (channel, payload, stored) values ('new_logbook', logbook_id, now());
+                INSERT INTO process_queue (channel, payload, stored)
+                    VALUEs ('new_logbook', logbook_id, now());
             ELSE
                 RAISE WARNING 'Metrics Invalid logbook_id [%] [%]', logbook_id, NEW.time;
             END IF;
@@ -1007,19 +1011,19 @@ COMMENT ON VIEW
 
 -- the good way?
 DROP VIEW IF EXISTS api.moorages_view;
-CREATE OR REPLACE VIEW api.moorages_view AS -- TODO
-    SELECT
+CREATE OR REPLACE VIEW api.moorages_view WITH (security_invoker=true,security_barrier=true) AS -- TODO
+    SELECT m.id,
         m.name AS Moorage,
-        sa.description AS "Default Stay",
-        EXTRACT(DAY FROM justify_hours ( m.stay_duration )) AS "Total Stay",
-        m.reference_count AS "Arrivals & Departures",
+        sa.description AS Default_Stay,
+        EXTRACT(DAY FROM justify_hours ( m.stay_duration )) AS Total_Stay, -- in days
+        m.reference_count AS Arrivals_Departures,
         m.geog
 --        m.stay_duration,
 --        justify_hours ( m.stay_duration )
     FROM api.moorages m, api.stays_at sa
     WHERE m.name is not null
         AND m.stay_code = sa.stay_code
-   GROUP BY m.name,sa.description,m.stay_duration,m.reference_count,m.geog
+   GROUP BY m.id,m.name,sa.description,m.stay_duration,m.reference_count,m.geog
 --   ORDER BY 4 DESC;
    ORDER BY m.reference_count DESC;
 -- Description
@@ -1028,7 +1032,7 @@ COMMENT ON VIEW
     IS 'Moorages web view';
 
 DROP VIEW IF EXISTS api.moorage_view;
-CREATE OR REPLACE VIEW api.moorage_view AS -- TODO
+CREATE OR REPLACE VIEW api.moorage_view WITH (security_invoker=true,security_barrier=true) AS -- TODO
     SELECT
         m.name AS "Preferred Name",
         m.stay_code AS "Default Stay Type",
