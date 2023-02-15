@@ -86,6 +86,7 @@ AS $vessel$
                                     latitude IS NOT NULL
                                     AND longitude IS NOT NULL
                                     AND client_id = current_setting('vessel.client_id', false)
+                                ORDER BY time DESC
 			                )
 			            ) AS t
 	            ) AS geojson_t
