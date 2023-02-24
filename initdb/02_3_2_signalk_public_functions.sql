@@ -69,7 +69,7 @@ $logbook_update_avg$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
     public.logbook_update_avg_fn
-    IS 'Update logbook details with calculate average and max data, AVG(speedOverGround), MAX(speedOverGround), MAX(windspeedapparent)';
+    IS 'Update logbook details with calculate average and max data, AVG(speedOverGround), MAX(speedOverGround), MAX(windspeedapparent), count_metric';
 
 -- Create a LINESTRING for Geometry
 -- Todo validate st_length unit?
@@ -150,7 +150,7 @@ CREATE FUNCTION logbook_update_geojson_fn(IN _id integer, IN _start text, IN _en
                 AND time >= _start::TIMESTAMP WITHOUT TIME ZONE
                 AND time <= _end::TIMESTAMP WITHOUT TIME ZONE
                 AND client_id = current_setting('vessel.client_id', false)
-		    ORDER BY m.time asc
+		    ORDER BY m.time ASC
 		   )  
 		) AS t;
 
@@ -226,8 +226,8 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         -- Avoid/ignore/delete logbook stationary movement or time sync issue
         -- Check time start vs end
         SELECT logbook_rec._to_time::timestamp without time zone < logbook_rec._from_time::timestamp without time zone INTO _invalid_time;
-        -- Is distance is less than 0.005
-        SELECT geo_rec._track_distance < 0.005 INTO _invalid_distance;
+        -- Is distance is less than 0.010
+        SELECT geo_rec._track_distance < 0.010 INTO _invalid_distance;
         -- Is duration is less than 100sec
         SELECT (logbook_rec._to_time::timestamp without time zone - logbook_rec._from_time::timestamp without time zone) < (100::text||' secs')::interval INTO _invalid_interval;
         -- if stationnary fix data metrics,logbook,stays,moorage
@@ -870,12 +870,13 @@ BEGIN
     END IF;
     --RAISE WARNING 'req path %', current_setting('request.path', true);
     -- Function allow without defined vessel
-    -- openapi doc, user settings and vessel registration
+    -- openapi doc, user settings, otp code and vessel registration
     SELECT current_setting('request.path', true) into _path;
     IF _path = '/rpc/settings_fn'
         OR _path = '/rpc/register_vessel'
         OR _path = '/rpc/update_user_preferences_fn'
         OR _path = '/rpc/versions_fn'
+        OR _path = '/rpc/email_fn'
         OR _path = '/' THEN
         RETURN;
     END IF;
