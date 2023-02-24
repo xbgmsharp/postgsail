@@ -42,6 +42,10 @@ CREATE OR REPLACE VIEW api.vessels2_view AS
     FROM auth.vessels v
     LEFT JOIN api.metadata m ON v.owner_email = current_setting('user.email')
         AND m.vessel_id = current_setting('vessel.id');
+-- Description
+COMMENT ON VIEW
+    api.vessels2_view
+    IS 'Expose has vessel pending validation to API - TO DELETE?';
 
 DROP VIEW IF EXISTS api.vessel_p_view;
 CREATE OR REPLACE VIEW api.vessel_p_view AS
@@ -52,6 +56,29 @@ CREATE OR REPLACE VIEW api.vessel_p_view AS
         null as last_contact
         FROM auth.vessels v
         WHERE v.owner_email = current_setting('user.email');
+-- Description
+COMMENT ON VIEW
+    api.vessel_p_view
+    IS 'Expose has vessel pending validation to API - TO DELETE?';
+
+DROP FUNCTION IF EXISTS public.has_vessel_fn;
+CREATE OR REPLACE FUNCTION public.has_vessel_fn() RETURNS BOOLEAN
+AS $has_vessel$
+	DECLARE
+    BEGIN
+        -- Check a vessel and user exist
+        RETURN (
+            SELECT auth.vessels.name
+                FROM auth.vessels, auth.accounts
+                WHERE auth.vessels.owner_email = auth.accounts.email
+                    AND auth.accounts.email = current_setting('user.email')
+            ) IS NOT NULL;
+    END;
+$has_vessel$ language plpgsql security definer;
+-- Description
+COMMENT ON FUNCTION
+    public.has_vessel_fn
+    IS 'Expose has vessel to API';
 
 -- Or function?
 -- TODO Improve: return null until the vessel has sent metadata?
@@ -109,7 +136,8 @@ AS $user_settings$
        select row_to_json(row)::json INTO settings
 		from (
 		    select email,first,last,preferences,created_at,
-                INITCAP(CONCAT (LEFT(first, 1), ' ', last)) AS username
+                INITCAP(CONCAT (LEFT(first, 1), ' ', last)) AS username,
+                public.has_vessel_fn() as has_vessel
             from auth.accounts
             where email = current_setting('user.email')
 		) row;
@@ -128,10 +156,10 @@ AS $version$
 		_sysv TEXT;
     BEGIN
         SELECT
-            value, version() into _appv,_sysv
+            value, rtrim(substring(version(), 0, 17)) AS sys_version into _appv,_sysv
         FROM app_settings
         WHERE name = 'app.version';
-        RETURN json_build_object('app_version', _appv,
+        RETURN json_build_object('api_version', _appv,
                            'sys_version', _sysv);
     END;
 $version$ language plpgsql security definer;
@@ -143,8 +171,9 @@ COMMENT ON FUNCTION
 DROP VIEW IF EXISTS api.versions_view;
 CREATE OR REPLACE VIEW api.versions_view AS
     SELECT
-        value as app_version,
-        version() as sys_version
+        value AS api_version,
+        --version() as sys_version
+        rtrim(substring(version(), 0, 17)) AS sys_version
     FROM app_settings
     WHERE name = 'app.version';
 -- Description
