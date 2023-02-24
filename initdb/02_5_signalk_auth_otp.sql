@@ -54,7 +54,7 @@ AS $generate_otp$
 	DECLARE
         _email CITEXT := email;
         _email_check TEXT := NULL;
-        otp_pass VARCHAR(10) := NULL;
+        _otp_pass VARCHAR(10) := NULL;
     BEGIN
         IF email IS NULL OR _email IS NULL OR _email = '' THEN
             RAISE EXCEPTION 'invalid input' USING HINT = 'check your parameter';
@@ -64,8 +64,10 @@ AS $generate_otp$
             RETURN NULL;
         END IF;
         --SELECT substr(gen_random_uuid()::text, 1, 6) INTO otp_pass;
-        SELECT generate_uid_fn(6) INTO otp_pass;
-        INSERT INTO auth.otp (user_email, otp_pass) VALUES (_email_check, otp_pass);
+        SELECT generate_uid_fn(6) INTO _otp_pass;
+        INSERT INTO auth.otp (user_email, otp_pass)
+                VALUES (_email_check, _otp_pass)
+                ON CONFLICT (user_email) DO UPDATE SET otp_pass = _otp_pass;
         RETURN otp_pass;
     END;
 $generate_otp$ language plpgsql security definer;
