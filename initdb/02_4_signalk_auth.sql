@@ -172,6 +172,8 @@ declare
   _role name;
   result auth.jwt_token;
   app_jwt_secret text;
+  _email_valid boolean := false;
+  _email text := email;
 begin
   -- check email and password
   select auth.user_role(email, pass) into _role;
@@ -184,6 +186,16 @@ begin
     FROM app_settings
     WHERE name = 'app.jwt_secret';
 
+  -- Check email_valid and generate OTP
+  SELECT preferences['email_valid'] INTO _email_valid
+              FROM auth.accounts a
+              WHERE a.email = _email;
+  IF _email_valid is null or _email_valid is False THEN
+    INSERT INTO process_queue (channel, payload, stored)
+      VALUES ('email_otp', email, now());
+  END IF;
+
+  -- Generate jwt
   select jwt.sign(
   --    row_to_json(r), ''
   --    row_to_json(r)::json, current_setting('app.jwt_secret')::text
