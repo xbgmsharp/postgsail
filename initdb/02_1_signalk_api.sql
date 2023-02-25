@@ -636,50 +636,24 @@ COMMENT ON FUNCTION
 -- export_logbook_geojson_fn
 DROP FUNCTION IF EXISTS api.export_logbook_geojson_fn;
 CREATE FUNCTION api.export_logbook_geojson_fn(IN _id integer, OUT geojson JSON) RETURNS JSON AS $export_logbook_geojson$
+-- validate with geojson.io
     DECLARE
         logbook_rec record;
-        log_geojson jsonb;
-        metrics_geojson jsonb;
-        _map jsonb;
     BEGIN
-        -- Gather log details
         -- If _id is is not NULL and > 0
+        IF _id IS NULL OR _id < 1 THEN
+            RAISE WARNING '-> export_logbook_geojson_fn invalid input %', _id;
+            RETURN;
+        END IF;
+        -- Gather log details
         SELECT * INTO logbook_rec
             FROM api.logbook WHERE id = _id;
-		-- GeoJson Feature Logbook linestring
-	    SELECT
-		  ST_AsGeoJSON(l.*) into log_geojson
-		FROM
-		  api.logbook l
-		WHERE l.id = _id;
-		-- GeoJson Feature Metrics point
-		SELECT
-		  json_agg(ST_AsGeoJSON(t.*)::json) into metrics_geojson
-		FROM (
-		  ( SELECT
-                time,
-                courseovergroundtrue,
-                speedoverground,
-                anglespeedapparent,
-                longitude,latitude,
-                st_makepoint(longitude,latitude) AS geo_point
-		    FROM api.metrics m
-		    WHERE m.latitude IS NOT NULL
-		        AND m.longitude IS NOT NULL
-                AND time >= logbook_rec._from_time::TIMESTAMP WITHOUT TIME ZONE
-                AND time <= logbook_rec._to_time::TIMESTAMP WITHOUT TIME ZONE
-		    ORDER BY m.time ASC
-		   )
-		) AS t;
-
-		-- Merge jsonb
-		select log_geojson::jsonb || metrics_geojson::jsonb into _map;
-        -- output
-	    SELECT
-        json_build_object(
-            'type', 'FeatureCollection',
-            'features', _map
-        ) into geojson;
+        -- Ensure the query is successful
+        IF logbook_rec.client_id IS NULL THEN
+            RAISE WARNING '-> export_logbook_geojson_fn invalid logbook %', _id;
+            RETURN;
+        END IF;
+        geojson := logbook_rec.track_geojson;
     END;
 $export_logbook_geojson$ LANGUAGE plpgsql;
 -- Description
@@ -696,11 +670,21 @@ AS $export_logbook_gpx$
     DECLARE
         log_rec record;
     BEGIN
+        -- If _id is is not NULL and > 0
+        IF _id IS NULL OR _id < 1 THEN
+            RAISE WARNING '-> export_logbook_geojson_fn invalid input %', _id;
+            RETURN '';
+        END IF;
         -- Gather log details _from_time and _to_time
-        SELECT * into log_rec
+        SELECT * INTO log_rec
             FROM
             api.logbook l
             WHERE l.id = _id;
+        -- Ensure the query is successful
+        IF log_rec.client_id IS NULL THEN
+            RAISE WARNING '-> export_logbook_gpx_fn invalid logbook %', _id;
+            RETURN '';
+        END IF;
         -- Generate XML
         RETURN xmlelement(name gpx,
                             xmlattributes(  '1.1' as version,
@@ -726,10 +710,13 @@ AS $export_logbook_gpx$
                                                         xmlelement(name time, time)
                                                 )))))::pg_catalog.xml
             FROM api.metrics m
-            WHERE m.latitude IS NOT null
-                AND m.longitude IS NOT null
+            WHERE m.latitude IS NOT NULL
+                AND m.longitude IS NOT NULL
                 AND m.time >= log_rec._from_time::TIMESTAMP WITHOUT TIME ZONE
-                AND m.time <= log_rec._to_time::TIMESTAMP WITHOUT TIME ZONE;
+                AND m.time <= log_rec._to_time::TIMESTAMP WITHOUT TIME ZONE
+                AND client_id = log_rec.client_id;
+            -- ERROR:  column "m.time" must appear in the GROUP BY clause or be used in an aggregate function at character 2304
+            --ORDER BY m.time ASC;
     END;
 $export_logbook_gpx$ LANGUAGE plpgsql;
 -- Description
@@ -739,7 +726,7 @@ COMMENT ON FUNCTION
 
 -- Find all log from and to moorage geopoint within 100m
 DROP FUNCTION IF EXISTS api.find_log_from_moorage_fn;
-CREATE FUNCTION api.find_log_from_moorage_fn(IN _id INTEGER) RETURNS void AS $find_log_from_moorage$
+CREATE OR REPLACE FUNCTION api.find_log_from_moorage_fn(IN _id INTEGER) RETURNS void AS $find_log_from_moorage$
     DECLARE
         moorage_rec record;
         logbook_rec record;
@@ -772,7 +759,7 @@ COMMENT ON FUNCTION
 
 -- Find all stay within 100m of moorage geopoint
 DROP FUNCTION IF EXISTS api.find_stay_from_moorage_fn;
-CREATE FUNCTION api.find_stay_from_moorage_fn(IN _id INTEGER) RETURNS void AS $find_stay_from_moorage$
+CREATE OR REPLACE FUNCTION api.find_stay_from_moorage_fn(IN _id INTEGER) RETURNS void AS $find_stay_from_moorage$
     DECLARE
         moorage_rec record;
         stay_rec record;
@@ -841,6 +828,31 @@ COMMENT ON FUNCTION
     public.stay_in_progress_fn
     IS 'stay_in_progress';
 
+-- stay_in_progress_fn
+DROP FUNCTION IF EXISTS api.logs_by_month_fn;
+CREATE FUNCTION api.logs_by_month_fn(OUT charts JSONB) RETURNS JSONB AS $logs_by_month$
+    DECLARE
+        data JSONB;
+    BEGIN
+        -- Query logs by month
+        SELECT json_object_agg(month,count) INTO data
+            FROM (
+                    SELECT
+                        to_char(date_trunc('month', _from_time), 'MM') as month,
+                        count(*) as count
+                        FROM api.logbook
+                        GROUP BY month
+                        ORDER BY month
+                ) AS t;
+        -- Merge jsonb to get all 12 months
+        SELECT '{"01": 0, "02": 0, "03": 0, "04": 0, "05": 0, "06": 0, "07": 0, "08": 0, "09": 0, "10": 0, "11": 0,"12": 0}'::jsonb ||
+            data::jsonb INTO charts;
+    END;
+$logs_by_month$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    api.logs_by_month_fn
+    IS 'logbook by month for web charts';
 ---------------------------------------------------------------------------
 -- API helper views
 --
@@ -1029,16 +1041,16 @@ CREATE OR REPLACE VIEW api.moorages_view WITH (security_invoker=true,security_ba
 -- Description
 COMMENT ON VIEW
     api.moorages_view
-    IS 'Moorages web view';
+    IS 'Moorages listing web view';
 
 DROP VIEW IF EXISTS api.moorage_view;
 CREATE OR REPLACE VIEW api.moorage_view WITH (security_invoker=true,security_barrier=true) AS -- TODO
-    SELECT
-        m.name AS "Preferred Name",
-        m.stay_code AS "Default Stay Type",
-        m.home_flag AS "Home",
-        EXTRACT(DAY FROM justify_hours ( m.stay_duration )) AS "Total Stay",
-        m.reference_count AS "Arrivals & Departures",
+    SELECT id,
+        m.name AS Name,
+        m.stay_code AS Default_Stay,
+        m.home_flag AS Home,
+        EXTRACT(DAY FROM justify_hours ( m.stay_duration )) AS Total_Stay,
+        m.reference_count AS Arrivals_Departures,
         m.notes,
         m.geog
     FROM api.moorages m
@@ -1046,7 +1058,7 @@ CREATE OR REPLACE VIEW api.moorage_view WITH (security_invoker=true,security_bar
 -- Description
 COMMENT ON VIEW
     api.moorage_view
-    IS 'Moorage web view';
+    IS 'Moorage details web view';
 
 -- All moorage in 100 meters from the start of a logbook.
 -- ST_DistanceSphere Returns minimum distance in meters between two lon/lat points.
@@ -1072,7 +1084,7 @@ COMMENT ON VIEW
 ----> select sum(l.duration) as "Total Time Underway" from api.logbook l;
 -- Longest Nonstop Sail from logbook, eg longest trip duration and distance
 ----> select max(l.duration),max(l.distance) from api.logbook l;
-CREATE VIEW api.stats_logs_view AS -- TODO
+CREATE VIEW api.stats_logs_view WITH (security_invoker=true,security_barrier=true) AS -- TODO
     WITH
         meta AS ( 
             SELECT m.name FROM api.metadata m ),
@@ -1111,7 +1123,7 @@ COMMENT ON VIEW
 ----> select sum(m.stay_duration) as "Time Spent Away" from api.moorages m where home_flag is false;
 -- Time Spent Away order by, group by stay_code (Dock, Anchor, Mooring Buoys, Unclassified)
 ----> select sa.description,sum(m.stay_duration) as "Time Spent Away" from api.moorages m, api.stays_at sa where home_flag is false AND m.stay_code = sa.stay_code group by m.stay_code,sa.description order by m.stay_code;
-CREATE VIEW api.stats_moorages_view AS -- TODO
+CREATE VIEW api.stats_moorages_view WITH (security_invoker=true,security_barrier=true) AS -- TODO
     WITH
         home_ports AS (
             select count(*) as home_ports from api.moorages m where home_flag is true
@@ -1135,7 +1147,7 @@ COMMENT ON VIEW
     api.stats_moorages_view
     IS 'Statistics Moorages web view';
 
-CREATE VIEW api.stats_moorages_away_view AS -- TODO
+CREATE VIEW api.stats_moorages_away_view WITH (security_invoker=true,security_barrier=true) AS -- TODO
     SELECT sa.description,sum(m.stay_duration) as time_spent_away_by
     FROM api.moorages m, api.stays_at sa
     WHERE home_flag IS false
@@ -1148,14 +1160,17 @@ COMMENT ON VIEW
 
 --CREATE VIEW api.stats_view AS -- todo
 --    WITH
---        logs AS ( 
+--        logs AS (
 --            SELECT * FROM api.stats_logs_view ),
---        moorages AS ( 
+--        moorages AS (
 --            SELECT * FROM api.stats_moorages_view)
 --    SELECT
 --        l.*,
---        m.* 
---    FROM logs l, moorages m;
+--        m.*
+--        FROM logs l, moorages m;
+--COMMENT ON VIEW
+--    api.stats_moorages_away_view
+--    IS 'Statistics Moorages Time Spent Away web view';
 
 -- global timelapse
 -- TODO
@@ -1187,6 +1202,9 @@ CREATE VIEW api.monitoring_view WITH (security_invoker=true,security_barrier=tru
         current_setting('vessel.name', false) AS name
     FROM api.metrics m 
     ORDER BY time DESC LIMIT 1;
+COMMENT ON VIEW
+    api.monitoring_view
+    IS 'Monitoring web view';
 
 CREATE VIEW api.monitoring_humidity AS
     SELECT 
@@ -1225,3 +1243,15 @@ CREATE VIEW api.monitoring_voltage AS
         cast(metrics-> 'electrical.batteries.victronDevice.voltage' AS numeric) AS victronDeviceVoltage
     FROM api.metrics m 
     ORDER BY time DESC LIMIT 1;
+
+-- Infotiles web app
+CREATE OR REPLACE VIEW api.total_info_view WITH (security_invoker=true,security_barrier=true) AS
+-- Infotiles web app, not used calculated client side
+    WITH
+        l as (SELECT count(*) as logs FROM api.logbook),
+        s as (SELECT count(*) as stays FROM api.stays),
+        m as (SELECT count(*) as moorages FROM api.moorages)
+        SELECT * FROM l,s,m;
+COMMENT ON VIEW
+    api.total_info_view
+    IS 'Monitoring web view';
