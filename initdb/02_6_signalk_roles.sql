@@ -98,6 +98,9 @@ GRANT SELECT ON TABLE api.stays_view TO user_role;
 GRANT SELECT ON TABLE api.stay_view TO user_role;
 GRANT SELECT ON TABLE api.moorages_view TO user_role;
 GRANT SELECT ON TABLE api.monitoring_view TO user_role;
+GRANT SELECT ON TABLE api.total_info_view TO user_role;
+GRANT SELECT ON TABLE api.stats_logs_view TO user_role;
+GRANT SELECT ON TABLE api.stats_moorages_view TO user_role;
 -- Update ownership for security user_role as run by web user.
 -- Web listing
 --ALTER VIEW api.stays_view OWNER TO user_role;
