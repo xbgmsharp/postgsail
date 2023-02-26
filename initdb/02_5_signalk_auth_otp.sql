@@ -51,7 +51,7 @@ COMMENT ON FUNCTION
 DROP FUNCTION IF EXISTS api.generate_otp_fn;
 CREATE OR REPLACE FUNCTION api.generate_otp_fn(IN email TEXT) RETURNS TEXT
 AS $generate_otp$
-	DECLARE
+    DECLARE
         _email CITEXT := email;
         _email_check TEXT := NULL;
         _otp_pass VARCHAR(10) := NULL;
@@ -65,10 +65,11 @@ AS $generate_otp$
         END IF;
         --SELECT substr(gen_random_uuid()::text, 1, 6) INTO otp_pass;
         SELECT generate_uid_fn(6) INTO _otp_pass;
+        -- upsert - Insert or update otp code on conflit
         INSERT INTO auth.otp (user_email, otp_pass)
                 VALUES (_email_check, _otp_pass)
-                ON CONFLICT (user_email) DO UPDATE SET otp_pass = _otp_pass;
-        RETURN otp_pass;
+                ON CONFLICT (user_email) DO UPDATE SET otp_pass = _otp_pass, otp_timestamp = NOW();
+        RETURN _otp_pass;
     END;
 $generate_otp$ language plpgsql security definer;
 -- Description
@@ -241,7 +242,11 @@ COMMENT ON FUNCTION
     api.email_fn
     IS 'Store email_valid into user preferences if valid token/otp';
 
-CREATE OR REPLACE FUNCTION api.pushover_subscribe_link_fn(IN email TEXT, OUT pushover_link JSON) RETURNS JSON
+-- Pushover Subscription API
+-- Web-Based Subscription Process
+-- https://pushover.net/api/subscriptions#web
+-- Expose as an API endpoint
+CREATE OR REPLACE FUNCTION api.pushover_subscribe_link_fn(OUT pushover_link JSON) RETURNS JSON
 AS $pushover_subscribe_link$
 	DECLARE
         app_url text;
@@ -249,11 +254,12 @@ AS $pushover_subscribe_link$
         pushover_app_url text;
         success text;
         failure text;
+        email text := current_setting('user.email', true);
     BEGIN
+--https://pushover.net/api/subscriptions#web
 -- "https://pushover.net/subscribe/PostgSail-23uvrho1d5y6n3e"
 -- + "?success=" + urlencode("https://beta.openplotter.cloud/api/rpc/pushover_fn?token=" + generate_otp_fn({{email}}))
 -- + "&failure=" + urlencode("https://beta.openplotter.cloud/settings");
-
         -- get app_url
         SELECT
             value INTO app_url
@@ -268,23 +274,28 @@ AS $pushover_subscribe_link$
             public.app_settings
         WHERE
             name = 'app.pushover_app_url';
+        -- Generate OTP
         otp_code := api.generate_otp_fn(email);
-        -- On sucess redirect to to API endpoing
+        -- On sucess redirect to API endpoint
         SELECT CONCAT(
             '?success=',
-            urlencode(CONCAT(app_url,'/api/rpc/pushover_fn?token=')),
+            public.urlescape_py_fn(CONCAT(app_url,'/rpc/pushover_fn?token=')),
             otp_code)
             INTO success;
         -- On failure redirect to user settings, where he does come from
         SELECT CONCAT(
             '&failure=',
-            urlencode(CONCAT(app_url,'/settings'))
+            public.urlescape_py_fn(CONCAT(app_url,'/profile'))
             ) INTO failure;
-        SELECT json_build_object( 'link', CONCAT(pushover_app_url, success, failure)) INTO pushover_link;
+        SELECT json_build_object('link', CONCAT(pushover_app_url, success, failure)) INTO pushover_link;
     END;
 $pushover_subscribe_link$ language plpgsql security definer;
+-- Description
+COMMENT ON FUNCTION
+    api.pushover_subscribe_link_fn
+    IS 'Generate Pushover subscription link';
 
--- Pushover Subscription API
+-- Confirm Pushover Subscription
 -- Web-Based Subscription Process
 -- https://pushover.net/api/subscriptions#web
 -- Expose as an API endpoint
@@ -324,7 +335,7 @@ $pushover$ language plpgsql security definer;
 -- Description
 COMMENT ON FUNCTION
     api.pushover_fn
-    IS 'Store pushover_user_key into user preferences if valid token/otp';
+    IS 'Confirm Pushover Subscription and store pushover_user_key into user preferences if valid token/otp';
 
 -- Telegram OTP Validation
 -- Expose as an API endpoint
@@ -361,7 +372,7 @@ $telegram$ language plpgsql security definer;
 -- Description
 COMMENT ON FUNCTION
     api.telegram_fn
-    IS 'Store telegram chat details into user preferences if valid token/otp';
+    IS 'Confirm telegram user and store telegram chat details into user preferences if valid token/otp';
 
 -- Telegram user validation
 DROP FUNCTION IF EXISTS auth.telegram_user_exists_fn;
@@ -412,7 +423,6 @@ AS $telegram_otp$
         END IF;
     END;
 $telegram_otp$ language plpgsql security definer;
-
 -- Description
 COMMENT ON FUNCTION
     auth.telegram_otp_fn
