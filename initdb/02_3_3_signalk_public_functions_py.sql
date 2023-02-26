@@ -369,3 +369,13 @@ $reverse_geoip_py$ TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
 COMMENT ON FUNCTION
     public.reverse_geoip_py_fn
     IS 'Retrieve reverse geo IP location via ipapi.co using plpython3u';
+
+CREATE OR REPLACE FUNCTION urlescape_py_fn(original text) RETURNS text LANGUAGE plpython3u AS $$
+import urllib.parse
+return urllib.parse.quote(original);
+$$
+IMMUTABLE STRICT;
+-- Description
+COMMENT ON FUNCTION
+    public.urlescape_py_fn
+    IS 'URL-encoding VARCHAR and TEXT values using plpython3u';
