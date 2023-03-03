@@ -279,7 +279,7 @@ AS $pushover_subscribe_link$
         -- On sucess redirect to API endpoint
         SELECT CONCAT(
             '?success=',
-            public.urlescape_py_fn(CONCAT(app_url,'/rpc/pushover_fn?token=')),
+            public.urlescape_py_fn(CONCAT(app_url,'/pushover?token=')),
             otp_code)
             INTO success;
         -- On failure redirect to user settings, where he does come from
