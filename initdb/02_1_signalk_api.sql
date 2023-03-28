@@ -567,53 +567,47 @@ COMMENT ON TRIGGER
 
 ---------------------------------------------------------------------------
 -- Functions API schema
--- Export a log entry to geojson
-DROP FUNCTION IF EXISTS api.export_logbook_geojson_point_fn;
-CREATE OR REPLACE FUNCTION api.export_logbook_geojson_point_fn(IN _id INTEGER, OUT geojson JSON) RETURNS JSON AS $export_logbook_geojson_point$
+-- Timelapse - replay logs
+DROP FUNCTION IF EXISTS api.timelapse_fn;
+CREATE OR REPLACE FUNCTION api.timelapse_fn(
+	IN start_log INTEGER DEFAULT NULL,
+	IN end_log INTEGER DEFAULT NULL,
+	IN start_date TEXT DEFAULT NULL,
+	IN end_date TEXT DEFAULT NULL,
+	OUT geojson JSON) RETURNS JSON AS $timelapse$
     DECLARE
-        logbook_rec record;
+        tmp_geojson jsonb := '{}';
+        _geojson jsonb;
     BEGIN
-        -- If _id is is not NULL and > 0
-        SELECT * INTO logbook_rec
-            FROM api.logbook WHERE id = _id;
-        
-        WITH log AS (
-            SELECT m.time as time, m.latitude as lat, m.longitude as lng, m.courseOverGroundTrue as cog
-            FROM api.metrics m
-            WHERE m.latitude IS NOT null
-                AND m.longitude IS NOT null
-                AND m.time >= logbook_rec._from_time::timestamp without time zone
-                AND m.time <= logbook_rec._to_time::timestamp without time zone
-            GROUP by m.time,m.latitude,m.longitude,m.courseOverGroundTrue
-            ORDER BY m.time ASC)
+        -- TODO using jsonb pgsql function instead of python
+        IF start_log IS NOT NULL AND public.isnumeric(start_log::text) AND public.isnumeric(end_log::text) THEN
+            SELECT jsonb_agg(track_geojson->'features') INTO tmp_geojson
+                FROM api.logbook
+                WHERE id >= start_log
+                    AND id <= end_log;
+            --raise WARNING 'by log tmp_geojson %' , tmp_geojson;
+        ELSIF start_date IS NOT NULL AND public.isdate(start_date::text) AND public.isdate(end_date::text) THEN
+            SELECT jsonb_agg(track_geojson->'features') INTO tmp_geojson
+                FROM api.logbook
+                WHERE _from_time >= start_log::TIMESTAMP WITHOUT TIME ZONE
+                    AND _to_time <= end_date::TIMESTAMP WITHOUT TIME ZONE + interval '23 hours 59 minutes';
+            --raise WARNING 'by date tmp_geojson %' , tmp_geojson;
+        ELSE
+            SELECT jsonb_agg(track_geojson->'features') INTO tmp_geojson
+                FROM api.logbook;
+            --raise WARNING 'all result tmp_geojson %' , tmp_geojson;
+        END IF;
+        --raise WARNING 'result _geojson %' , _geojson;
+        _geojson := public.geojson_py_fn(tmp_geojson);
         SELECT json_build_object(
             'type', 'FeatureCollection',
-            'crs',  json_build_object(
-                'type',      'name', 
-                'properties', json_build_object(
-                    'name', 'EPSG:4326'  
-                )
-            ), 
-            'features', json_agg(
-                json_build_object(
-                    'type',       'Feature',
-                --   'id',         {id}, -- the GeoJson spec includes an 'id' field, but it is optional, replace {id} with your id field
-                    'geometry',   ST_AsGeoJSON(st_makepoint(lng,lat))::json,
-                    'properties', json_build_object(
-                        -- list of fields
-                        'field1', time,
-                        'field2', cog
-                    )
-                )
-            )
-        ) INTO geojson
-        FROM log;
+            'features', _geojson) INTO geojson;
     END;
-$export_logbook_geojson_point$ LANGUAGE plpgsql;
+$timelapse$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
-    api.export_logbook_geojson_point_fn
-    IS 'Export a log entry to geojson feature point with Time and courseOverGroundTrue properties';
+    api.timelapse_fn
+    IS 'Export to geojson feature point with Time and courseOverGroundTrue properties';
 
 -- Export a log entry to geojson
 DROP FUNCTION IF EXISTS api.export_logbook_geojson_linestring_fn;
