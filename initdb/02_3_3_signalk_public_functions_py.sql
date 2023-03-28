@@ -370,6 +370,10 @@ COMMENT ON FUNCTION
     public.reverse_geoip_py_fn
     IS 'Retrieve reverse geo IP location via ipapi.co using plpython3u';
 
+---------------------------------------------------------------------------
+-- python url escape
+--
+DROP FUNCTION IF EXISTS urlescape_py_fn;
 CREATE OR REPLACE FUNCTION urlescape_py_fn(original text) RETURNS text LANGUAGE plpython3u AS $$
 import urllib.parse
 return urllib.parse.quote(original);
@@ -379,3 +383,27 @@ IMMUTABLE STRICT;
 COMMENT ON FUNCTION
     public.urlescape_py_fn
     IS 'URL-encoding VARCHAR and TEXT values using plpython3u';
+
+---------------------------------------------------------------------------
+-- python geojson parser
+--
+DROP FUNCTION IF EXISTS geojson_py_fn;
+CREATE OR REPLACE FUNCTION geojson_py_fn(original JSONB) RETURNS JSONB LANGUAGE plpython3u
+AS $geojson_py$
+    import json
+    parsed = json.loads(original)
+    output = []
+    for i, item in enumerate(parsed):
+        for geom in item:
+            #print(geom)
+            if geom['geometry']['type'] == 'LineString':
+                #plpy.notice('deleting...')
+                parsed[i].remove(geom)
+        output += parsed[i]
+    return json.dumps(output)
+$geojson_py$
+IMMUTABLE STRICT;
+-- Description
+COMMENT ON FUNCTION
+    public.geojson_py_fn
+    IS 'Parse geojson using plpython3u (should be done in PGSQL)';
