@@ -215,6 +215,36 @@ COMMENT ON FUNCTION
     public.isboolean
     IS 'Check typeof value is boolean';
 
+create or replace function public.isdate(s varchar) returns boolean as $$
+begin
+  perform s::date;
+  return true;
+exception when others then
+  return false;
+end;
+$$ language plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.isdate
+    IS 'Check typeof value is date';
+
+CREATE OR REPLACE FUNCTION public.istimestamptz(text) RETURNS BOOLEAN AS
+$isdate$
+DECLARE x TIMESTAMP WITHOUT TIME ZONE;
+BEGIN
+    x = $1::TIMESTAMP WITHOUT TIME ZONE;
+    RETURN TRUE;
+EXCEPTION WHEN others THEN
+    RETURN FALSE;
+END;
+$isdate$
+STRICT
+LANGUAGE plpgsql IMMUTABLE;
+-- Description
+COMMENT ON FUNCTION
+    public.istimestamptz
+    IS 'Check typeof value is TIMESTAMP WITHOUT TIME ZONE';
+
 DROP FUNCTION IF EXISTS api.update_user_preferences_fn;
 -- Update/Add a specific user setting into preferences
 CREATE OR REPLACE FUNCTION api.update_user_preferences_fn(IN key TEXT, IN value TEXT) RETURNS BOOLEAN AS
@@ -235,7 +265,7 @@ BEGIN
     --RAISE WARNING '-> update_user_preferences_fn update preferences for user [%]', current_setting('request.jwt.claims', true)::json->>'email';
     UPDATE auth.accounts
 		SET preferences =
-				jsonb_set(preferences::jsonb, key::text[], _value::jsonb)
+            jsonb_set(preferences::jsonb, key::text[], _value::jsonb)
 		WHERE
 			email = current_setting('user.email', true);
 	IF FOUND THEN
@@ -250,3 +280,23 @@ $update_user_preferences$ language plpgsql security definer;
 COMMENT ON FUNCTION
     api.update_user_preferences_fn
     IS 'Update user preferences jsonb key pair value';
+
+-- https://stackoverflow.com/questions/42944888/merging-jsonb-values-in-postgresql
+CREATE OR REPLACE FUNCTION public.jsonb_recursive_merge(A jsonb, B jsonb)
+RETURNS jsonb LANGUAGE SQL AS $$
+    SELECT
+        jsonb_object_agg(
+            coalesce(ka, kb),
+            CASE
+            WHEN va isnull THEN vb
+            WHEN vb isnull THEN va
+            WHEN jsonb_typeof(va) <> 'object' OR jsonb_typeof(vb) <> 'object' THEN vb
+            ELSE jsonb_recursive_merge(va, vb) END
+        )
+        FROM jsonb_each(A) temptable1(ka, va)
+        FULL JOIN jsonb_each(B) temptable2(kb, vb) ON ka = kb
+$$;
+-- Description
+COMMENT ON FUNCTION
+    public.jsonb_recursive_merge
+    IS 'Merging JSONB values';
