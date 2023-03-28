@@ -347,3 +347,19 @@ $$ language plpgsql;
 COMMENT ON FUNCTION 
     public.cron_vaccum_fn
     IS 'init by pg_cron to full vaccum tables on schema api';
+
+-- CRON for Vacuum database
+CREATE FUNCTION job_run_details_cleanup_fn() RETURNS void AS $$
+-- ERROR:  VACUUM cannot be executed from a function
+DECLARE
+BEGIN
+    -- Remove job run log older than 3 month
+    RAISE NOTICE 'job_run_details_cleanup_fn';
+    DELETE FROM postgres.cron.job_run_details
+        WHERE start_time <= NOW() AT TIME ZONE 'UTC' - INTERVAL '61 DAYS';
+END;
+$$ language plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.cron_vaccum_fn
+    IS 'init by pg_cron to cleanup job_run_details table on schema public postgras db';
