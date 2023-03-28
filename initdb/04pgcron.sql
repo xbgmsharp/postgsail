@@ -15,11 +15,11 @@ SELECT cron.schedule('cron_new_logbook', '*/5 * * * *', 'select public.cron_proc
 --UPDATE cron.job SET database = 'signalk' where jobname = 'cron_new_logbook';
 
 -- Create a every 5 minute job cron_process_new_stay_fn
-SELECT cron.schedule('cron_new_stay', '*/5 * * * *', 'select public.cron_process_new_stay_fn()');
+SELECT cron.schedule('cron_new_stay', '*/6 * * * *', 'select public.cron_process_new_stay_fn()');
 --UPDATE cron.job SET database = 'signalk' where jobname = 'cron_new_stay';
 
 -- Create a every 6 minute job cron_process_new_moorage_fn, delay from stay to give time to generate geo reverse location, eg: name
-SELECT cron.schedule('cron_new_moorage', '*/6 * * * *', 'select public.cron_process_new_moorage_fn()');
+SELECT cron.schedule('cron_new_moorage', '*/7 * * * *', 'select public.cron_process_new_moorage_fn()');
 --UPDATE cron.job SET database = 'signalk' where jobname = 'cron_new_moorage';
 
 -- Create a every 10 minute job cron_process_monitor_offline_fn
@@ -44,12 +44,14 @@ SELECT cron.schedule('cron_monitor_online', '*/10 * * * *', 'select public.cron_
 
 -- Notification
 -- Create a every 1 minute job cron_process_new_notification_queue_fn, new_account, new_vessel, _new_account_otp
-SELECT cron.schedule('cron_new_notification', '*/5 * * * *', 'select public.cron_process_new_notification_fn()');
+SELECT cron.schedule('cron_new_notification', '*/2 * * * *', 'select public.cron_process_new_notification_fn()');
 --UPDATE cron.job SET database = 'signalk' where jobname = 'cron_new_notification';
 
 -- Maintenance
 -- Vacuum database at “At 01:01 on Sunday.”
 SELECT cron.schedule('cron_vacuum', '1 1 * * 0', 'VACUUM (FULL, VERBOSE, ANALYZE, INDEX_CLEANUP) api.logbook,api.stays,api.moorages,api.metadata,api.metrics;');
+-- Remove all jobs log at “At 02:02 on Sunday.”
+SELECT cron.schedule('job_run_details_cleanup', '2 2 * * 0', 'select public.job_run_details_cleanup_fn()');
 -- Any other maintenance require?
 
 -- OTP
