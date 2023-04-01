@@ -387,21 +387,23 @@ COMMENT ON FUNCTION
 ---------------------------------------------------------------------------
 -- python geojson parser
 --
+--CREATE TYPE geometry_type AS ENUM ('LineString', 'Point');
 DROP FUNCTION IF EXISTS geojson_py_fn;
-CREATE OR REPLACE FUNCTION geojson_py_fn(original JSONB) RETURNS JSONB LANGUAGE plpython3u
+CREATE OR REPLACE FUNCTION geojson_py_fn(IN original JSONB, IN geometry_type TEXT) RETURNS JSONB LANGUAGE plpython3u
 AS $geojson_py$
     import json
     parsed = json.loads(original)
     output = []
-    for i, item in enumerate(parsed):
-        for geom in item:
-            #print(geom)
-            if geom['geometry']['type'] == 'LineString':
-                #plpy.notice('deleting...')
-                parsed[i].remove(geom)
-        output += parsed[i]
+    for idx, x in enumerate(parsed):
+        #plpy.notice(idx, x)
+        for feature in x:
+            #plpy.notice(feature)
+            if (feature['geometry']['type'] != geometry_type):
+                output.append(feature)
+            #else:
+            #    plpy.notice('ignoring')
     return json.dumps(output)
-$geojson_py$
+$geojson_py$ -- TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
 IMMUTABLE STRICT;
 -- Description
 COMMENT ON FUNCTION
