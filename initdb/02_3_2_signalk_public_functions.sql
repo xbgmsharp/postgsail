@@ -122,12 +122,13 @@ CREATE FUNCTION logbook_update_geojson_fn(IN _id integer, IN _start text, IN _en
 		  ST_AsGeoJSON(log.*) into log_geojson
         FROM
            ( select
-            name,
+            id,name,
             distance,
             duration,
             avg_speed,
             avg_speed,
             max_wind_speed,
+            _from_time,
             notes,
             track_geom
             FROM api.logbook
