@@ -576,56 +576,37 @@ CREATE OR REPLACE FUNCTION api.timelapse_fn(
 	IN end_date TEXT DEFAULT NULL,
 	OUT geojson JSON) RETURNS JSON AS $timelapse$
     DECLARE
-        tmp_geojson jsonb := '{}';
         _geojson jsonb;
     BEGIN
         -- TODO using jsonb pgsql function instead of python
         IF start_log IS NOT NULL AND public.isnumeric(start_log::text) AND public.isnumeric(end_log::text) THEN
-            SELECT jsonb_agg(track_geojson->'features') INTO tmp_geojson
+            SELECT jsonb_agg(track_geojson->'features') INTO _geojson
                 FROM api.logbook
                 WHERE id >= start_log
                     AND id <= end_log;
-            --raise WARNING 'by log tmp_geojson %' , tmp_geojson;
+            --raise WARNING 'by log _geojson %' , _geojson;
         ELSIF start_date IS NOT NULL AND public.isdate(start_date::text) AND public.isdate(end_date::text) THEN
-            SELECT jsonb_agg(track_geojson->'features') INTO tmp_geojson
+            SELECT jsonb_agg(track_geojson->'features') INTO _geojson
                 FROM api.logbook
                 WHERE _from_time >= start_log::TIMESTAMP WITHOUT TIME ZONE
                     AND _to_time <= end_date::TIMESTAMP WITHOUT TIME ZONE + interval '23 hours 59 minutes';
-            --raise WARNING 'by date tmp_geojson %' , tmp_geojson;
+            --raise WARNING 'by date _geojson %' , _geojson;
         ELSE
-            SELECT jsonb_agg(track_geojson->'features') INTO tmp_geojson
+            SELECT jsonb_agg(track_geojson->'features') INTO _geojson
                 FROM api.logbook;
-            --raise WARNING 'all result tmp_geojson %' , tmp_geojson;
+            --raise WARNING 'all result _geojson %' , _geojson;
         END IF;
+        -- Return a GeoJSON filter on Point
         --raise WARNING 'result _geojson %' , _geojson;
-        _geojson := public.geojson_py_fn(tmp_geojson);
         SELECT json_build_object(
             'type', 'FeatureCollection',
-            'features', _geojson) INTO geojson;
+            'features', public.geojson_py_fn(_geojson, 'LineString'::TEXT) ) INTO geojson;
     END;
 $timelapse$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
     api.timelapse_fn
     IS 'Export to geojson feature point with Time and courseOverGroundTrue properties';
-
--- Export a log entry to geojson
-DROP FUNCTION IF EXISTS api.export_logbook_geojson_linestring_fn;
-CREATE FUNCTION api.export_logbook_geojson_linestring_fn(IN _id INTEGER) RETURNS JSON AS $export_logbook_geojson_linestring$
-    DECLARE
-        geojson json;
-    BEGIN
-        -- If _id is is not NULL and > 0
-        SELECT ST_AsGeoJSON(l.*) INTO geojson
-            FROM api.logbook l 
-            WHERE l.id = _id;
-        RETURN geojson;
-    END;
-$export_logbook_geojson_linestring$ LANGUAGE plpgsql;
--- Description
-COMMENT ON FUNCTION
-    api.export_logbook_geojson_linestring_fn
-    IS 'Export a log entry to geojson feature linestring';
 
 -- export_logbook_geojson_fn
 DROP FUNCTION IF EXISTS api.export_logbook_geojson_fn;
@@ -689,10 +670,10 @@ AS $export_logbook_gpx$
                                             'http://www.garmin.com/xmlschemas/GpxExtensions/v3' as "xmlns:gpxx",
                                             'http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd' as "xsi:schemaLocation"),
                 xmlelement(name trk,
-                    xmlelement(name name, 'Track Name'),
-                    xmlelement(name desc, 'Track Description'),
-                    xmlelement(name link, xmlattributes('https://openplotter.cloud/log/{_id}' as href),
-                                                xmlelement(name text, 'Link name')),
+                    xmlelement(name name, log_rec.name),
+                    xmlelement(name desc, log_rec.notes),
+                    xmlelement(name link, xmlattributes(concat('https://openplotter.cloud/log/',log_rec.id) as href),
+                                                xmlelement(name text, log_rec.name)),
                     xmlelement(name extensions, xmlelement(name "opencpn:guid", uuid_generate_v4()),
                                                 xmlelement(name "opencpn:viz", '1'),
                                                 xmlelement(name "opencpn:start", log_rec._from_time),
@@ -700,7 +681,7 @@ AS $export_logbook_gpx$
                                                 ),
                     xmlelement(name trkseg, xmlagg(
                                                 xmlelement(name trkpt,
-                                                    xmlattributes(latitude  as lat, longitude as lon),
+                                                    xmlattributes(latitude as lat, longitude as lon),
                                                         xmlelement(name time, time)
                                                 )))))::pg_catalog.xml
             FROM api.metrics m
@@ -720,30 +701,37 @@ COMMENT ON FUNCTION
 
 -- Find all log from and to moorage geopoint within 100m
 DROP FUNCTION IF EXISTS api.find_log_from_moorage_fn;
-CREATE OR REPLACE FUNCTION api.find_log_from_moorage_fn(IN _id INTEGER) RETURNS void AS $find_log_from_moorage$
+CREATE OR REPLACE FUNCTION api.find_log_from_moorage_fn(IN _id INTEGER, OUT geojson JSON) RETURNS JSON AS $find_log_from_moorage$
     DECLARE
         moorage_rec record;
-        logbook_rec record;
+        _geojson jsonb;
     BEGIN
         -- If _id is is not NULL and > 0
+        IF _id IS NULL OR _id < 1 THEN
+            RAISE WARNING '-> find_log_from_moorage_fn invalid input %', _id;
+            RETURN;
+        END IF;
+        -- Gather moorage details
         SELECT * INTO moorage_rec
             FROM api.moorages m 
             WHERE m.id = _id;
-        -- find all log from and to moorage geopoint within 100m
-        --RETURN QUERY
-            SELECT id,name,_from,_to,_from_time,_to_time,distance,duration
-                FROM api.logbook
-                WHERE ST_DWithin(
-                        Geography(ST_MakePoint(_from_lng, _from_lat)),
-                        moorage_rec.geog,
-                        100 -- in meters ?
-                    )
-                    OR ST_DWithin(
-                        Geography(ST_MakePoint(_to_lng, _to_lat)),
-                        moorage_rec.geog,
-                        100 -- in meters ?
-                    )
-                ORDER BY _from_time DESC;
+        -- Find all log from and to moorage geopoint within 100m
+        SELECT jsonb_agg(l.track_geojson->'features') INTO _geojson
+            FROM api.logbook l
+            WHERE ST_DWithin(
+                    Geography(ST_MakePoint(l._from_lng, l._from_lat)),
+                    moorage_rec.geog,
+                    1000 -- in meters ?
+                )
+                OR ST_DWithin(
+                    Geography(ST_MakePoint(l._to_lng, l._to_lat)),
+                    moorage_rec.geog,
+                    1000 -- in meters ?
+                );
+        -- Return a GeoJSON filter on LineString
+        SELECT json_build_object(
+            'type', 'FeatureCollection',
+            'features', public.geojson_py_fn(_geojson, 'Point'::TEXT) ) INTO geojson;
     END;
 $find_log_from_moorage$ LANGUAGE plpgsql;
 -- Description
@@ -822,7 +810,7 @@ COMMENT ON FUNCTION
     public.stay_in_progress_fn
     IS 'stay_in_progress';
 
--- stay_in_progress_fn
+-- logs_by_month_fn
 DROP FUNCTION IF EXISTS api.logs_by_month_fn;
 CREATE FUNCTION api.logs_by_month_fn(OUT charts JSONB) RETURNS JSONB AS $logs_by_month$
     DECLARE
@@ -847,6 +835,67 @@ $logs_by_month$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION
     api.logs_by_month_fn
     IS 'logbook by month for web charts';
+
+-- moorage_geojson_fn
+DROP FUNCTION IF EXISTS api.export_moorages_geojson_fn;
+CREATE FUNCTION api.export_moorages_geojson_fn(OUT geojson JSONB) RETURNS JSONB AS $export_moorages_geojson$
+    DECLARE
+    BEGIN
+        SELECT json_build_object(
+            'type', 'FeatureCollection',
+            'features',
+                ( SELECT
+                    json_agg(ST_AsGeoJSON(m.*)::JSON) as moorages_geojson
+                    FROM
+                    ( SELECT
+                        id,name,
+                        EXTRACT(DAY FROM justify_hours ( stay_duration )) AS Total_Stay,
+                        geog
+                        FROM api.moorages
+                    ) AS m
+                )
+            ) INTO geojson;
+    END;
+$export_moorages_geojson$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    api.export_moorages_geojson_fn
+    IS 'Export moorages as geojson';
+
+DROP FUNCTION IF EXISTS api.export_moorages_gpx_fn;
+CREATE FUNCTION api.export_moorages_gpx_fn() RETURNS pg_catalog.xml AS $export_moorages_gpx$
+    DECLARE
+    BEGIN
+        -- Generate XML
+        SELECT xmlelement(name gpx,
+                        xmlattributes(  '1.1' as version,
+                                        'PostgSAIL' as creator,
+                                        'http://www.topografix.com/GPX/1/1' as xmlns,
+                                        'http://www.opencpn.org' as "xmlns:opencpn",
+                                        'http://www.w3.org/2001/XMLSchema-instance' as "xmlns:xsi",
+                                        'http://www.garmin.com/xmlschemas/GpxExtensions/v3' as "xmlns:gpxx",
+                                        'http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd' as "xsi:schemaLocation"),
+                xmlelement(name wpt, xmlattributes(m.latitude as lat, m.longitude as lon)),
+                    xmlelement(name name, m.name),
+                    xmlelement(name desc, xmlelement(name "opencpn:guid", uuid_generate_v4())),
+                    xmlelement(name sym, 'anchor'),
+                    xmlelement(name type, 'WPT'),
+                    xmlelement(name link, xmlattributes(concat('https://openplotter.cloud/moorage/', m.id) as href),
+                                                xmlelement(name text, m.name)),
+                    xmlelement(name extensions, xmlelement(name "postgsail:mooorage_id", m.id),
+                                                xmlelement(name "postgsail:link", concat('https://openplotter.cloud/moorage/', m.id)),
+                                                xmlelement(name "opencpn:guid", uuid_generate_v4()),
+                                                xmlelement(name "opencpn:viz", '1'),
+                                                xmlelement(name "opencpn:scale_min_max", xmlattributes(true as UseScale, 30000 as ScaleMin, 0 as ScaleMax)
+                                                )))
+            FROM api.moorages m;
+    END;
+$export_moorages_gpx$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    api.export_moorages_gpx_fn
+    IS 'Export moorages as gpx';
+
 ---------------------------------------------------------------------------
 -- API helper views
 --
@@ -1022,8 +1071,8 @@ CREATE OR REPLACE VIEW api.moorages_view WITH (security_invoker=true,security_ba
         m.name AS Moorage,
         sa.description AS Default_Stay,
         EXTRACT(DAY FROM justify_hours ( m.stay_duration )) AS Total_Stay, -- in days
-        m.reference_count AS Arrivals_Departures,
-        m.geog
+        m.reference_count AS Arrivals_Departures
+--        m.geog
 --        m.stay_duration,
 --        justify_hours ( m.stay_duration )
     FROM api.moorages m, api.stays_at sa
@@ -1249,3 +1298,6 @@ CREATE OR REPLACE VIEW api.total_info_view WITH (security_invoker=true,security_
 COMMENT ON VIEW
     api.total_info_view
     IS 'Monitoring web view';
+
+-- Badges
+-- TODO View or function?
