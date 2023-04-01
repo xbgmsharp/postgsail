@@ -9,7 +9,7 @@ select current_database();
 \c signalk
 
 CREATE SCHEMA IF NOT EXISTS public;
-COMMENT ON SCHEMA public IS 'backend functions';
+COMMENT ON SCHEMA public IS 'backend public functions and tables';
 
 ---------------------------------------------------------------------------
 -- Table geocoders
