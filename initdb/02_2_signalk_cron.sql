@@ -350,13 +350,12 @@ COMMENT ON FUNCTION
 
 -- CRON for Vacuum database
 CREATE FUNCTION job_run_details_cleanup_fn() RETURNS void AS $$
--- ERROR:  VACUUM cannot be executed from a function
 DECLARE
 BEGIN
-    -- Remove job run log older than 3 month
+    -- Remove job run log older than 3 months
     RAISE NOTICE 'job_run_details_cleanup_fn';
     DELETE FROM postgres.cron.job_run_details
-        WHERE start_time <= NOW() AT TIME ZONE 'UTC' - INTERVAL '61 DAYS';
+        WHERE start_time <= NOW() AT TIME ZONE 'UTC' - INTERVAL '91 DAYS';
 END;
 $$ language plpgsql;
 -- Description
