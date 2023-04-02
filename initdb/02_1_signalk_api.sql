@@ -666,6 +666,7 @@ AS $export_logbook_gpx$
                                             'PostgSAIL' as creator,
                                             'http://www.topografix.com/GPX/1/1' as xmlns,
                                             'http://www.opencpn.org' as "xmlns:opencpn",
+                                            'http://openplotter.cloud' as "xmlns:postgsail",
                                             'http://www.w3.org/2001/XMLSchema-instance' as "xmlns:xsi",
                                             'http://www.garmin.com/xmlschemas/GpxExtensions/v3' as "xmlns:gpxx",
                                             'http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd' as "xsi:schemaLocation"),
@@ -868,26 +869,35 @@ CREATE FUNCTION api.export_moorages_gpx_fn() RETURNS pg_catalog.xml AS $export_m
     BEGIN
         -- Generate XML
         SELECT xmlelement(name gpx,
-                        xmlattributes(  '1.1' as version,
-                                        'PostgSAIL' as creator,
-                                        'http://www.topografix.com/GPX/1/1' as xmlns,
-                                        'http://www.opencpn.org' as "xmlns:opencpn",
-                                        'http://www.w3.org/2001/XMLSchema-instance' as "xmlns:xsi",
-                                        'http://www.garmin.com/xmlschemas/GpxExtensions/v3' as "xmlns:gpxx",
-                                        'http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd' as "xsi:schemaLocation"),
-                xmlelement(name wpt, xmlattributes(m.latitude as lat, m.longitude as lon)),
-                    xmlelement(name name, m.name),
-                    xmlelement(name desc, xmlelement(name "opencpn:guid", uuid_generate_v4())),
-                    xmlelement(name sym, 'anchor'),
-                    xmlelement(name type, 'WPT'),
-                    xmlelement(name link, xmlattributes(concat('https://openplotter.cloud/moorage/', m.id) as href),
-                                                xmlelement(name text, m.name)),
-                    xmlelement(name extensions, xmlelement(name "postgsail:mooorage_id", m.id),
-                                                xmlelement(name "postgsail:link", concat('https://openplotter.cloud/moorage/', m.id)),
-                                                xmlelement(name "opencpn:guid", uuid_generate_v4()),
-                                                xmlelement(name "opencpn:viz", '1'),
-                                                xmlelement(name "opencpn:scale_min_max", xmlattributes(true as UseScale, 30000 as ScaleMin, 0 as ScaleMax)
-                                                )))
+                    xmlattributes(  '1.1' as version,
+                                    'PostgSAIL' as creator,
+                                    'http://www.topografix.com/GPX/1/1' as xmlns,
+                                    'http://www.opencpn.org' as "xmlns:opencpn",
+                                    'http://openplotter.cloud' as "xmlns:postgsail",
+                                    'http://www.w3.org/2001/XMLSchema-instance' as "xmlns:xsi",
+                                    'http://www.garmin.com/xmlschemas/GpxExtensions/v3' as "xmlns:gpxx",
+                                    'http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd' as "xsi:schemaLocation"),
+                    xmlagg(
+                        xmlelement(name wpt, xmlattributes(m.latitude as lat, m.longitude as lon),
+                            xmlelement(name name, m.name),
+                            xmlelement(name time, 'TODO first seen'),
+                            xmlelement(name desc,
+                                concat('Last Stayed On: ', 'TODO last seen',
+                                    E'\nTotal Stays: ', m.stay_duration,
+                                    E'\nTotal Arrivals and Departures: ', m.reference_count,
+                                    E'\nLink: ', concat('https://openplotter.cloud/moorage/', m.id)),
+                                    xmlelement(name "opencpn:guid", uuid_generate_v4())),
+                            xmlelement(name sym, 'anchor'),
+                            xmlelement(name type, 'WPT'),
+                            xmlelement(name link, xmlattributes(concat('https://openplotter.cloud/moorage/',m.id) as href),
+                                                        xmlelement(name text, m.name)),
+                            xmlelement(name extensions, xmlelement(name "postgsail:mooorage_id", 1),
+                                                        xmlelement(name "postgsail:link", concat('https://openplotter.cloud/moorage/',m.id)),
+                                                        xmlelement(name "opencpn:guid", uuid_generate_v4()),
+                                                        xmlelement(name "opencpn:viz", '1'),
+                                                        xmlelement(name "opencpn:scale_min_max", xmlattributes(true as UseScale, 30000 as ScaleMin, 0 as ScaleMax)
+                                                        ))))
+                    )::pg_catalog.xml
             FROM api.moorages m;
     END;
 $export_moorages_gpx$ LANGUAGE plpgsql;
