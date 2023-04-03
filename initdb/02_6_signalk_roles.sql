@@ -123,9 +123,6 @@ GRANT SELECT ON TABLE api.stats_moorages_view TO user_role;
 ALTER VIEW api.vessels_view OWNER TO user_role;
 -- Remove all permissions except select and update
 REVOKE TRUNCATE, DELETE, TRIGGER, INSERT ON TABLE api.vessels_view FROM user_role;
-ALTER VIEW api.vessel_p_view OWNER TO user_role;
--- Remove all permissions except select and update
-REVOKE TRUNCATE, DELETE, TRIGGER, INSERT ON TABLE api.vessel_p_view FROM user_role;
 
 
 -- Vessel:

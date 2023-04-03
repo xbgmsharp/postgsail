@@ -31,35 +31,10 @@ CREATE OR REPLACE VIEW api.vessels_view AS
         m.last_contact as last_contact
     FROM auth.vessels v, metadata m
     WHERE v.owner_email = current_setting('user.email');
-
-CREATE OR REPLACE VIEW api.vessels2_view AS
--- TODO
-    SELECT
-        v.name as name,
-        v.mmsi as mmsi,
-        v.created_at::timestamp(0) as created_at,
-        COALESCE(m.time, null) as last_contact
-    FROM auth.vessels v
-    LEFT JOIN api.metadata m ON v.owner_email = current_setting('user.email')
-        AND m.vessel_id = current_setting('vessel.id');
 -- Description
 COMMENT ON VIEW
-    api.vessels2_view
-    IS 'Expose has vessel pending validation to API - TO DELETE?';
-
-DROP VIEW IF EXISTS api.vessel_p_view;
-CREATE OR REPLACE VIEW api.vessel_p_view AS
-    SELECT
-        v.name as name,
-        v.mmsi as mmsi,
-        v.created_at::timestamp(0) as created_at,
-        null as last_contact
-        FROM auth.vessels v
-        WHERE v.owner_email = current_setting('user.email');
--- Description
-COMMENT ON VIEW
-    api.vessel_p_view
-    IS 'Expose has vessel pending validation to API - TO DELETE?';
+    api.vessels_view
+    IS 'Expose vessels listing to web api';
 
 DROP FUNCTION IF EXISTS public.has_vessel_fn;
 CREATE OR REPLACE FUNCTION public.has_vessel_fn() RETURNS BOOLEAN
