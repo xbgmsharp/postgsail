@@ -468,7 +468,7 @@ CREATE OR REPLACE FUNCTION process_account_queue_fn(IN _email TEXT) RETURNS void
     BEGIN
         IF _email IS NULL OR _email = '' THEN
             RAISE EXCEPTION 'Invalid email'
-                USING HINT = 'Unknown email';
+                USING HINT = 'Unknow email';
             RETURN;
         END IF;
         SELECT * INTO account_rec
@@ -476,7 +476,7 @@ CREATE OR REPLACE FUNCTION process_account_queue_fn(IN _email TEXT) RETURNS void
             WHERE email = _email;
         IF account_rec.email IS NULL OR account_rec.email = '' THEN
             RAISE EXCEPTION 'Invalid email'
-                USING HINT = 'Unknown email';
+                USING HINT = 'Unknow email';
             RETURN;
         END IF;
         -- Gather email and pushover app settings
@@ -507,7 +507,7 @@ CREATE OR REPLACE FUNCTION process_account_otp_validation_queue_fn(IN _email TEX
     BEGIN
         IF _email IS NULL OR _email = '' THEN
             RAISE EXCEPTION 'Invalid email'
-                USING HINT = 'Unknown email';
+                USING HINT = 'Unknow email';
             RETURN;
         END IF;
         SELECT * INTO account_rec
@@ -515,7 +515,7 @@ CREATE OR REPLACE FUNCTION process_account_otp_validation_queue_fn(IN _email TEX
             WHERE email = _email;
         IF account_rec.email IS NULL OR account_rec.email = '' THEN
             RAISE EXCEPTION 'Invalid email'
-                USING HINT = 'Unknown email';
+                USING HINT = 'Unknow email';
             RETURN;
         END IF;
         -- Gather email and pushover app settings
@@ -548,7 +548,7 @@ AS $process_notification_queue$
     BEGIN
         IF _email IS NULL OR _email = '' THEN
             RAISE EXCEPTION 'Invalid email'
-                USING HINT = 'Unknown email';
+                USING HINT = 'Unknow email';
             RETURN;
         END IF;
         SELECT * INTO account_rec
@@ -556,7 +556,7 @@ AS $process_notification_queue$
             WHERE email = _email;
         IF account_rec.email IS NULL OR account_rec.email = '' THEN
             RAISE EXCEPTION 'Invalid email'
-                USING HINT = 'Unknown email';
+                USING HINT = 'Unknow email';
             RETURN;
         END IF;
 
@@ -573,7 +573,7 @@ AS $process_notification_queue$
                 WHERE owner_email = _email;
             IF vessel_rec.owner_email IS NULL OR vessel_rec.owner_email = '' THEN
                 RAISE EXCEPTION 'Invalid email'
-                    USING HINT = 'Unknown email';
+                    USING HINT = 'Unknow email';
                 RETURN;
             END IF;
             user_settings := '{"email": "' || vessel_rec.owner_email || '", "boat": "' || vessel_rec.name || '"}';
@@ -599,7 +599,7 @@ CREATE OR REPLACE FUNCTION process_vessel_queue_fn(IN _email TEXT) RETURNS void 
     BEGIN
         IF _email IS NULL OR _email = '' THEN
             RAISE EXCEPTION 'Invalid email'
-                USING HINT = 'Unknown email';
+                USING HINT = 'Unknow email';
             RETURN;
         END IF;
         SELECT * INTO vessel_rec
@@ -607,7 +607,7 @@ CREATE OR REPLACE FUNCTION process_vessel_queue_fn(IN _email TEXT) RETURNS void 
             WHERE owner_email = _email;
         IF vessel_rec.owner_email IS NULL OR vessel_rec.owner_email = '' THEN
             RAISE EXCEPTION 'Invalid email'
-                USING HINT = 'Unknown email';
+                USING HINT = 'Unknow email';
             RETURN;
         END IF;
         -- Gather email and pushover app settings
@@ -867,7 +867,7 @@ BEGIN
         WHERE auth.accounts.email = _email;
     IF account_rec.email IS NULL THEN
         RAISE EXCEPTION 'Invalid user'
-            USING HINT = 'Unknown user or password';
+            USING HINT = 'Unknow user or password';
     END IF;
     --RAISE WARNING 'req path %', current_setting('request.path', true);
     -- Function allow without defined vessel
@@ -892,13 +892,13 @@ BEGIN
 		RAISE sqlstate 'PT551' using
 		  message = 'Vessel Required',
 		  detail = 'Invalid vessel',
-		  hint = 'Unknown vessel';
+		  hint = 'Unknow vessel';
         --RETURN; -- ignore if not exist
     END IF;
     -- Redundant?
     IF vessel_rec.vessel_id IS NULL THEN
         RAISE EXCEPTION 'Invalid vessel'
-            USING HINT = 'Unknown vessel id';
+            USING HINT = 'Unknow vessel id';
     END IF;
     -- Set session variables
     PERFORM set_config('vessel.id', vessel_rec.vessel_id, false);
@@ -925,7 +925,7 @@ BEGIN
             AND auth.vessels.vessel_id = _vid;
     IF vessel_rec.owner_email IS NULL THEN
         RAISE EXCEPTION 'Invalid vessel'
-            USING HINT = 'Unknown vessel owner_email';
+            USING HINT = 'Unknow vessel owner_email';
     END IF;
     PERFORM set_config('vessel.id', vessel_rec.vessel_id, false);
     PERFORM set_config('vessel.name', vessel_rec.name, false);
