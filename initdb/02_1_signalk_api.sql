@@ -176,6 +176,7 @@ CREATE TABLE IF NOT EXISTS api.logbook(
   track_geom geometry(LINESTRING,4326) NULL,
   track_geog geography(LINESTRING) NULL,
   track_geojson JSON NULL,
+--  track_gpx XML NULL,
   _from_time TIMESTAMP WITHOUT TIME ZONE NOT NULL,
   _to_time TIMESTAMP WITHOUT TIME ZONE NULL,
   distance NUMERIC, -- meters?
@@ -198,6 +199,8 @@ COMMENT ON COLUMN api.logbook.track_geom IS 'postgis geometry type EPSG:4326 Uni
 CREATE INDEX ON api.logbook USING GIST ( track_geog );
 COMMENT ON COLUMN api.logbook.track_geog IS 'postgis geography type default SRID 4326 Unit: degres';
 -- Otherwise -- ERROR:  Only lon/lat coordinate systems are supported in geography.
+COMMENT ON COLUMN api.logbook.track_geojson IS 'store the geojson track metrics data, can not depend api.metrics table, should be generate from linetring to save disk space?';
+--COMMENT ON COLUMN api.logbook.track_gpx IS 'store the gpx track metrics data, can not depend api.metrics table, should be generate from linetring to save disk space?';
 
 ---------------------------------------------------------------------------
 -- Stays
@@ -570,11 +573,11 @@ COMMENT ON TRIGGER
 -- Timelapse - replay logs
 DROP FUNCTION IF EXISTS api.timelapse_fn;
 CREATE OR REPLACE FUNCTION api.timelapse_fn(
-	IN start_log INTEGER DEFAULT NULL,
-	IN end_log INTEGER DEFAULT NULL,
-	IN start_date TEXT DEFAULT NULL,
-	IN end_date TEXT DEFAULT NULL,
-	OUT geojson JSON) RETURNS JSON AS $timelapse$
+    IN start_log INTEGER DEFAULT NULL,
+    IN end_log INTEGER DEFAULT NULL,
+    IN start_date TEXT DEFAULT NULL,
+    IN end_date TEXT DEFAULT NULL,
+    OUT geojson JSON) RETURNS JSON AS $timelapse$
     DECLARE
         _geojson jsonb;
     BEGIN
@@ -597,6 +600,7 @@ CREATE OR REPLACE FUNCTION api.timelapse_fn(
             --raise WARNING 'all result _geojson %' , _geojson;
         END IF;
         -- Return a GeoJSON filter on Point
+        -- result _geojson [null, null]
         --raise WARNING 'result _geojson %' , _geojson;
         SELECT json_build_object(
             'type', 'FeatureCollection',
@@ -716,18 +720,13 @@ CREATE OR REPLACE FUNCTION api.find_log_from_moorage_fn(IN _id INTEGER, OUT geoj
         END IF;
         -- Gather moorage details
         SELECT * INTO moorage_rec
-            FROM api.moorages m 
+            FROM api.moorages m
             WHERE m.id = _id;
         -- Find all log from and to moorage geopoint within 100m
         SELECT jsonb_agg(l.track_geojson->'features') INTO _geojson
             FROM api.logbook l
             WHERE ST_DWithin(
                     Geography(ST_MakePoint(l._from_lng, l._from_lat)),
-                    moorage_rec.geog,
-                    1000 -- in meters ?
-                )
-                OR ST_DWithin(
-                    Geography(ST_MakePoint(l._to_lng, l._to_lat)),
                     moorage_rec.geog,
                     1000 -- in meters ?
                 );
@@ -740,7 +739,41 @@ $find_log_from_moorage$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
     api.find_log_from_moorage_fn
-    IS 'Find all log from and to moorage geopoint within 100m';
+    IS 'Find all log from moorage geopoint within 100m';
+
+DROP FUNCTION IF EXISTS api.find_log_to_moorage_fn;
+CREATE OR REPLACE FUNCTION api.find_log_to_moorage_fn(IN _id INTEGER, OUT geojson JSON) RETURNS JSON AS $find_log_to_moorage$
+    DECLARE
+        moorage_rec record;
+        _geojson jsonb;
+    BEGIN
+        -- If _id is is not NULL and > 0
+        IF _id IS NULL OR _id < 1 THEN
+            RAISE WARNING '-> find_log_from_moorage_fn invalid input %', _id;
+            RETURN;
+        END IF;
+        -- Gather moorage details
+        SELECT * INTO moorage_rec
+            FROM api.moorages m
+            WHERE m.id = _id;
+        -- Find all log from and to moorage geopoint within 100m
+        SELECT jsonb_agg(l.track_geojson->'features') INTO _geojson
+            FROM api.logbook l
+            WHERE ST_DWithin(
+                    Geography(ST_MakePoint(l._to_lng, l._to_lat)),
+                    moorage_rec.geog,
+                    1000 -- in meters ?
+                );
+        -- Return a GeoJSON filter on LineString
+        SELECT json_build_object(
+            'type', 'FeatureCollection',
+            'features', public.geojson_py_fn(_geojson, 'Point'::TEXT) ) INTO geojson;
+    END;
+$find_log_to_moorage$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    api.find_log_to_moorage_fn
+    IS 'Find all log to moorage geopoint within 100m';
 
 -- Find all stay within 100m of moorage geopoint
 DROP FUNCTION IF EXISTS api.find_stay_from_moorage_fn;
@@ -1002,37 +1035,8 @@ COMMENT ON VIEW
 -- Stays web view
 -- TODO group by month
 DROP VIEW IF EXISTS api.stays_view;
-CREATE VIEW api.stays_view WITH (security_invoker=true,security_barrier=true) AS -- TODO
-    SELECT id,
-        concat(
-            extract(DAYS FROM (s.departed-s.arrived)::interval),
-    	    ' days',
-            --DATE_TRUNC('day', s.departed-s.arrived),
-            ' stay at ',
-            s.name,
-            ' in ',
-            RTRIM(TO_CHAR(s.departed, 'Month')),
-            ' ',
-            TO_CHAR(s.departed, 'YYYY')
-            ) as Name,  
-		s.name AS Moorage,
-		s.arrived AS Arrived,
-		s.departed AS Departed,
-		sa.description AS Stayed_at,
-		(s.departed-s.arrived) AS Duration
-	FROM api.stays s, api.stays_at sa
-	WHERE departed is not null 
-        AND s.name is not null 
-        AND s.stay_code = sa.stay_code
-    ORDER BY s.arrived DESC;
--- Description
-COMMENT ON VIEW
-    api.stays_view
-    IS 'Stays web view';
-
-DROP VIEW IF EXISTS api.stay_view;
-CREATE VIEW api.stay_view WITH (security_invoker=true,security_barrier=true) AS -- TODO missing arrival/departured from
-    SELECT id,
+CREATE VIEW api.stays_view WITH (security_invoker=true,security_barrier=true) AS
+    SELECT s.id,
         concat(
             extract(DAYS FROM (s.departed-s.arrived)::interval),
             ' days',
@@ -1043,17 +1047,53 @@ CREATE VIEW api.stay_view WITH (security_invoker=true,security_barrier=true) AS 
             RTRIM(TO_CHAR(s.departed, 'Month')),
             ' ',
             TO_CHAR(s.departed, 'YYYY')
-            ) as Name,
-		s.name AS Moorage,
-        (s.departed-s.arrived) AS Duration,
-		sa.description AS "Stayed at",
-		s.arrived AS "Arrival Time",
-		s.departed AS "Departure Time",
-        s.notes AS "Notes"
-	FROM api.stays s, api.stays_at sa
-	WHERE departed is not null
-        AND s.name is not null
+            ) as "name",
+        s.name AS "moorage",
+        m.id AS "moorage_id",
+        (s.departed-s.arrived) AS "duration",
+        sa.description AS "stayed_at",
+        sa.stay_code AS "stayed_at_id",
+        s.arrived AS "arrived",
+        s.departed AS "departed",
+        s.notes AS "notes"
+    FROM api.stays s, api.stays_at sa, api.moorages m
+    WHERE departed IS NOT NULL
+        AND s.name IS NOT NULL
         AND s.stay_code = sa.stay_code
+        AND s.id = m.stay_id
+    ORDER BY s.arrived DESC;
+-- Description
+COMMENT ON VIEW
+    api.stays_view
+    IS 'Stays web view';
+
+DROP VIEW IF EXISTS api.stay_view;
+CREATE VIEW api.stay_view WITH (security_invoker=true,security_barrier=true) AS
+    SELECT s.id,
+        concat(
+            extract(DAYS FROM (s.departed-s.arrived)::interval),
+            ' days',
+            --DATE_TRUNC('day', s.departed-s.arrived),
+            ' stay at ',
+            s.name,
+            ' in ',
+            RTRIM(TO_CHAR(s.departed, 'Month')),
+            ' ',
+            TO_CHAR(s.departed, 'YYYY')
+            ) as "name",
+        s.name AS "moorage",
+        m.id AS "moorage_id",
+        (s.departed-s.arrived) AS "duration",
+        sa.description AS "stayed_at",
+        sa.stay_code AS "stayed_at_id",
+        s.arrived AS "arrived",
+        s.departed AS "departed",
+        s.notes AS "notes"
+    FROM api.stays s, api.stays_at sa, api.moorages m
+    WHERE departed IS NOT NULL
+        AND s.name IS NOT NULL
+        AND s.stay_code = sa.stay_code
+        AND s.id = m.stay_id
     ORDER BY s.arrived DESC;
 -- Description
 COMMENT ON VIEW
@@ -1082,6 +1122,7 @@ CREATE OR REPLACE VIEW api.moorages_view WITH (security_invoker=true,security_ba
     SELECT m.id,
         m.name AS Moorage,
         sa.description AS Default_Stay,
+        sa.stay_code AS Default_Stay_Id,
         EXTRACT(DAY FROM justify_hours ( m.stay_duration )) AS Total_Stay, -- in days
         m.reference_count AS Arrivals_Departures
 --        m.geog
@@ -1090,7 +1131,7 @@ CREATE OR REPLACE VIEW api.moorages_view WITH (security_invoker=true,security_ba
     FROM api.moorages m, api.stays_at sa
     WHERE m.name is not null
         AND m.stay_code = sa.stay_code
-   GROUP BY m.id,m.name,sa.description,m.stay_duration,m.reference_count,m.geog
+   GROUP BY m.id,m.name,sa.description,m.stay_duration,m.reference_count,m.geog,sa.stay_code
 --   ORDER BY 4 DESC;
    ORDER BY m.reference_count DESC;
 -- Description
@@ -1106,10 +1147,10 @@ CREATE OR REPLACE VIEW api.moorage_view WITH (security_invoker=true,security_bar
         m.home_flag AS Home,
         EXTRACT(DAY FROM justify_hours ( m.stay_duration )) AS Total_Stay,
         m.reference_count AS Arrivals_Departures,
-        m.notes,
-        m.geog
+        m.notes
+--        m.geog
     FROM api.moorages m
-    WHERE m.name is not null;
+    WHERE m.name IS NOT NULL;
 -- Description
 COMMENT ON VIEW
     api.moorage_view
