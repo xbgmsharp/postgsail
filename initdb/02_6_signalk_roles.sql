@@ -97,6 +97,7 @@ GRANT SELECT ON TABLE api.log_view TO user_role;
 GRANT SELECT ON TABLE api.stays_view TO user_role;
 GRANT SELECT ON TABLE api.stay_view TO user_role;
 GRANT SELECT ON TABLE api.moorages_view TO user_role;
+GRANT SELECT ON TABLE api.moorage_view TO user_role;
 GRANT SELECT ON TABLE api.monitoring_view TO user_role;
 GRANT SELECT ON TABLE api.total_info_view TO user_role;
 GRANT SELECT ON TABLE api.stats_logs_view TO user_role;
