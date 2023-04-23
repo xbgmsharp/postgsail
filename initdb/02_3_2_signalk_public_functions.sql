@@ -717,7 +717,7 @@ $send_notification$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
     public.send_notification_fn
-    IS 'TODO Send notifications';
+    IS 'Send notifications via email, pushover, telegram to user base on user preferences';
 
 DROP FUNCTION IF EXISTS get_user_settings_from_clientid_fn;
 CREATE OR REPLACE FUNCTION get_user_settings_from_clientid_fn(
