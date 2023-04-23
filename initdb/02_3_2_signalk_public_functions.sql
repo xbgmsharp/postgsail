@@ -51,7 +51,7 @@ CREATE OR REPLACE FUNCTION logbook_update_avg_fn(
     OUT avg_speed double precision,
     OUT max_speed double precision,
     OUT max_wind_speed double precision,
-    OUT count_metric double precision
+    OUT count_metric integer
 ) AS $logbook_update_avg$
     BEGIN
         RAISE NOTICE '-> Updating avg for logbook id=%, start:"%", end:"%"', _id, _start, _end;
@@ -651,17 +651,6 @@ LANGUAGE plpgsql;
 COMMENT ON FUNCTION
     public.get_app_settings_fn
     IS 'get app settings details, email, pushover, telegram';
-
-CREATE FUNCTION jsonb_key_exists(some_json jsonb, outer_key text)
-RETURNS BOOLEAN AS $$
-BEGIN
-    RETURN (some_json->outer_key) IS NOT NULL;
-END;
-$$ LANGUAGE plpgsql;
--- Description
-COMMENT ON FUNCTION
-    public.jsonb_key_exists
-    IS 'function that checks if an outer key exists in some_json and returns a boolean';
 
 -- Send notifications
 DROP FUNCTION IF EXISTS send_notification_fn;
