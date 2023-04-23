@@ -394,14 +394,17 @@ AS $geojson_py$
     import json
     parsed = json.loads(original)
     output = []
-    for idx, x in enumerate(parsed):
-        #plpy.notice(idx, x)
-        for feature in x:
-            #plpy.notice(feature)
-            if (feature['geometry']['type'] != geometry_type):
-                output.append(feature)
-            #else:
-            #    plpy.notice('ignoring')
+    #plpy.notice(parsed)
+    # [None, None]
+    if None not in parsed:
+        for idx, x in enumerate(parsed):
+            #plpy.notice(idx, x)
+            for feature in x:
+                #plpy.notice(feature)
+                if (feature['geometry']['type'] != geometry_type):
+                    output.append(feature)
+                #else:
+                #    plpy.notice('ignoring')
     return json.dumps(output)
 $geojson_py$ -- TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
 IMMUTABLE STRICT;
