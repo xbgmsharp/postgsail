@@ -127,7 +127,7 @@ begin
         IF metadata_rec.client_id IS NULL OR metadata_rec.client_id = '' THEN
             RAISE WARNING '-> cron_process_monitor_offline_fn invalid metadata record client_id %', client_id;
             RAISE EXCEPTION 'Invalid metadata'
-                USING HINT = 'Unkown client_id';
+                USING HINT = 'Unknow client_id';
             RETURN;
         END IF;
         PERFORM set_config('vessel.client_id', metadata_rec.client_id, false);
@@ -182,7 +182,7 @@ begin
         IF metadata_rec.client_id IS NULL OR metadata_rec.client_id = '' THEN
             RAISE WARNING '-> cron_process_monitor_online_fn invalid metadata record client_id %', client_id;
             RAISE EXCEPTION 'Invalid metadata'
-                USING HINT = 'Unkown client_id';
+                USING HINT = 'Unknow client_id';
             RETURN;
         END IF;
         PERFORM set_config('vessel.client_id', metadata_rec.client_id, false);
