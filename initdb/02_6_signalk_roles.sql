@@ -153,7 +153,7 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA _timescaledb_internal TO vessel_role;
 -- Crons
 --CREATE ROLE scheduler WITH NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION;
 CREATE ROLE scheduler WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 10 LOGIN;
-comment on role vessel_role is
+comment on role scheduler is
     'Role that pgcron will use to process logbook,moorages,stays,monitoring and notification.';
 GRANT scheduler to authenticator;
 GRANT USAGE ON SCHEMA api TO scheduler;
