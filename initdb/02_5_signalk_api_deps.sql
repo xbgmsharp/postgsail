@@ -148,7 +148,9 @@ CREATE OR REPLACE VIEW api.versions_view AS
     SELECT
         value AS api_version,
         --version() as sys_version
-        rtrim(substring(version(), 0, 17)) AS sys_version
+        rtrim(substring(version(), 0, 17)) AS sys_version,
+        (SELECT extversion as timescaledb FROM pg_extension WHERE extname='timescaledb'),
+        (SELECT extversion as postgis FROM pg_extension WHERE extname='postgis')
     FROM app_settings
     WHERE name = 'app.version';
 -- Description
