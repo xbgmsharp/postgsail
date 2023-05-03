@@ -603,7 +603,7 @@
             "group": [],
             "metricColumn": "none",
             "rawQuery": true,
-            "rawSql": "SELECT\n  time AS \"time\",\n  cast(metrics-> 'environment.outside.pressure' AS numeric) * 0.00029530 AS outsidePressure\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND client_id = '${boat}'\nORDER BY 1\n",
+            "rawSql": "SET vessel.client_id = '${__user.login}';\nSELECT\n  time AS \"time\",\n  cast(metrics-> 'environment.outside.pressure' AS numeric) * 0.00029530 AS outsidePressure\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND client_id = '${boat}'\nORDER BY 1\n",
             "refId": "A",
             "select": [
               [
@@ -726,7 +726,7 @@
             "group": [],
             "metricColumn": "none",
             "rawQuery": true,
-            "rawSql": "SELECT\n  time AS \"time\",\n  cast(metrics-> 'environment.inside.temperature' AS numeric) - 273.15 AS insideTemperature\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND client_id = '${boat}'\nORDER BY 1",
+            "rawSql": "SET vessel.client_id = '${__user.login}';\nSELECT\n  time AS \"time\",\n  cast(metrics-> 'environment.inside.temperature' AS numeric) - 273.15 AS insideTemperature\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND client_id = '${boat}'\nORDER BY 1",
             "refId": "A",
             "select": [
               [
@@ -852,7 +852,7 @@
             "group": [],
             "metricColumn": "none",
             "rawQuery": true,
-            "rawSql": "SELECT\n  time AS \"time\",\n  cast(metrics-> 'environment.outside.humidity' AS numeric) * 100 AS insideHumidity\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND client_id = '${boat}'\nORDER BY 1",
+            "rawSql": "SET vessel.client_id = '${__user.login}';\nSELECT\n  time AS \"time\",\n  cast(metrics-> 'environment.outside.humidity' AS numeric) * 100 AS insideHumidity\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND client_id = '${boat}'\nORDER BY 1",
             "refId": "A",
             "select": [
               [
@@ -976,7 +976,7 @@
             "group": [],
             "metricColumn": "none",
             "rawQuery": true,
-            "rawSql": "SELECT\n  time AS \"time\",\n  cast(metrics-> 'environment.engine.temperature' AS numeric) - 273.15 AS insideTemperature\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND client_id = '${boat}'\nORDER BY 1",
+            "rawSql": "SET vessel.client_id = '${__user.login}';\nSELECT\n  time AS \"time\",\n  cast(metrics-> 'environment.engine.temperature' AS numeric) - 273.15 AS insideTemperature\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND client_id = '${boat}'\nORDER BY 1",
             "refId": "A",
             "select": [
               [
@@ -1134,7 +1134,7 @@
             "group": [],
             "metricColumn": "none",
             "rawQuery": true,
-            "rawSql": "SELECT time AS \"time\", cast(windspeedapparent AS numeric) * 1.9438444924406 AS windSpeed\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND client_id = '${boat}'\nORDER BY 1",
+            "rawSql": "SET vessel.client_id = '${__user.login}';\nSELECT time AS \"time\", cast(windspeedapparent AS numeric) * 1.9438444924406 AS windSpeed\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND client_id = '${boat}'\nORDER BY 1",
             "refId": "A",
             "select": [
               [
@@ -1331,7 +1331,7 @@
             "group": [],
             "metricColumn": "none",
             "rawQuery": true,
-            "rawSql": "SELECT\n  time AS \"time\",\n  cast(metrics-> 'environment.water.temperature' AS numeric) - 273.15 AS waterTemperature,\n  cast(metrics-> 'environment.outside.temperature' AS numeric) - 273.15 AS outsideTemperature,\n  cast(metrics-> 'environment.inside.temperature' AS numeric) - 273.15 AS insideTemperature,\n  cast(metrics-> 'environment.inside.fridge.temperature' AS numeric) - 273.15 AS fridgeTemperature\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND client_id = '${boat}'\nORDER BY 1",
+            "rawSql": "SET vessel.client_id = '${__user.login}';\nSELECT\n  time AS \"time\",\n  cast(metrics-> 'environment.water.temperature' AS numeric) - 273.15 AS waterTemperature,\n  cast(metrics-> 'environment.outside.temperature' AS numeric) - 273.15 AS outsideTemperature,\n  cast(metrics-> 'environment.inside.temperature' AS numeric) - 273.15 AS insideTemperature,\n  cast(metrics-> 'environment.inside.fridge.temperature' AS numeric) - 273.15 AS fridgeTemperature\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND client_id = '${boat}'\nORDER BY 1",
             "refId": "A",
             "select": [
               [
@@ -1439,7 +1439,7 @@
             "group": [],
             "metricColumn": "none",
             "rawQuery": true,
-            "rawSql": "SELECT\n  time AS \"time\",\n  cast(metrics-> 'environment.outside.temperature' AS numeric) - 273.15 AS outsideTemperature\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND client_id = '${boat}'\nORDER BY 1",
+            "rawSql": "SET vessel.client_id = '${__user.login}';\nSELECT\n  time AS \"time\",\n  cast(metrics-> 'environment.outside.temperature' AS numeric) - 273.15 AS outsideTemperature\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND client_id = '${boat}'\nORDER BY 1",
             "refId": "A",
             "select": [
               [
@@ -1576,7 +1576,7 @@
             "group": [],
             "metricColumn": "none",
             "rawQuery": true,
-            "rawSql": "SELECT\n  time AS \"time\",\n  cast(metrics-> 'environment.outside.pressure' AS numeric) * 0.00029530 AS outsideTemperature,\n  cast(metrics-> 'environment.inside.pressure' AS numeric) * 0.00029530 AS insideTemperature,\n  cast(metrics-> 'environment.inside.fridge.pressure' AS numeric) * 0.00029530 AS fridgeTemperature\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND client_id = '${boat}'\nORDER BY 1",
+            "rawSql": "SET vessel.client_id = '${__user.login}';\nSELECT\n  time AS \"time\",\n  cast(metrics-> 'environment.outside.pressure' AS numeric) * 0.00029530 AS outsideTemperature,\n  cast(metrics-> 'environment.inside.pressure' AS numeric) * 0.00029530 AS insideTemperature,\n  cast(metrics-> 'environment.inside.fridge.pressure' AS numeric) * 0.00029530 AS fridgeTemperature\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND client_id = '${boat}'\nORDER BY 1",
             "refId": "A",
             "select": [
               [
@@ -1742,7 +1742,7 @@
             "group": [],
             "metricColumn": "none",
             "rawQuery": true,
-            "rawSql": "SELECT\n  time AS \"time\",\n  anglespeedapparent\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND client_id = '${boat}'\nORDER BY 1",
+            "rawSql": "SET vessel.client_id = '${__user.login}';\nSELECT\n  time AS \"time\",\n  anglespeedapparent\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND client_id = '${boat}'\nORDER BY 1",
             "refId": "A",
             "select": [
               [
@@ -1878,7 +1878,7 @@
             "group": [],
             "metricColumn": "none",
             "rawQuery": true,
-            "rawSql": "SELECT\n  time AS \"time\",\n  windSpeedApparent\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND client_id = '${boat}'\nORDER BY 1",
+            "rawSql": "SET vessel.client_id = '${__user.login}';\nSELECT\n  time AS \"time\",\n  windSpeedApparent\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND client_id = '${boat}'\nORDER BY 1",
             "refId": "A",
             "select": [
               [
@@ -1947,7 +1947,7 @@
             "type": "postgres",
             "uid": "PCC52D03280B7034C"
           },
-          "definition": "SELECT\n        v.name AS __text,\n        m.client_id AS __value\n   FROM auth.vessels v\n   JOIN api.metadata m ON v.owner_email = '${__user.email}' and m.vessel_id = v.vessel_id;",
+          "definition": "SET \"user.email\" = '${__user.email}';\nSET vessel.client_id = '${__user.login}';\nSELECT\n        v.name AS __text,\n        m.client_id AS __value\n   FROM auth.vessels v\n   JOIN api.metadata m ON v.owner_email = '${__user.email}' and m.vessel_id = v.vessel_id;",
           "description": "Vessel Name",
           "hide": 0,
           "includeAll": false,
@@ -1955,7 +1955,7 @@
           "multi": false,
           "name": "boat",
           "options": [],
-          "query": "SELECT\n        v.name AS __text,\n        m.client_id AS __value\n   FROM auth.vessels v\n   JOIN api.metadata m ON v.owner_email = '${__user.email}' and m.vessel_id = v.vessel_id;",
+          "query": "SET \"user.email\" = '${__user.email}';\nSET vessel.client_id = '${__user.login}';\nSELECT\n        v.name AS __text,\n        m.client_id AS __value\n   FROM auth.vessels v\n   JOIN api.metadata m ON v.owner_email = '${__user.email}' and m.vessel_id = v.vessel_id;",
           "refresh": 1,
           "regex": "",
           "skipUrlSync": false,

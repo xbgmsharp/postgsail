@@ -7,7 +7,7 @@ providers:
     # <int> Org id. Default to 1
     orgId: 1
     # <string> name of the dashboard folder.
-    folder: 'PostgSail'
+    #folder: 'PostgSail'
     # <string> folder UID. will be automatically generated if not specified
     #folderUid: ''
     # <string> provider type. Default to 'file'
@@ -15,7 +15,7 @@ providers:
     # <bool> disable dashboard deletion
     disableDeletion: false
     # <int> how often Grafana will scan for changed dashboards
-    updateIntervalSeconds: 10
+    updateIntervalSeconds: 60
     # <bool> allow updating provisioned dashboards from the UI
     allowUiUpdates: true
     options:

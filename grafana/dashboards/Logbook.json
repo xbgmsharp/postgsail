@@ -54,7 +54,9 @@
           },
           "custom": {
             "align": "auto",
-            "displayMode": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
             "filterable": false,
             "inspect": false
           },
@@ -109,6 +111,7 @@
       "id": 2,
       "options": {
         "footer": {
+          "countRows": false,
           "fields": "",
           "reducer": [
             "sum"
@@ -118,7 +121,7 @@
         "showHeader": true,
         "sortBy": []
       },
-      "pluginVersion": "9.3.1",
+      "pluginVersion": "9.4.3",
       "targets": [
         {
           "datasource": {
@@ -130,7 +133,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "with config as ( select set_config('vessel.id', '${boat}', false) )\nSELECT * from api.logs_view",
+          "rawSql": "SET vessel.client_id = '${__user.login}';\nSELECT * from api.logs_view",
           "refId": "A",
           "select": [
             [
@@ -165,7 +168,7 @@
           "where": []
         }
       ],
-      "title": "Logbook",
+      "title": "Logbook ${__user.email} / ${__user.login}",
       "type": "table"
     },
     {
@@ -180,7 +183,9 @@
           },
           "custom": {
             "align": "auto",
-            "displayMode": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
             "filterable": false,
             "inspect": false
           },
@@ -235,6 +240,7 @@
       "id": 5,
       "options": {
         "footer": {
+          "countRows": false,
           "fields": "",
           "reducer": [
             "sum"
@@ -244,7 +250,7 @@
         "showHeader": true,
         "sortBy": []
       },
-      "pluginVersion": "9.3.1",
+      "pluginVersion": "9.4.3",
       "targets": [
         {
           "datasource": {
@@ -256,7 +262,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "with config as ( select set_config('vessel.id', '${boat}', false) )\nSELECT * from api.stays_view",
+          "rawSql": "SET vessel.client_id = '${__user.login}';\nSELECT * from api.stays_view",
           "refId": "A",
           "select": [
             [
@@ -306,7 +312,9 @@
           },
           "custom": {
             "align": "auto",
-            "displayMode": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
             "filterable": false,
             "inspect": false
           },
@@ -361,6 +369,7 @@
       "id": 6,
       "options": {
         "footer": {
+          "countRows": false,
           "fields": "",
           "reducer": [
             "sum"
@@ -370,7 +379,7 @@
         "showHeader": true,
         "sortBy": []
       },
-      "pluginVersion": "9.3.1",
+      "pluginVersion": "9.4.3",
       "targets": [
         {
           "datasource": {
@@ -382,7 +391,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "with config as ( select set_config('vessel.id', '${boat}', false) )\nselect * from api.moorages_view",
+          "rawSql": "SET vessel.client_id = '${__user.login}';\nselect * from api.moorages_view",
           "refId": "A",
           "select": [
             [
@@ -421,7 +430,9 @@
       "type": "table"
     }
   ],
-  "schemaVersion": 37,
+  "refresh": "",
+  "revision": 1,
+  "schemaVersion": 38,
   "style": "dark",
   "tags": [],
   "templating": {
@@ -431,7 +442,7 @@
           "type": "postgres",
           "uid": "PCC52D03280B7034C"
         },
-        "definition": "SELECT\n        v.name AS __text,\n        m.client_id AS __value\n   FROM auth.vessels v\n   JOIN api.metadata m ON v.owner_email = '${__user.email}' and m.vessel_id = v.vessel_id;",
+        "definition": "SET \"user.email\" = '${__user.email}';\nSET vessel.client_id = '${__user.login}';\nSELECT\n        v.name AS __text,\n        m.client_id AS __value\n   FROM auth.vessels v\n   JOIN api.metadata m ON v.owner_email = '${__user.email}' and m.vessel_id = v.vessel_id;",
         "description": "Vessel Name",
         "hide": 0,
         "includeAll": false,
@@ -439,7 +450,7 @@
         "multi": false,
         "name": "boat",
         "options": [],
-        "query": "SELECT\n        v.name AS __text,\n        m.client_id AS __value\n   FROM auth.vessels v\n   JOIN api.metadata m ON v.owner_email = '${__user.email}' and m.vessel_id = v.vessel_id;",
+        "query": "SET \"user.email\" = '${__user.email}';\nSET vessel.client_id = '${__user.login}';\nSELECT\n        v.name AS __text,\n        m.client_id AS __value\n   FROM auth.vessels v\n   JOIN api.metadata m ON v.owner_email = '${__user.email}' and m.vessel_id = v.vessel_id;",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
