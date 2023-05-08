@@ -20,7 +20,7 @@ Effortless cloud based solution for storing and sharing your SignalK data. Allow
 It is all about SQL, object-relational, time-series, spatial databases with a bit of python.
 
 PostgSail is an open-source alternative to traditional vessel data management.
-It is based on a well known open-source technology stack, Singalk, PostgreSQL, TimescaleDB, PostGIS, PostgREST. It does perfectly integrate with standard monitoring tool stack like Grafana.
+It is based on a well known open-source technology stack, Signalk, PostgreSQL, TimescaleDB, PostGIS, PostgREST. It does perfectly integrate with standard monitoring tool stack like Grafana.
 
 To understand the why and how, you might want to read [Why.md](https://github.com/xbgmsharp/postgsail/tree/main/Why.md)
 
