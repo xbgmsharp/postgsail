@@ -79,5 +79,24 @@ services:
     #  retries: 5
     #  start_period: 100s
 
+  telegram:
+    image: xbgmsharp/postgsail-telegram-bot
+    container_name: telegram
+    restart: unless-stopped
+    volumes:
+      - /etc/resolv.conf:/etc/resolv.conf:ro
+    ports:
+      - "3005:8080"
+    network_mode: "host"
+    env_file: .env
+    environment:
+      - BOT_TOKEN=${PGSAIL_TELEGRAM_BOT_TOKEN}
+      - PGSAIL_URL=${PGSAIL_APP_URL}
+    depends_on:
+      - db
+    logging:
+      options:
+        max-size: 10m
+
 volumes:
   data: {}
