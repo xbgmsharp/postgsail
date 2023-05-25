@@ -83,7 +83,7 @@ AS $recover_fn$
 	DECLARE
         _email CITEXT := email;
         _user_id TEXT := NULL;
-        otp_pass VARCHAR(10) := NULL;
+        otp_pass TEXT := NULL;
         _reset_qs TEXT := NULL;
         user_settings jsonb := NULL;
     BEGIN
@@ -96,9 +96,8 @@ AS $recover_fn$
             RAISE EXCEPTION 'Invalid input'
                 USING HINT = 'Check your parameter';
         END IF;
-        -- OTP Code
-        SELECT generate_uid_fn(6) INTO otp_pass;
-        INSERT INTO auth.otp (user_email, otp_pass) VALUES (_email, otp_pass);
+        -- Generate OTP
+        otp_pass := api.generate_otp_fn(email);
         SELECT CONCAT('uuid=', _user_id, '&token=', otp_pass) INTO _reset_qs;
         -- Send email/notifications
         user_settings := '{"email": "' || _email || '", "reset_qs": "' || _reset_qs || '"}';
@@ -232,7 +231,7 @@ AS $email_validation$
             -- Send Notification async
             --INSERT INTO process_queue (channel, payload, stored)
             --    VALUES ('email_valid', _email, now());
-			RETURN True;
+            RETURN True;
 		END IF;
 		RETURN False;
     END;
@@ -276,7 +275,7 @@ AS $pushover_subscribe_link$
             name = 'app.pushover_app_url';
         -- Generate OTP
         otp_code := api.generate_otp_fn(email);
-        -- On sucess redirect to API endpoint
+        -- On success redirect to API endpoint
         SELECT CONCAT(
             '?success=',
             public.urlescape_py_fn(CONCAT(app_url,'/pushover?token=')),
@@ -322,7 +321,7 @@ AS $pushover$
             DELETE FROM auth.otp
                 WHERE user_email = _email;
             -- Disable Notification because
-            -- Pushover send a notificataion when sucesssfull with the description of the app
+            -- Pushover send a notification when sucesssfull with the description of the app
             --
             -- Send Notification async
             --INSERT INTO process_queue (channel, payload, stored)
@@ -335,16 +334,15 @@ $pushover$ language plpgsql security definer;
 -- Description
 COMMENT ON FUNCTION
     api.pushover_fn
-    IS 'Confirm Pushover Subscription and store pushover_user_key into user preferences if valid token/otp';
+    IS 'Confirm Pushover Subscription and store pushover_user_key into user preferences if provide a valid OTP token';
 
 -- Telegram OTP Validation
 -- Expose as an API endpoint
 DROP FUNCTION IF EXISTS api.telegram_fn;
 CREATE OR REPLACE FUNCTION api.telegram_fn(IN token TEXT, IN telegram_obj TEXT) RETURNS BOOLEAN
 AS $telegram$
-	DECLARE
-		_email TEXT := NULL;
-		_updated BOOLEAN := False;
+    DECLARE
+        _email TEXT := NULL;
         user_settings jsonb;
     BEGIN
         -- Check parameters
@@ -357,14 +355,14 @@ AS $telegram$
             -- Set user email into env to allow RLS update
             PERFORM set_config('user.email', _email, false);
 	        -- Add telegram obj into user preferences
-            SELECT api.update_user_preferences_fn('{telegram}'::TEXT, telegram_obj::TEXT) INTO _updated;
+            PERFORM api.update_user_preferences_fn('{telegram}'::TEXT, telegram_obj::TEXT);
             -- Delete token when validated
             DELETE FROM auth.otp
                 WHERE user_email = _email;
             -- Send Notification async
             INSERT INTO process_queue (channel, payload, stored)
                 VALUES ('telegram_valid', _email, now());
-			RETURN _updated;
+			RETURN True;
 		END IF;
 		RETURN False;
     END;
@@ -372,15 +370,15 @@ $telegram$ language plpgsql security definer;
 -- Description
 COMMENT ON FUNCTION
     api.telegram_fn
-    IS 'Confirm telegram user and store telegram chat details into user preferences if valid token/otp';
+    IS 'Confirm telegram user and store telegram chat details into user preferences if provide a valid OTP token';
 
 -- Telegram user validation
 DROP FUNCTION IF EXISTS auth.telegram_user_exists_fn;
 CREATE OR REPLACE FUNCTION auth.telegram_user_exists_fn(IN email TEXT, IN user_id BIGINT) RETURNS BOOLEAN
 AS $telegram_user_exists$
-	DECLARE
-		_email CITEXT := email;
-		_user_id BIGINT := user_id;
+    DECLARE
+        _email CITEXT := email;
+        _user_id BIGINT := user_id;
     BEGIN
         IF _email IS NULL OR _chat_id IS NULL THEN
             RAISE EXCEPTION 'invalid input' USING HINT = 'check your parameter';
@@ -389,7 +387,7 @@ AS $telegram_user_exists$
         SELECT preferences->'telegram'->'from'->'id' INTO _user_id
             FROM auth.accounts a
             WHERE a.email = _email
-			AND cast(preferences->'telegram'->'from'->'id' as BIGINT) = _user_id::BIGINT;
+                AND cast(preferences->'telegram'->'from'->'id' as BIGINT) = _user_id::BIGINT;
         IF FOUND THEN
             RETURN TRUE;
        	END IF;
@@ -399,22 +397,22 @@ $telegram_user_exists$ language plpgsql security definer;
 -- Description
 COMMENT ON FUNCTION
     auth.telegram_user_exists_fn
-    IS 'Check if user exist based on email and telegram obj preferences';
+    IS 'Check if user exist based on email and user_id';
 
 -- Telegram otp validation
-DROP FUNCTION IF EXISTS auth.telegram_otp_fn;
-CREATE OR REPLACE FUNCTION auth.telegram_otp_fn(IN email TEXT, OUT otp_code TEXT) RETURNS TEXT
+DROP FUNCTION IF EXISTS api.telegram_otp_fn;
+CREATE OR REPLACE FUNCTION api.telegram_otp_fn(IN email TEXT, OUT otp_code TEXT) RETURNS TEXT
 AS $telegram_otp$
-	DECLARE
-		_email CITEXT := email;
-		user_settings jsonb := NULL;
+    DECLARE
+        _email CITEXT := email;
+        user_settings jsonb := NULL;
     BEGIN
         IF _email IS NULL THEN
             RAISE EXCEPTION 'invalid input' USING HINT = 'check your parameter';
         END IF;
         -- Generate token
         otp_code := api.generate_otp_fn(_email);
-		IF otp_code IS NOT NULL THEN
+        IF otp_code IS NOT NULL THEN
             -- Set user email into env to allow RLS update
             PERFORM set_config('user.email', _email, false);
             -- Send Notification
@@ -425,30 +423,38 @@ AS $telegram_otp$
 $telegram_otp$ language plpgsql security definer;
 -- Description
 COMMENT ON FUNCTION
-    auth.telegram_otp_fn
-    IS 'TODO';
+    api.telegram_otp_fn
+    IS 'Telegram otp generation';
 
--- Telegram bot JWT auth
+-- Telegram JWT auth
 -- Expose as an API endpoint
 -- Avoid sending a password so use email and chat_id as key pair
-DROP FUNCTION IF EXISTS api.bot(text,BIGINT);
-CREATE OR REPLACE FUNCTION api.bot(IN email TEXT, IN user_id BIGINT) RETURNS auth.jwt_token
-AS $telegram_bot$
-	DECLARE
-		_email TEXT := email;
-		_user_id BIGINT := user_id;
+DROP FUNCTION IF EXISTS api.telegram;
+CREATE OR REPLACE FUNCTION api.telegram(IN user_id BIGINT, IN email TEXT DEFAULT NULL) RETURNS auth.jwt_token
+AS $telegram_jwt$
+    DECLARE
+        _email TEXT := email;
+        _user_id BIGINT := user_id;
+        _uid TEXT := NULL;
         _exist BOOLEAN := False;
         result auth.jwt_token;
         app_jwt_secret text;
     BEGIN
-        IF _email IS NULL OR _chat_id IS NULL THEN
+        IF _user_id IS NULL THEN
             RAISE EXCEPTION 'invalid input' USING HINT = 'check your parameter';
         END IF;
-        -- check email and _chat_id
-        select auth.telegram_user_exists_fn(_email, _user_id) into _exist;
-        if _exist is null or _exist <> True then
-            RAISE EXCEPTION 'invalid input' USING HINT = 'check your parameter';
-        end if;
+
+        -- Check _user_id
+        SELECT auth.telegram_session_exists_fn(_user_id) into _exist;
+        IF _exist IS NULL OR _exist <> True THEN
+            --RAISE EXCEPTION 'invalid input' USING HINT = 'check your parameter';
+            RETURN NULL;
+        END IF;
+
+        -- Get email and user_id
+        SELECT a.email,a.user_id INTO _email,_uid
+            FROM auth.accounts a
+            WHERE cast(preferences->'telegram'->'from'->'id' as BIGINT) = _user_id::BIGINT;
 
         -- Get app_jwt_secret
         SELECT value INTO app_jwt_secret
@@ -460,28 +466,30 @@ AS $telegram_bot$
             row_to_json(r)::json, app_jwt_secret
             ) as token
             from (
-            select 'user_role' as role,
-			(select lower(_email)) as email,
+                select 'user_role' as role,
+                (select lower(_email)) as email,
+                _uid as uid,
                 extract(epoch from now())::integer + 60*60 as exp
             ) r
             into result;
         return result;
     END;
-$telegram_bot$ language plpgsql security definer;
+$telegram_jwt$ language plpgsql security definer;
 -- Description
 COMMENT ON FUNCTION
-    api.bot
-    IS 'Generate a JWT user_role token from email for telegram bot';
+    api.telegram
+    IS 'Generate a JWT user_role token based on chat_id from telegram';
 
--- Telegram chat_id Session validation
+-- Telegram chat_id session validation
 DROP FUNCTION IF EXISTS auth.telegram_session_exists_fn;
 CREATE OR REPLACE FUNCTION auth.telegram_session_exists_fn(IN user_id BIGINT) RETURNS BOOLEAN
 AS $telegram_session_exists$
-	DECLARE
-		_id TEXT := NULL;
-		_user_id BIGINT := user_id;
+    DECLARE
+        _id BIGINT := NULL;
+        _user_id BIGINT := user_id;
+        _email TEXT := NULL;
     BEGIN
-        IF _chat_id IS NULL THEN
+        IF user_id IS NULL THEN
             RAISE EXCEPTION 'invalid input' USING HINT = 'check your parameter';
         END IF;
 
@@ -489,10 +497,10 @@ AS $telegram_session_exists$
         SELECT preferences->'telegram'->'from'->'id' INTO _id
             FROM auth.accounts a
             WHERE cast(preferences->'telegram'->'from'->'id' as BIGINT) = _user_id::BIGINT;
-        IF NOT FOUND then
-            RETURN False;
+        IF FOUND THEN
+            RETURN True;
         END IF;
-        RETURN True;
+        RETURN FALSE;
     END;
 $telegram_session_exists$ language plpgsql security definer;
 -- Description
