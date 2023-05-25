@@ -89,8 +89,8 @@ CREATE TABLE IF NOT EXISTS api.metadata(
   beam DOUBLE PRECISION NULL,
   height DOUBLE PRECISION NULL,
   ship_type NUMERIC NULL,
-  plugin_version VARCHAR(10) NOT NULL,
-  signalk_version VARCHAR(10) NOT NULL,
+  plugin_version TEXT NOT NULL,
+  signalk_version TEXT NOT NULL,
   time TIMESTAMP WITHOUT TIME ZONE NOT NULL, -- should be rename to last_update !?
   active BOOLEAN DEFAULT True, -- trigger monitor online/offline
   -- vessel_id link auth.vessels with api.metadata
@@ -350,7 +350,7 @@ DROP FUNCTION IF EXISTS metadata_notification_trigger_fn;
 CREATE FUNCTION metadata_notification_trigger_fn() RETURNS trigger AS $metadata_notification$
     DECLARE
     BEGIN
-        RAISE NOTICE 'metadata_notification_trigger_fn';
+        RAISE NOTICE 'metadata_notification_trigger_fn [%]', NEW;
         INSERT INTO process_queue (channel, payload, stored) 
             VALUES ('monitoring_online', NEW.id, now());
         RETURN NULL;
@@ -1035,7 +1035,7 @@ COMMENT ON VIEW
 -- Stays web view
 -- TODO group by month
 DROP VIEW IF EXISTS api.stays_view;
-CREATE VIEW api.stays_view WITH (security_invoker=true,security_barrier=true) AS
+CREATE OR REPLACE VIEW api.stays_view WITH (security_invoker=true,security_barrier=true) AS
     SELECT s.id,
         concat(
             extract(DAYS FROM (s.departed-s.arrived)::interval),
@@ -1068,7 +1068,7 @@ COMMENT ON VIEW
     IS 'Stays web view';
 
 DROP VIEW IF EXISTS api.stay_view;
-CREATE VIEW api.stay_view WITH (security_invoker=true,security_barrier=true) AS
+CREATE OR REPLACE VIEW api.stay_view WITH (security_invoker=true,security_barrier=true) AS
     SELECT s.id,
         concat(
             extract(DAYS FROM (s.departed-s.arrived)::interval),
@@ -1180,7 +1180,7 @@ COMMENT ON VIEW
 ----> select sum(l.duration) as "Total Time Underway" from api.logbook l;
 -- Longest Nonstop Sail from logbook, eg longest trip duration and distance
 ----> select max(l.duration),max(l.distance) from api.logbook l;
-CREATE VIEW api.stats_logs_view WITH (security_invoker=true,security_barrier=true) AS -- TODO
+CREATE OR REPLACE VIEW api.stats_logs_view WITH (security_invoker=true,security_barrier=true) AS -- TODO
     WITH
         meta AS ( 
             SELECT m.name FROM api.metadata m ),
@@ -1219,7 +1219,7 @@ COMMENT ON VIEW
 ----> select sum(m.stay_duration) as "Time Spent Away" from api.moorages m where home_flag is false;
 -- Time Spent Away order by, group by stay_code (Dock, Anchor, Mooring Buoys, Unclassified)
 ----> select sa.description,sum(m.stay_duration) as "Time Spent Away" from api.moorages m, api.stays_at sa where home_flag is false AND m.stay_code = sa.stay_code group by m.stay_code,sa.description order by m.stay_code;
-CREATE VIEW api.stats_moorages_view WITH (security_invoker=true,security_barrier=true) AS -- TODO
+CREATE OR REPLACE VIEW api.stats_moorages_view WITH (security_invoker=true,security_barrier=true) AS -- TODO
     WITH
         home_ports AS (
             select count(*) as home_ports from api.moorages m where home_flag is true
@@ -1243,7 +1243,7 @@ COMMENT ON VIEW
     api.stats_moorages_view
     IS 'Statistics Moorages web view';
 
-CREATE VIEW api.stats_moorages_away_view WITH (security_invoker=true,security_barrier=true) AS -- TODO
+CREATE OR REPLACE VIEW api.stats_moorages_away_view WITH (security_invoker=true,security_barrier=true) AS -- TODO
     SELECT sa.description,sum(m.stay_duration) as time_spent_away_by
     FROM api.moorages m, api.stays_at sa
     WHERE home_flag IS false
@@ -1269,7 +1269,8 @@ COMMENT ON VIEW
 --    IS 'Statistics Moorages Time Spent Away web view';
 
 -- View main monitoring for web app
-CREATE VIEW api.monitoring_view WITH (security_invoker=true,security_barrier=true) AS
+DROP VIEW IF EXISTS api.monitoring_view;
+CREATE OR REPLACE VIEW api.monitoring_view WITH (security_invoker=true,security_barrier=true) AS
     SELECT 
         time AS "time",
         (NOW() AT TIME ZONE 'UTC' - time) > INTERVAL '70 MINUTES' as offline,
@@ -1282,6 +1283,8 @@ CREATE VIEW api.monitoring_view WITH (security_invoker=true,security_barrier=tru
         metrics-> 'environment.outside.humidity' AS outsideHumidity,
         metrics-> 'environment.outside.pressure' AS outsidePressure,
         metrics-> 'environment.inside.pressure' AS insidePressure,
+        metrics-> 'electrical.batteries.House.capacity.stateOfCharge' AS batteryCharge,
+        metrics-> 'electrical.batteries.House.voltage' AS batteryVoltage,
         jsonb_build_object(
             'type', 'Feature',
             'geometry', ST_AsGeoJSON(st_makepoint(longitude,latitude))::jsonb,
