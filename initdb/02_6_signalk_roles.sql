@@ -30,12 +30,14 @@ grant execute on function api.recover(text) to api_anonymous;
 grant execute on function api.reset(text,text,text) to api_anonymous;
 -- explicitly limit EXECUTE privileges to pgrest db-pre-request function
 grant execute on function public.check_jwt() to api_anonymous;
--- explicitly limit EXECUTE privileges to only telegram bot auth function
-grant execute on function api.bot(text,bigint) to api_anonymous;
+-- explicitly limit EXECUTE privileges to only telegram jwt auth function
+grant execute on function api.telegram(bigint,text) to api_anonymous;
 -- explicitly limit EXECUTE privileges to only pushover subscription validation function
 grant execute on function api.email_fn(text) to api_anonymous;
 grant execute on function api.pushover_fn(text,text) to api_anonymous;
 grant execute on function api.telegram_fn(text,text) to api_anonymous;
+grant execute on function api.telegram_otp_fn(text) to api_anonymous;
+--grant execute on function api.generate_otp_fn(text) to api_anonymous;
 
 -- authenticator
 -- login role
