@@ -701,7 +701,7 @@ AS $send_notification$
         END IF;
 
         -- Send notification telegram
-        SELECT (preferences->'telegram'->'from'->'id') IS NOT NULL,preferences['telegram']['from']['id'] INTO _telegram_notifications,_telegram_chat_id
+        SELECT (preferences->'telegram'->'chat'->'id') IS NOT NULL,preferences['telegram']['chat']['id'] INTO _telegram_notifications,_telegram_chat_id
             FROM auth.accounts a
             WHERE a.email = user_settings->>'email'::TEXT;
         RAISE NOTICE '--> send_notification_fn telegram_notifications [%]', _telegram_notifications;
@@ -849,6 +849,11 @@ BEGIN
   --RAISE WARNING 'jwt email %', current_setting('request.jwt.claims', true)::json->>'email';
   --RAISE WARNING 'jwt role %', current_setting('request.jwt.claims', true)::json->>'role';
   --RAISE WARNING 'cur_user %', current_user;
+
+  --TODO SELECT current_setting('request.jwt.uid', true)::json->>'uid' INTO _user_id;
+  --TODO RAISE WARNING 'jwt user_id %', current_setting('request.jwt.uid', true)::json->>'uid';
+  --TODO SELECT current_setting('request.jwt.vid', true)::json->>'vid' INTO _vessel_id;
+  --TODO RAISE WARNING 'jwt vessel_id %', current_setting('request.jwt.vid', true)::json->>'vid';
   IF _role = 'user_role' THEN
     -- Check the user exist in the accounts table
     SELECT * INTO account_rec
@@ -898,7 +903,7 @@ BEGIN
         WHERE
             m.vessel_id = current_setting('vessel.id')
             AND m.vessel_id = v.vessel_id
-            AND v.owner_email =_email;
+            AND v.owner_email = _email;
     -- Set session variables
     PERFORM set_config('vessel.client_id', _clientid, false);
     --RAISE WARNING 'public.check_jwt() user_role vessel.client_id [%]', current_setting('vessel.client_id', false);
