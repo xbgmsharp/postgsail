@@ -58,7 +58,7 @@ COMMENT ON TRIGGER accounts_moddatetime
 DROP TABLE IF EXISTS auth.vessels;
 CREATE TABLE IF NOT EXISTS auth.vessels (
   vessel_id     TEXT NOT NULL UNIQUE DEFAULT RIGHT(gen_random_uuid()::text, 12),
---  user_id       REFERENCES auth.accounts(user_id) ON DELETE RESTRICT,
+--  user_id       TEXT NOT NULL REFERENCES auth.accounts(user_id) ON DELETE RESTRICT,
   owner_email CITEXT PRIMARY KEY REFERENCES auth.accounts(email) ON DELETE RESTRICT,
 --  mmsi		    TEXT UNIQUE, -- Should be a numeric range between 100000000 and 800000000.
   mmsi        NUMERIC UNIQUE, -- MMSI can be optional but if present must be a valid one and unique
@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS auth.vessels (
 -- Description
 COMMENT ON TABLE
     auth.vessels
-    IS 'vessels table link to accounts email column';
+    IS 'vessels table link to accounts email user_id column';
 -- Indexes
 CREATE INDEX vessels_role_idx ON auth.vessels (role);
 CREATE INDEX vessels_name_idx ON auth.vessels (name);
@@ -174,6 +174,7 @@ declare
   app_jwt_secret text;
   _email_valid boolean := false;
   _email text := email;
+  _user_id text := null;
 begin
   -- check email and password
   select auth.user_role(email, pass) into _role;
@@ -187,7 +188,7 @@ begin
     WHERE name = 'app.jwt_secret';
 
   -- Check email_valid and generate OTP
-  SELECT preferences['email_valid'] INTO _email_valid
+  SELECT preferences['email_valid'],user_id INTO _email_valid,_user_id
               FROM auth.accounts a
               WHERE a.email = _email;
   IF _email_valid is null or _email_valid is False THEN
@@ -202,7 +203,8 @@ begin
       row_to_json(r)::json, app_jwt_secret
     ) as token
     from (
-      select _role as role, login.email as email,
+      select _role as role, login.email as email,  -- TODO replace with user_id
+    --  select _role as role, user_id as uid,
          extract(epoch from now())::integer + 60*60 as exp
     ) r
     into result;
@@ -275,7 +277,8 @@ begin
     ) as token
     from (
       select vessel_rec.role as role,
-      vessel_rec.owner_email as email,
+      vessel_rec.owner_email as email, -- TODO replace with user_id
+    --  vessel_rec.user_id as uid
       vessel_rec.vessel_id as vid
     ) r
     into result;
