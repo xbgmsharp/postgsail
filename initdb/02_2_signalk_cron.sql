@@ -174,7 +174,7 @@ begin
             where channel = 'monitoring_online' and processed is null
             order by stored asc
     LOOP
-        RAISE NOTICE '-> cron_process_monitor_online_fn  metadata_id [%]', process_rec.payload;
+        RAISE NOTICE '-> cron_process_monitor_online_fn metadata_id [%]', process_rec.payload;
         SELECT * INTO metadata_rec 
             FROM api.metadata
             WHERE id = process_rec.payload::INTEGER;
