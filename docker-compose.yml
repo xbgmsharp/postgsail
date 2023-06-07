@@ -91,9 +91,27 @@ services:
     env_file: .env
     environment:
       - BOT_TOKEN=${PGSAIL_TELEGRAM_BOT_TOKEN}
-      - PGSAIL_URL=${PGSAIL_APP_URL}
+      - PGSAIL_URL=${PGSAIL_API_URL}
     depends_on:
       - db
+      - api
+    logging:
+      options:
+        max-size: 10m
+
+  web:
+    image: xbgmsharp/postgsail-vuestic
+    container_name: web
+    restart: unless-stopped
+    volumes:
+      - /etc/resolv.conf:/etc/resolv.conf:ro
+    ports:
+      - "3006:8080"
+    network_mode: "host"
+    env_file: .env
+    depends_on:
+      - db
+      - api
     logging:
       options:
         max-size: 10m
