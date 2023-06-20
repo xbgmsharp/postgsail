@@ -238,7 +238,7 @@ $$ language plpgsql;
 -- Description
 COMMENT ON FUNCTION
     public.cron_process_new_account_fn 
-    IS 'init by pg_cron to check for new account pending update, if so perform process_account_queue_fn';
+    IS 'deprecated, init by pg_cron to check for new account pending update, if so perform process_account_queue_fn';
 
 -- CRON for new account pending otp validation notification
 CREATE FUNCTION cron_process_new_account_otp_validation_fn() RETURNS void AS $$
@@ -267,7 +267,7 @@ $$ language plpgsql;
 -- Description
 COMMENT ON FUNCTION
     public.cron_process_new_account_otp_validation_fn
-    IS 'init by pg_cron to check for new account otp pending update, if so perform process_account_otp_validation_queue_fn';
+    IS 'deprecated, init by pg_cron to check for new account otp pending update, if so perform process_account_otp_validation_queue_fn';
 
 -- CRON for new vessel pending notification
 CREATE FUNCTION cron_process_new_vessel_fn() RETURNS void AS $$
@@ -296,7 +296,7 @@ $$ language plpgsql;
 -- Description
 COMMENT ON FUNCTION 
     public.cron_process_new_vessel_fn 
-    IS 'init by pg_cron to check for new vessel pending update, if so perform process_vessel_queue_fn';
+    IS 'deprecated, init by pg_cron to check for new vessel pending update, if so perform process_vessel_queue_fn';
 
 -- CRON for new event notification
 CREATE FUNCTION cron_process_new_notification_fn() RETURNS void AS $$
