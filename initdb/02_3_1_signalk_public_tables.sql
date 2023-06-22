@@ -36,7 +36,8 @@ INSERT INTO geocoders VALUES
 ---------------------------------------------------------------------------
 -- Tables for message template email/pushover/telegram
 --
-CREATE TABLE IF NOT EXISTS email_templates(
+DROP TABLE IF EXISTS public.email_templates;
+CREATE TABLE IF NOT EXISTS public.email_templates(
     name TEXT UNIQUE, 
     email_subject TEXT,
     email_content TEXT,
@@ -184,7 +185,7 @@ COMMENT ON COLUMN public.app_settings.value IS 'application settings value';
 ---------------------------------------------------------------------------
 -- Badges description
 --
-DROP FUNCTION IF EXISTS public.badges;
+DROP TABLE IF EXISTS public.badges;
 CREATE TABLE IF NOT EXISTS public.badges(
     name TEXT UNIQUE, 
     description TEXT
@@ -216,13 +217,14 @@ INSERT INTO badges VALUES
 ('Aloha Award',
     'Ticking off over 2300 NM across the great blue Pacific makes you the rare recipient of the Aloha Award. Well done and Aloha sailor!'),
 ('Navigator Award',
-    'You made it, Ticking off over 100NM in one go, well done sailor!'),
-('Long-distance Award',
+    'Woohoo! You made it, Ticking off over 100NM in one go, well done sailor!'),
+('Captain Award',
     'Congratulation, you reach over 1000NM, well done sailor!');
 
 ---------------------------------------------------------------------------
 -- aistypes description
 --
+DROP TABLE IF EXISTS public.aistypes;
 CREATE TABLE IF NOT EXISTS aistypes(
     id NUMERIC UNIQUE,
     description TEXT
@@ -318,7 +320,8 @@ INSERT INTO aistypes VALUES
 ---------------------------------------------------------------------------
 -- MMSI MID Codes
 --
-CREATE TABLE IF NOT EXISTS mid(
+DROP TABLE IF EXISTS public.mid;
+CREATE TABLE IF NOT EXISTS public.mid(
     country TEXT,
     id NUMERIC UNIQUE,
     country_id INTEGER
@@ -621,7 +624,8 @@ INSERT INTO mid VALUES
 
 ---------------------------------------------------------------------------
 --
-CREATE TABLE IF NOT EXISTS iso3166(
+DROP TABLE IF EXISTS public.iso3166;
+CREATE TABLE IF NOT EXISTS public.iso3166(
     id INTEGER,
     country TEXT,
     alpha_2 TEXT,

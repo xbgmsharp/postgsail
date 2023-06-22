@@ -903,13 +903,13 @@ CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook_id integer) RETUR
             end if;
         end if;
 
-        -- Long-distance sailing = total logbook distance over 1000NM
-        SELECT (preferences->'badges'->'Long-distance sailing') IS NOT NULL INTO _exist FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
+        -- Captain Award = total logbook distance over 1000NM
+        SELECT (preferences->'badges'->'Captain Award') IS NOT NULL INTO _exist FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
         if _exist is false then
             select sum(l.distance) into distance from api.logbook l where client_id = current_setting('vessel.client_id', false);
             if distance >= 1000 then
                 -- Create badge
-                badge := '{"Long-distance sailing": {"log": '|| logbook_id ||', "date":"' || NOW()::timestamp || '"}}';
+                badge := '{"Captain Award": {"log": '|| logbook_id ||', "date":"' || NOW()::timestamp || '"}}';
                 -- Get existing badges
                 SELECT preferences->'badges' INTO _badges FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
                 -- Merge badges
@@ -918,7 +918,7 @@ CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook_id integer) RETUR
                 PERFORM api.update_user_preferences_fn('{badges}'::TEXT, badge::TEXT);
                 -- Gather user settings
                 user_settings := get_user_settings_from_clientid_fn(current_setting('vessel.client_id', false));
-                SELECT user_settings::JSONB || '{"badge": "Long-distance sailing"}'::JSONB into user_settings;
+                SELECT user_settings::JSONB || '{"badge": "Captain Award"}'::JSONB into user_settings;
                 -- Send notification
                 PERFORM send_notification_fn('badge'::TEXT, user_settings::JSONB);
             end if;
