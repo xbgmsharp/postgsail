@@ -321,7 +321,7 @@ AS $pushover$
             DELETE FROM auth.otp
                 WHERE user_email = _email;
             -- Disable Notification because
-            -- Pushover send a notification when sucesssfull with the description of the app
+            -- Pushover send a notification when sucesssful with the description of the app
             --
             -- Send Notification async
             --INSERT INTO process_queue (channel, payload, stored)
