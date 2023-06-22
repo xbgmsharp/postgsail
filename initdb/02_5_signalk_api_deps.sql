@@ -12,6 +12,15 @@ select current_database();
 ALTER TABLE api.metadata ADD vessel_id TEXT NOT NULL REFERENCES auth.vessels(vessel_id) ON DELETE RESTRICT;
 COMMENT ON COLUMN api.metadata.vessel_id IS 'Link auth.vessels with api.metadata';
 
+-- Link auth.vessels with auth.accounts
+--ALTER TABLE auth.vessels ADD user_id TEXT NOT NULL REFERENCES auth.accounts(user_id) ON DELETE RESTRICT;
+--COMMENT ON COLUMN auth.vessels.user_id IS 'Link auth.vessels with auth.accounts';
+--COMMENT ON COLUMN auth.vessels.vessel_id IS 'Vessel identifier. Link auth.vessels with api.metadata';
+
+-- REFERENCE ship type with AIS type ?
+-- REFERENCE mmsi MID with country ?
+
+
 -- List vessel
 --TODO add geojson with position
 DROP VIEW IF EXISTS api.vessels_view;
@@ -60,42 +69,37 @@ COMMENT ON FUNCTION
 DROP FUNCTION IF EXISTS api.vessel_fn;
 CREATE OR REPLACE FUNCTION api.vessel_fn(OUT vessel JSON) RETURNS JSON
 AS $vessel$
-	DECLARE 
+    DECLARE
     BEGIN
         SELECT
-            json_build_object( 
-	            'name', v.name,
-	            'mmsi', coalesce(v.mmsi, null),
-	            'created_at', v.created_at::timestamp(0),
-	            'last_contact', coalesce(m.time, null),
-	            'geojson', coalesce(ST_AsGeoJSON(geojson_t.*)::json, null)
-            )
+            jsonb_build_object(
+                'name', v.name,
+                'mmsi', coalesce(v.mmsi, null),
+                'created_at', v.created_at::timestamp(0),
+                'last_contact', coalesce(m.time, null),
+                'geojson', coalesce(ST_AsGeoJSON(geojson_t.*)::json, null)
+            )::jsonb || api.vessel_details_fn()::jsonb
             INTO vessel
             FROM auth.vessels v, api.metadata m, 
-				(	SELECT
-			            t.*
-			            FROM (
-			                ( select
-                                current_setting('vessel.name') as name,
-			                    time,
-			                    courseovergroundtrue,
-			                    speedoverground,
-			                    anglespeedapparent,
-			                    longitude,latitude,
-			                    st_makepoint(longitude,latitude) AS geo_point
-			                    FROM api.metrics
-			                    WHERE
-                                    latitude IS NOT NULL
-                                    AND longitude IS NOT NULL
-                                    AND client_id = current_setting('vessel.client_id', false)
-                                ORDER BY time DESC
-			                )
-			            ) AS t
-	            ) AS geojson_t
+                (	select
+                        current_setting('vessel.name') as name,
+                        time,
+                        courseovergroundtrue,
+                        speedoverground,
+                        anglespeedapparent,
+                        longitude,latitude,
+                        st_makepoint(longitude,latitude) AS geo_point
+                        FROM api.metrics
+                        WHERE
+                            latitude IS NOT NULL
+                            AND longitude IS NOT NULL
+                            AND client_id = current_setting('vessel.client_id', false)
+                        ORDER BY time DESC
+                ) AS geojson_t
             WHERE
                 m.vessel_id = current_setting('vessel.id')
                 AND m.vessel_id = v.vessel_id;
-		--RAISE notice 'api.vessel_fn %', obj;
+        --RAISE notice 'api.vessel_fn %', obj;
     END;
 $vessel$ language plpgsql security definer;
 -- Description
@@ -126,16 +130,18 @@ COMMENT ON FUNCTION
 DROP FUNCTION IF EXISTS api.versions_fn;
 CREATE OR REPLACE FUNCTION api.versions_fn() RETURNS JSON
 AS $version$
-	DECLARE
-		_appv TEXT;
-		_sysv TEXT;
+    DECLARE
+        _appv TEXT;
+        _sysv TEXT;
     BEGIN
         SELECT
             value, rtrim(substring(version(), 0, 17)) AS sys_version into _appv,_sysv
-        FROM app_settings
-        WHERE name = 'app.version';
+            FROM app_settings
+            WHERE name = 'app.version';
         RETURN json_build_object('api_version', _appv,
-                           'sys_version', _sysv);
+                           'sys_version', _sysv,
+                           'timescaledb', (SELECT extversion as timescaledb FROM pg_extension WHERE extname='timescaledb'),
+                           'postgis', (SELECT extversion as postgis FROM pg_extension WHERE extname='postgis'));
     END;
 $version$ language plpgsql security definer;
 -- Description
@@ -193,3 +199,27 @@ $update_user_preferences$ language plpgsql security definer;
 COMMENT ON FUNCTION
     api.update_user_preferences_fn
     IS 'Update user preferences jsonb key pair value';
+
+DROP FUNCTION IF EXISTS api.vessel_details_fn;
+CREATE OR REPLACE FUNCTION api.vessel_details_fn() RETURNS JSON AS
+$vessel_details$
+DECLARE
+BEGIN
+     RETURN ( WITH tbl AS (
+                SELECT mmsi,ship_type,length,beam,height FROM api.metadata WHERE client_id = current_setting('vessel.client_id', false)
+                )
+                SELECT json_build_object(
+                        'ship_type', (SELECT ais.description FROM aistypes ais, tbl WHERE t.ship_type = ais.id),
+                        'country', (SELECT mid.country FROM mid, tbl WHERE LEFT(cast(mmsi as text), 3)::NUMERIC = mid.id),
+                        'alpha_2', (SELECT o.alpha_2 FROM mid m, iso3166 o, tbl WHERE LEFT(cast(mmsi as text), 3)::NUMERIC = m.id AND m.country_id = o.id),
+                        'length', t.ship_type,
+                        'beam', t.beam,
+                        'height', t.height)
+                        FROM tbl t
+            );
+END;
+$vessel_details$ language plpgsql security definer;
+-- Description
+COMMENT ON FUNCTION
+    api.vessel_details_fn
+    IS 'Return vessel details such as metadata (length,beam,height), ais type and country name and country iso3166-alpha-2';
