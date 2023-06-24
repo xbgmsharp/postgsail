@@ -827,7 +827,7 @@ CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook_id integer) RETUR
                 user_settings := get_user_settings_from_clientid_fn(current_setting('vessel.client_id', false));
                 SELECT user_settings::JSONB || '{"badge": "Helmsman"}'::JSONB into user_settings;
                 -- Send notification
-                PERFORM send_notification_fn('badge'::TEXT, user_settings::JSONB);
+                PERFORM send_notification_fn('new_badge'::TEXT, user_settings::JSONB);
             end if;
         end if;
 
@@ -853,7 +853,7 @@ CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook_id integer) RETUR
                 user_settings := get_user_settings_from_clientid_fn(current_setting('vessel.client_id', false));
                 SELECT user_settings::JSONB || '{"badge": "Wake Maker"}'::JSONB into user_settings;
                 -- Send notification
-                PERFORM send_notification_fn('badge'::TEXT, user_settings::JSONB);
+                PERFORM send_notification_fn('new_badge'::TEXT, user_settings::JSONB);
             end if;
         end if;
 
@@ -878,7 +878,7 @@ CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook_id integer) RETUR
                 user_settings := get_user_settings_from_clientid_fn(current_setting('vessel.client_id', false));
                 SELECT user_settings::JSONB || '{"badge": "Stormtrooper"}'::JSONB into user_settings;
                 -- Send notification
-                PERFORM send_notification_fn('badge'::TEXT, user_settings::JSONB);
+                PERFORM send_notification_fn('new_badge'::TEXT, user_settings::JSONB);
             end if;
         end if;
 
@@ -899,7 +899,7 @@ CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook_id integer) RETUR
                 user_settings := get_user_settings_from_clientid_fn(current_setting('vessel.client_id', false));
                 SELECT user_settings::JSONB || '{"badge": "Navigator Award"}'::JSONB into user_settings;
                 -- Send notification
-                PERFORM send_notification_fn('badge'::TEXT, user_settings::JSONB);
+                PERFORM send_notification_fn('new_badge'::TEXT, user_settings::JSONB);
             end if;
         end if;
 
@@ -920,7 +920,7 @@ CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook_id integer) RETUR
                 user_settings := get_user_settings_from_clientid_fn(current_setting('vessel.client_id', false));
                 SELECT user_settings::JSONB || '{"badge": "Captain Award"}'::JSONB into user_settings;
                 -- Send notification
-                PERFORM send_notification_fn('badge'::TEXT, user_settings::JSONB);
+                PERFORM send_notification_fn('new_badge'::TEXT, user_settings::JSONB);
             end if;
         end if;
 
@@ -961,7 +961,7 @@ CREATE OR REPLACE FUNCTION public.badges_moorages_fn() RETURNS VOID AS $badges_m
                 user_settings := get_user_settings_from_clientid_fn(current_setting('vessel.client_id', false));
                 SELECT user_settings::JSONB || '{"badge": "Explorer"}'::JSONB into user_settings;
                 -- Send notification
-                PERFORM send_notification_fn('badge'::TEXT, user_settings::JSONB);
+                PERFORM send_notification_fn('new_badge'::TEXT, user_settings::JSONB);
             end if;
         end if;
 
@@ -983,7 +983,7 @@ CREATE OR REPLACE FUNCTION public.badges_moorages_fn() RETURNS VOID AS $badges_m
                 user_settings := get_user_settings_from_clientid_fn(current_setting('vessel.client_id', false));
                 SELECT user_settings::JSONB || '{"badge": "Mooring Pro"}'::JSONB into user_settings;
                 -- Send notification
-                PERFORM send_notification_fn('badge'::TEXT, user_settings::JSONB);
+                PERFORM send_notification_fn('new_badge'::TEXT, user_settings::JSONB);
             end if;
         end if;
 
@@ -1005,7 +1005,7 @@ CREATE OR REPLACE FUNCTION public.badges_moorages_fn() RETURNS VOID AS $badges_m
                 user_settings := get_user_settings_from_clientid_fn(current_setting('vessel.client_id', false));
                 SELECT user_settings::JSONB || '{"badge": "Anchormaster"}'::JSONB into user_settings;
                 -- Send notification
-                PERFORM send_notification_fn('badge'::TEXT, user_settings::JSONB);
+                PERFORM send_notification_fn('new_badge'::TEXT, user_settings::JSONB);
             end if;
         end if;
 
@@ -1058,7 +1058,7 @@ CREATE OR REPLACE FUNCTION public.badges_geom_fn(IN logbook_id integer) RETURNS 
                 user_settings := get_user_settings_from_clientid_fn(current_setting('vessel.client_id', false));
                 SELECT user_settings::JSONB || badge_tmp::JSONB INTO user_settings;
                 -- Send notification
-                PERFORM send_notification_fn('badge'::TEXT, user_settings::JSONB);
+                PERFORM send_notification_fn('new_badge'::TEXT, user_settings::JSONB);
             end if;
 	    END LOOP;
     END;
