@@ -9,7 +9,7 @@
 -- Import from shapefile
 -- # shp2pgsql ne_10m_geography_marine_polys.shp public.ne_10m_geography_marine_polys | psql -U ${POSTGRES_USER} signalk
 --
--- PostgSail Customization, add tropics area.
+-- PostgSail Customization, add tropics and alaska area.
 
 -- List current database
 select current_database();
