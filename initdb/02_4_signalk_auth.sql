@@ -192,10 +192,11 @@ begin
               FROM auth.accounts a
               WHERE a.email = _email;
   IF _email_valid is null or _email_valid is False THEN
-    INSERT INTO process_queue (channel, payload, stored)
-      VALUES ('email_otp', email, now());
+    INSERT INTO process_queue (channel, payload, stored, ref_id)
+      VALUES ('email_otp', email, now(), _user_id);
   END IF;
 
+  --RAISE WARNING 'api.login debug: [%],[%],[%]', app_jwt_secret, _role, login.email;
   -- Generate jwt
   select jwt.sign(
   --    row_to_json(r), ''
@@ -204,7 +205,7 @@ begin
     ) as token
     from (
       select _role as role, login.email as email,  -- TODO replace with user_id
-    --  select _role as role, user_id as uid,
+    --  select _role as role, user_id as uid, -- add support in check_jwt
          extract(epoch from now())::integer + 60*60 as exp
     ) r
     into result;

@@ -297,6 +297,7 @@ CREATE FUNCTION metadata_upsert_trigger_fn() RETURNS trigger AS $metadata_upsert
         --PERFORM set_config('vessel.client_id', NEW.client_id, false);
         -- UPSERT - Insert vs Update for Metadata
         RAISE NOTICE 'metadata_upsert_trigger_fn';
+        --PERFORM set_config('vessel.id', NEW.vessel_id, true);
         RAISE WARNING 'metadata_upsert_trigger_fn [%] [%]', current_setting('vessel.id', true), NEW;
         SELECT m.id,m.active INTO metadata_id, metadata_active
             FROM api.metadata m
@@ -306,8 +307,8 @@ CREATE FUNCTION metadata_upsert_trigger_fn() RETURNS trigger AS $metadata_upsert
             -- send notifitacion if boat is back online
             IF metadata_active is False THEN
                 -- Add monitor online entry to process queue for later notification
-                INSERT INTO process_queue (channel, payload, stored) 
-                    VALUES ('monitoring_online', metadata_id, now());
+                INSERT INTO process_queue (channel, payload, stored, ref_id)
+                    VALUES ('monitoring_online', metadata_id, now(), current_setting('vessel.id', true));
             END IF;
             -- Update vessel metadata
             UPDATE api.metadata
@@ -355,8 +356,8 @@ CREATE FUNCTION metadata_notification_trigger_fn() RETURNS trigger AS $metadata_
     DECLARE
     BEGIN
         RAISE NOTICE 'metadata_notification_trigger_fn [%]', NEW;
-        INSERT INTO process_queue (channel, payload, stored) 
-            VALUES ('monitoring_online', NEW.id, now());
+        INSERT INTO process_queue (channel, payload, stored, ref_id)
+            VALUES ('monitoring_online', NEW.id, now(), NEW.vessel_id);
         RETURN NULL;
     END;
 $metadata_notification$ LANGUAGE plpgsql;
@@ -399,7 +400,15 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
         logbook_id integer;
         stay_id integer;
         valid_status BOOLEAN;
+        _vessel_id TEXT;
     BEGIN
+        -- Force vessel_id to import from SQL cli
+        SELECT vessel_id INTO _vessel_id FROM api.metadata WHERE client_id = NEW.client_id;
+        IF _vessel_id IS NOT NULL THEN
+            NEW.vessel_id = _vessel_id;
+            PERFORM set_config('vessel.id', _vessel_id, false) as vessel_id;
+            --RAISE NOTICE 'metrics_trigger_fn set vessel_id [%] [%] ', NEW.vessel_id, NEW.client_id;
+        END IF;
         -- Set client_id to new value to allow RLS
         --PERFORM set_config('vessel.client_id', NEW.client_id, false);
         NEW.vessel_id = current_setting('vessel.id');
@@ -447,8 +456,8 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                 VALUES (current_setting('vessel.id', true), true, NEW.time, NEW.latitude, NEW.longitude, 1)
                 RETURNING id INTO stay_id;
             -- Add stay entry to process queue for further processing
-            INSERT INTO process_queue (channel, payload, stored)
-                VALUES ('new_stay', stay_id, now());
+            INSERT INTO process_queue (channel, payload, stored, ref_id)
+                VALUES ('new_stay', stay_id, now(), current_setting('vessel.id', true));
             RAISE WARNING 'Metrics Insert first stay as no previous metrics exist, stay_id %', stay_id;
         END IF;
         -- Check if status is valid enum
@@ -494,8 +503,8 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                     WHERE id = stay_id;
                 RAISE WARNING 'Metrics Updating Stay end current stay_id [%] [%] [%]', stay_id, NEW.status, NEW.time;
                 -- Add moorage entry to process queue for further processing
-                INSERT INTO process_queue (channel, payload, stored)
-                    VALUES ('new_moorage', stay_id, now());
+                INSERT INTO process_queue (channel, payload, stored, ref_id)
+                    VALUES ('new_moorage', stay_id, now(), current_setting('vessel.id', true));
             ELSE
                 RAISE WARNING 'Metrics Invalid stay_id [%] [%]', stay_id, NEW.time;
             END IF;
@@ -520,8 +529,8 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                     VALUES (current_setting('vessel.id', true), true, NEW.time, NEW.latitude, NEW.longitude, stay_code)
                     RETURNING id INTO stay_id;
                 -- Add stay entry to process queue for further processing
-                INSERT INTO process_queue (channel, payload, stored)
-                    VALUES ('new_stay', stay_id, now());
+                INSERT INTO process_queue (channel, payload, stored, ref_id)
+                    VALUES ('new_stay', stay_id, now(), current_setting('vessel.id', true));
             ELSE
                 RAISE WARNING 'Metrics Invalid stay_id [%] [%]', stay_id, NEW.time;
                 UPDATE api.stays
@@ -545,8 +554,8 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                         _to_lng = NEW.longitude
                     WHERE id = logbook_id;
                 -- Add logbook entry to process queue for later processing
-                INSERT INTO process_queue (channel, payload, stored)
-                    VALUEs ('new_logbook', logbook_id, now());
+                INSERT INTO process_queue (channel, payload, stored, ref_id)
+                    VALUEs ('new_logbook', logbook_id, now(), current_setting('vessel.id', true));
             ELSE
                 RAISE WARNING 'Metrics Invalid logbook_id [%] [%]', logbook_id, NEW.time;
             END IF;

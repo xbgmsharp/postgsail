@@ -145,9 +145,9 @@ begin
         --PERFORM send_pushover_py_fn('monitor_offline'::TEXT, user_settings::JSONB, app_settings::JSONB);
         -- log/insert/update process_queue table with processed
         INSERT INTO process_queue
-            (channel, payload, stored, processed) 
+            (channel, payload, stored, processed, ref_id)
             VALUES 
-                ('monitoring_offline', metadata_rec.id, metadata_rec.interval, now())
+                ('monitoring_offline', metadata_rec.id, metadata_rec.interval, now(), metadata_rec.vessel_id)
             RETURNING id INTO process_id;
         RAISE NOTICE '-> cron_process_monitor_offline_fn updated process_queue table [%]', process_id;
     END LOOP;

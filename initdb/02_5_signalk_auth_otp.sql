@@ -360,8 +360,8 @@ AS $telegram$
             DELETE FROM auth.otp
                 WHERE user_email = _email;
             -- Send Notification async
-            INSERT INTO process_queue (channel, payload, stored)
-                VALUES ('telegram_valid', _email, now());
+            --INSERT INTO process_queue (channel, payload, stored)
+            --    VALUES ('telegram_valid', _email, now());
 			RETURN True;
 		END IF;
 		RETURN False;

@@ -133,6 +133,7 @@ CREATE TABLE IF NOT EXISTS public.process_queue (
     id SERIAL PRIMARY KEY,
     channel TEXT NOT NULL,
     payload TEXT NOT NULL,
+    ref_id TEXT NOT NULL,
     stored TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     processed TIMESTAMP WITHOUT TIME ZONE DEFAULT NULL
 );
@@ -145,24 +146,26 @@ CREATE INDEX ON public.process_queue (channel);
 CREATE INDEX ON public.process_queue (stored);
 CREATE INDEX ON public.process_queue (processed);
 
+COMMENT ON COLUMN public.process_queue.ref_id IS 'either user_id or vessel_id';
+
 -- Function process_queue helpers
 create function new_account_entry_fn() returns trigger as $new_account_entry$
 begin
-    insert into process_queue (channel, payload, stored) values ('new_account', NEW.email, now());
+    insert into process_queue (channel, payload, stored, ref_id) values ('new_account', NEW.email, now(), NEW.user_id);
     return NEW;
 END;
 $new_account_entry$ language plpgsql;
 
 create function new_account_otp_validation_entry_fn() returns trigger as $new_account_otp_validation_entry$
 begin
-    insert into process_queue (channel, payload, stored) values ('email_otp', NEW.email, now());
+    insert into process_queue (channel, payload, stored, ref_id) values ('email_otp', NEW.email, now(), NEW.user_id);
     return NEW;
 END;
 $new_account_otp_validation_entry$ language plpgsql;
 
 create function new_vessel_entry_fn() returns trigger as $new_vessel_entry$
 begin
-    insert into process_queue (channel, payload, stored) values ('new_vessel', NEW.owner_email, now());
+    insert into process_queue (channel, payload, stored, ref_id) values ('new_vessel', NEW.owner_email, now(), NEW.vessel_id);
     return NEW;
 END;
 $new_vessel_entry$ language plpgsql;
