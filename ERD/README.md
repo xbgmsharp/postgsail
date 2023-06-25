@@ -13,7 +13,7 @@ There is 3 main schemas:
       - ...
     - functions
       - ...
-![API Schem](https://raw.githubusercontent.com/xbgmsharp/postgsail/main/ERD/ERD_schema_api.png "API Schema")
+![API Schem](https://raw.githubusercontent.com/xbgmsharp/postgsail/main/ERD/signalk - api.png "API Schema")
 
 - Auth Schema ERD
   - tables
@@ -22,7 +22,7 @@ There is 3 main schemas:
     - ...
   - functions
     - ...
-![Auth Schema](https://raw.githubusercontent.com/xbgmsharp/postgsail/main/ERD/ERD_schema_auth.png "Auth Schema")
+![Auth Schema](https://raw.githubusercontent.com/xbgmsharp/postgsail/main/ERD/signalk - auth.png "Auth Schema")
 
 - Public Schema ERD
   - tables
@@ -31,5 +31,5 @@ There is 3 main schemas:
     - ...
   - functions
     - ...
-![Public Schema](https://raw.githubusercontent.com/xbgmsharp/postgsail/main/ERD/ERD_schema_public.png "Public Schema")
+![Public Schema](https://raw.githubusercontent.com/xbgmsharp/postgsail/main/ERD/signalk - public.png "Public Schema")
 
