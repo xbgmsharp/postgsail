@@ -29,7 +29,7 @@ CREATE OR REPLACE FUNCTION logbook_metrics_dwithin_fn(
                 AND m.longitude IS NOT NULL
                 AND m.time >= _start::TIMESTAMP WITHOUT TIME ZONE
                 AND m.time <= _end::TIMESTAMP WITHOUT TIME ZONE
-                AND client_id = current_setting('vessel.client_id', false)
+                AND vessel_id = current_setting('vessel.id', false)
                 AND ST_DWithin(
                     Geography(ST_MakePoint(m.longitude, m.latitude)),
                     Geography(ST_MakePoint(lgn, lat)),
@@ -62,7 +62,7 @@ CREATE OR REPLACE FUNCTION logbook_update_avg_fn(
                 AND m.longitude IS NOT NULL
                 AND m.time >= _start::TIMESTAMP WITHOUT TIME ZONE
                 AND m.time <= _end::TIMESTAMP WITHOUT TIME ZONE
-                AND client_id = current_setting('vessel.client_id', false);
+                AND vessel_id = current_setting('vessel.id', false);
         RAISE NOTICE '-> Updated avg for logbook id=%, avg_speed:%, max_speed:%, max_wind_speed:%, count:%', _id, avg_speed, max_speed, max_wind_speed, count_metric;
     END;
 $logbook_update_avg$ LANGUAGE plpgsql;
@@ -89,7 +89,7 @@ CREATE FUNCTION logbook_update_geom_distance_fn(IN _id integer, IN _start text, 
                         AND m.longitude IS NOT NULL
                         AND m.time >= _start::TIMESTAMP WITHOUT TIME ZONE
                         AND m.time <= _end::TIMESTAMP WITHOUT TIME ZONE
-                        AND client_id = current_setting('vessel.client_id', false)
+                        AND vessel_id = current_setting('vessel.id', false)
                     ORDER BY m.time ASC
             )
         ) INTO _track_geom;
@@ -150,7 +150,7 @@ CREATE FUNCTION logbook_update_geojson_fn(IN _id integer, IN _start text, IN _en
 		        AND m.longitude IS NOT NULL
                 AND time >= _start::TIMESTAMP WITHOUT TIME ZONE
                 AND time <= _end::TIMESTAMP WITHOUT TIME ZONE
-                AND client_id = current_setting('vessel.client_id', false)
+                AND vessel_id = current_setting('vessel.id', false)
 		    ORDER BY m.time ASC
 		   )  
 		) AS t;
@@ -207,13 +207,13 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
                 AND _to_lng IS NOT NULL
                 AND _to_lat IS NOT NULL;
         -- Ensure the query is successful
-        IF logbook_rec.client_id IS NULL THEN
+        IF logbook_rec.vessel_id IS NULL THEN
             RAISE WARNING '-> process_logbook_queue_fn invalid logbook %', _id;
             RETURN;
         END IF;
 
-        PERFORM set_config('vessel.client_id', logbook_rec.client_id, false);
-        --RAISE WARNING 'public.process_logbook_queue_fn() scheduler vessel.client_id %, user.id', current_setting('vessel.client_id', false), current_setting('user.id', false);
+        PERFORM set_config('vessel.id', logbook_rec.vessel_id, false);
+        --RAISE WARNING 'public.process_logbook_queue_fn() scheduler vessel.id %, user.id', current_setting('vessel.id', false), current_setting('user.id', false);
 
         -- Check if all metrics are within 10meters base on geo loc
         count_metric := logbook_metrics_dwithin_fn(logbook_rec._from_time::TEXT, logbook_rec._to_time::TEXT, logbook_rec._from_lng::NUMERIC, logbook_rec._from_lat::NUMERIC);
@@ -240,7 +240,7 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
                 SET status = 'moored'
                 WHERE time >= logbook_rec._from_time::TIMESTAMP WITHOUT TIME ZONE
                     AND time <= logbook_rec._to_time::TIMESTAMP WITHOUT TIME ZONE
-                    AND client_id = current_setting('vessel.client_id', false);
+                    AND vessel_id = current_setting('vessel.id', false);
             -- Update logbook
             UPDATE api.logbook
                 SET notes = 'invalid logbook data, stationary need to fix metrics?'
@@ -248,17 +248,17 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
             -- Get related stays
             SELECT id,departed,active INTO current_stays_id,current_stays_departed,current_stays_active
                 FROM api.stays s
-                WHERE s.client_id = current_setting('vessel.client_id', false)
+                WHERE s.vessel_id = current_setting('vessel.id', false)
                     AND s.arrived = logbook_rec._to_time;
             -- Update related stays
             UPDATE api.stays
                 SET notes = 'invalid stays data, stationary need to fix metrics?'
-                WHERE client_id = current_setting('vessel.client_id', false)
+                WHERE vessel_id = current_setting('vessel.id', false)
                     AND arrived = logbook_rec._to_time;
             -- Find previous stays
             SELECT id INTO previous_stays_id
 				FROM api.stays s
-                WHERE s.client_id = current_setting('vessel.client_id', false)
+                WHERE s.vessel_id = current_setting('vessel.id', false)
                     AND s.arrived < logbook_rec._to_time
                     ORDER BY s.arrived DESC LIMIT 1;
             -- Update previous stays with the departed time from current stays
@@ -266,7 +266,7 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
             UPDATE api.stays
                 SET departed = current_stays_departed::timestamp without time zone,
                     active = current_stays_active
-                WHERE client_id = current_setting('vessel.client_id', false)
+                WHERE vessel_id = current_setting('vessel.id', false)
                     AND id = previous_stays_id;
             -- Clean u, remove invalid logbook and stay entry
             DELETE FROM api.logbook WHERE id = logbook_rec.id;
@@ -307,9 +307,9 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
 
         -- Prepare notification, gather user settings
         SELECT json_build_object('logbook_name', log_name, 'logbook_link', logbook_rec.id) into log_settings;
-        user_settings := get_user_settings_from_clientid_fn(logbook_rec.client_id::TEXT);
+        user_settings := get_user_settings_from_vesselid_fn(logbook_rec.vessel_id::TEXT);
         SELECT user_settings::JSONB || log_settings::JSONB into user_settings;
-        RAISE DEBUG '-> debug process_logbook_queue_fn get_user_settings_from_clientid_fn [%]', user_settings;
+        RAISE DEBUG '-> debug process_logbook_queue_fn get_user_settings_from_vesselid_fn [%]', user_settings;
         RAISE DEBUG '-> debug process_logbook_queue_fn log_settings [%]', log_settings;
         -- Send notification
         PERFORM send_notification_fn('logbook'::TEXT, user_settings::JSONB);
@@ -345,12 +345,12 @@ CREATE OR REPLACE FUNCTION process_stay_queue_fn(IN _id integer) RETURNS void AS
                 AND longitude IS NOT NULL
                 AND latitude IS NOT NULL;
         -- Ensure the query is successful
-        IF stay_rec.client_id IS NULL THEN
+        IF stay_rec.vessel_id IS NULL THEN
             RAISE WARNING '-> process_stay_queue_fn invalid stay %', _id;
             RETURN;
         END IF;
 
-        PERFORM set_config('vessel.client_id', stay_rec.client_id, false);
+        PERFORM set_config('vessel.id', stay_rec.vessel_id, false);
         -- geo reverse _lng _lat
         _name := reverse_geocode_py_fn('nominatim', stay_rec.longitude::NUMERIC, stay_rec.latitude::NUMERIC);
 
@@ -395,12 +395,12 @@ CREATE OR REPLACE FUNCTION process_moorage_queue_fn(IN _id integer) RETURNS void
                 AND latitude IS NOT NULL
                 AND id = _id;
         -- Ensure the query is successful
-        IF stay_rec.client_id IS NULL THEN
+        IF stay_rec.vessel_id IS NULL THEN
             RAISE WARNING '-> process_moorage_queue_fn invalid stay %', _id;
             RETURN;
         END IF;
 
-        PERFORM set_config('vessel.client_id', stay_rec.client_id, false);
+        PERFORM set_config('vessel.id', stay_rec.vessel_id, false);
 
         -- Do we have an existing stay within 100m of the new moorage
 	    FOR moorage_rec in 
@@ -446,9 +446,9 @@ CREATE OR REPLACE FUNCTION process_moorage_queue_fn(IN _id integer) RETURNS void
             END IF;
             -- Insert new moorage from stay
 	        INSERT INTO api.moorages
-	                (client_id, name, stay_id, stay_code, stay_duration, reference_count, latitude, longitude, geog)
+	                (vessel_id, name, stay_id, stay_code, stay_duration, reference_count, latitude, longitude, geog)
 	                VALUES (
-                        stay_rec.client_id,
+                        stay_rec.vessel_id,
 	               		stay_rec.name,
 						stay_rec.id,
 						stay_rec.stay_code,
@@ -627,7 +627,7 @@ CREATE OR REPLACE FUNCTION process_vessel_queue_fn(IN _email TEXT) RETURNS void 
         PERFORM set_config('user.email', vessel_rec.owner_email, false);
         -- Gather user settings
         user_settings := '{"email": "' || vessel_rec.owner_email || '", "boat": "' || vessel_rec.name || '"}';
-        --user_settings := get_user_settings_from_clientid_fn();
+        --user_settings := get_user_settings_from_vesselid_fn();
         -- Send notification email, pushover
         --PERFORM send_notification_fn('vessel'::TEXT, vessel_rec::RECORD);
         PERFORM send_email_py_fn('new_vessel'::TEXT, user_settings::JSONB, app_settings::JSONB);
@@ -730,17 +730,17 @@ COMMENT ON FUNCTION
     public.send_notification_fn
     IS 'Send notifications via email, pushover, telegram to user base on user preferences';
 
-DROP FUNCTION IF EXISTS get_user_settings_from_clientid_fn;
-CREATE OR REPLACE FUNCTION get_user_settings_from_clientid_fn(
-    IN clientid TEXT,
+DROP FUNCTION IF EXISTS get_user_settings_from_vesselid_fn;
+CREATE OR REPLACE FUNCTION get_user_settings_from_vesselid_fn(
+    IN vesselid TEXT,
     OUT user_settings JSONB
     ) RETURNS JSONB
-AS $get_user_settings_from_clientid$
+AS $get_user_settings_from_vesselid$
     DECLARE
     BEGIN
-        -- If client_id is not NULL
-        IF clientid IS NULL OR clientid = '' THEN
-            RAISE WARNING '-> get_user_settings_from_clientid_fn invalid input %', clientid;
+        -- If vessel_id is not NULL
+        IF vesselid IS NULL OR vesselid = '' THEN
+            RAISE WARNING '-> get_user_settings_from_vesselid_fn invalid input %', vesselid;
         END IF;
         SELECT 
             json_build_object( 
@@ -753,16 +753,16 @@ AS $get_user_settings_from_clientid$
                     ) INTO user_settings
             FROM auth.accounts a, auth.vessels v, api.metadata m
             WHERE m.vessel_id = v.vessel_id
-                AND m.client_id = clientid
+                AND m.vessel_id = vesselid
                 AND lower(a.email) = lower(v.owner_email);
         PERFORM set_config('user.email', user_settings->>'email'::TEXT, false);
         PERFORM set_config('user.recipient', user_settings->>'recipient'::TEXT, false);
     END;
-$get_user_settings_from_clientid$ LANGUAGE plpgsql;
+$get_user_settings_from_vesselid$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
-    public.get_user_settings_from_clientid_fn
-    IS 'get user settings details from a clientid, initiate for notifications';
+    public.get_user_settings_from_vesselid_fn
+    IS 'get user settings details from a vesselid initiate for notifications';
 
 DROP FUNCTION IF EXISTS set_vessel_settings_from_vesselid_fn;
 CREATE OR REPLACE FUNCTION set_vessel_settings_from_vesselid_fn(
@@ -772,7 +772,7 @@ CREATE OR REPLACE FUNCTION set_vessel_settings_from_vesselid_fn(
 AS $set_vessel_settings_from_vesselid$
     DECLARE
     BEGIN
-        -- If client_id is not NULL
+        -- If vessel_id is not NULL
         IF vesselid IS NULL OR vesselid = '' THEN
             RAISE WARNING '-> set_vessel_settings_from_vesselid_fn invalid input %', vesselid;
         END IF;
@@ -784,10 +784,10 @@ AS $set_vessel_settings_from_vesselid$
                     ) INTO vessel_settings
             FROM auth.accounts a, auth.vessels v, api.metadata m
             WHERE m.vessel_id = v.vessel_id
-                AND m.client_id = clientid;
+                AND m.vessel_id = vesselid;
         PERFORM set_config('vessel.name', vessel_settings->>'name'::TEXT, false);
         PERFORM set_config('vessel.client_id', vessel_settings->>'client_id'::TEXT, false);
-        PERFORM set_config('vessel.vessel_id', vessel_settings->>'vessel_id'::TEXT, false);
+        PERFORM set_config('vessel.id', vessel_settings->>'vessel_id'::TEXT, false);
     END;
 $set_vessel_settings_from_vesselid$ LANGUAGE plpgsql;
 -- Description
@@ -813,7 +813,7 @@ CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook_id integer) RETUR
         SELECT (preferences->'badges'->'Helmsman') IS NOT NULL INTO _exist FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
         if _exist is false THEN
             -- is first logbook?
-            select count(*) into total from api.logbook l where client_id = current_setting('vessel.client_id', false);
+            select count(*) into total from api.logbook l where vessel_id = current_setting('vessel.id', false);
             if total >= 1 then
                 -- Add badge
                 badge := '{"Helmsman": {"log": '|| logbook_id ||', "date":"' || NOW()::timestamp || '"}}';
@@ -824,7 +824,7 @@ CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook_id integer) RETUR
                 -- Update badges
                 PERFORM api.update_user_preferences_fn('{badges}'::TEXT, badge::TEXT);
                 -- Gather user settings
-                user_settings := get_user_settings_from_clientid_fn(current_setting('vessel.client_id', false));
+                user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
                 SELECT user_settings::JSONB || '{"badge": "Helmsman"}'::JSONB into user_settings;
                 -- Send notification
                 PERFORM send_notification_fn('new_badge'::TEXT, user_settings::JSONB);
@@ -836,7 +836,7 @@ CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook_id integer) RETUR
         RAISE WARNING '-> Wake Maker %', _exist;
         if _exist is false then
             -- is 15 knot+ logbook?
-            select l.max_wind_speed into max_wind_speed from api.logbook l where l.id = logbook_id AND l.max_wind_speed >= 15 and client_id = current_setting('vessel.client_id', false);
+            select l.max_wind_speed into max_wind_speed from api.logbook l where l.id = logbook_id AND l.max_wind_speed >= 15 and vessel_id = current_setting('vessel.id', false);
             --RAISE WARNING '-> Wake Maker max_wind_speed %', max_wind_speed;
            if max_wind_speed >= 15 then
                 -- Create badge
@@ -850,7 +850,7 @@ CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook_id integer) RETUR
                 -- Update badges for user
                 PERFORM api.update_user_preferences_fn('{badges}'::TEXT, badge::TEXT);
                 -- Gather user settings
-                user_settings := get_user_settings_from_clientid_fn(current_setting('vessel.client_id', false));
+                user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
                 SELECT user_settings::JSONB || '{"badge": "Wake Maker"}'::JSONB into user_settings;
                 -- Send notification
                 PERFORM send_notification_fn('new_badge'::TEXT, user_settings::JSONB);
@@ -861,7 +861,7 @@ CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook_id integer) RETUR
         SELECT (preferences->'badges'->'Stormtrooper') IS NOT NULL INTO _exist FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
         if _exist is false then
             --RAISE WARNING '-> Stormtrooper %', _exist;
-            select l.max_wind_speed into max_wind_speed from api.logbook l where l.id = logbook_id AND l.max_wind_speed >= 30 and client_id = current_setting('vessel.client_id', false);
+            select l.max_wind_speed into max_wind_speed from api.logbook l where l.id = logbook_id AND l.max_wind_speed >= 30 and vessel_id = current_setting('vessel.id', false);
             --RAISE WARNING '-> Stormtrooper max_wind_speed %', max_wind_speed;
             if max_wind_speed >= 30 then
                 -- Create badge
@@ -875,7 +875,7 @@ CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook_id integer) RETUR
                 -- Update badges for user
                 PERFORM api.update_user_preferences_fn('{badges}'::TEXT, badge::TEXT);
                 -- Gather user settings
-                user_settings := get_user_settings_from_clientid_fn(current_setting('vessel.client_id', false));
+                user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
                 SELECT user_settings::JSONB || '{"badge": "Stormtrooper"}'::JSONB into user_settings;
                 -- Send notification
                 PERFORM send_notification_fn('new_badge'::TEXT, user_settings::JSONB);
@@ -885,7 +885,7 @@ CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook_id integer) RETUR
         -- Navigator Award = one logbook with distance over 100NM
         SELECT (preferences->'badges'->'Navigator Award') IS NOT NULL INTO _exist FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
         if _exist is false then
-            select l.distance into distance from api.logbook l where l.id = logbook_id AND l.distance >= 100 and client_id = current_setting('vessel.client_id', false);
+            select l.distance into distance from api.logbook l where l.id = logbook_id AND l.distance >= 100 and vessel_id = current_setting('vessel.id', false);
             if distance >= 100 then
                 -- Create badge
                 badge := '{"Navigator Award": {"log": '|| logbook_id ||', "date":"' || NOW()::timestamp || '"}}';
@@ -896,7 +896,7 @@ CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook_id integer) RETUR
                 -- Update badges for user
                 PERFORM api.update_user_preferences_fn('{badges}'::TEXT, badge::TEXT);
                 -- Gather user settings
-                user_settings := get_user_settings_from_clientid_fn(current_setting('vessel.client_id', false));
+                user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
                 SELECT user_settings::JSONB || '{"badge": "Navigator Award"}'::JSONB into user_settings;
                 -- Send notification
                 PERFORM send_notification_fn('new_badge'::TEXT, user_settings::JSONB);
@@ -906,7 +906,7 @@ CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook_id integer) RETUR
         -- Captain Award = total logbook distance over 1000NM
         SELECT (preferences->'badges'->'Captain Award') IS NOT NULL INTO _exist FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
         if _exist is false then
-            select sum(l.distance) into distance from api.logbook l where client_id = current_setting('vessel.client_id', false);
+            select sum(l.distance) into distance from api.logbook l where vessel_id = current_setting('vessel.id', false);
             if distance >= 1000 then
                 -- Create badge
                 badge := '{"Captain Award": {"log": '|| logbook_id ||', "date":"' || NOW()::timestamp || '"}}';
@@ -917,7 +917,7 @@ CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook_id integer) RETUR
                 -- Update badges for user
                 PERFORM api.update_user_preferences_fn('{badges}'::TEXT, badge::TEXT);
                 -- Gather user settings
-                user_settings := get_user_settings_from_clientid_fn(current_setting('vessel.client_id', false));
+                user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
                 SELECT user_settings::JSONB || '{"badge": "Captain Award"}'::JSONB into user_settings;
                 -- Send notification
                 PERFORM send_notification_fn('new_badge'::TEXT, user_settings::JSONB);
@@ -940,14 +940,14 @@ CREATE OR REPLACE FUNCTION public.badges_moorages_fn() RETURNS VOID AS $badges_m
         user_settings jsonb;
     BEGIN
         -- Check and set environment
-        user_settings := get_user_settings_from_clientid_fn(current_setting('vessel.client_id', false));
+        user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
         PERFORM set_config('user.email', user_settings->>'email'::TEXT, false);
 
         -- Explorer = 10 days away from home port
         SELECT (preferences->'badges'->'Explorer') IS NOT NULL INTO _exist FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
         if _exist is false then
             --select sum(m.stay_duration) from api.moorages m where home_flag is false;
-            SELECT extract(day from (select sum(m.stay_duration) INTO duration FROM api.moorages m WHERE home_flag IS false AND client_id = current_setting('vessel.client_id', false) ));
+            SELECT extract(day from (select sum(m.stay_duration) INTO duration FROM api.moorages m WHERE home_flag IS false AND vessel_id = current_setting('vessel.id', false) ));
             if duration >= 10 then
                 -- Create badge
                 badge := '{"Explorer": {"date":"' || NOW()::timestamp || '"}}';
@@ -958,7 +958,7 @@ CREATE OR REPLACE FUNCTION public.badges_moorages_fn() RETURNS VOID AS $badges_m
                 -- Update badges for user
                 PERFORM api.update_user_preferences_fn('{badges}'::TEXT, badge::TEXT);
                 -- Gather user settings
-                user_settings := get_user_settings_from_clientid_fn(current_setting('vessel.client_id', false));
+                user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
                 SELECT user_settings::JSONB || '{"badge": "Explorer"}'::JSONB into user_settings;
                 -- Send notification
                 PERFORM send_notification_fn('new_badge'::TEXT, user_settings::JSONB);
@@ -969,7 +969,7 @@ CREATE OR REPLACE FUNCTION public.badges_moorages_fn() RETURNS VOID AS $badges_m
         SELECT (preferences->'badges'->'Mooring Pro') IS NOT NULL INTO _exist FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
         if _exist is false then
             -- select sum(m.stay_duration) from api.moorages m where stay_code = 3;
-            SELECT extract(day from (select sum(m.stay_duration) INTO duration FROM api.moorages m WHERE stay_code = 3 AND client_id = current_setting('vessel.client_id', false) ));
+            SELECT extract(day from (select sum(m.stay_duration) INTO duration FROM api.moorages m WHERE stay_code = 3 AND vessel_id = current_setting('vessel.id', false) ));
             if duration >= 10 then
                 -- Create badge
                 badge := '{"Mooring Pro": {"date":"' || NOW()::timestamp || '"}}';
@@ -980,7 +980,7 @@ CREATE OR REPLACE FUNCTION public.badges_moorages_fn() RETURNS VOID AS $badges_m
                 -- Update badges for user
                 PERFORM api.update_user_preferences_fn('{badges}'::TEXT, badge::TEXT);
                 -- Gather user settings
-                user_settings := get_user_settings_from_clientid_fn(current_setting('vessel.client_id', false));
+                user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
                 SELECT user_settings::JSONB || '{"badge": "Mooring Pro"}'::JSONB into user_settings;
                 -- Send notification
                 PERFORM send_notification_fn('new_badge'::TEXT, user_settings::JSONB);
@@ -991,7 +991,7 @@ CREATE OR REPLACE FUNCTION public.badges_moorages_fn() RETURNS VOID AS $badges_m
         SELECT (preferences->'badges'->'Anchormaster') IS NOT NULL INTO _exist FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
         if _exist is false then
             -- select sum(m.stay_duration) from api.moorages m where stay_code = 2;
-            SELECT extract(day from (select sum(m.stay_duration) INTO duration FROM api.moorages m WHERE stay_code = 2 AND client_id = current_setting('vessel.client_id', false) ));
+            SELECT extract(day from (select sum(m.stay_duration) INTO duration FROM api.moorages m WHERE stay_code = 2 AND vessel_id = current_setting('vessel.id', false) ));
             if duration >= 25 then
                 -- Create badge
                 badge := '{"Anchormaster": {"date":"' || NOW()::timestamp || '"}}';
@@ -1002,7 +1002,7 @@ CREATE OR REPLACE FUNCTION public.badges_moorages_fn() RETURNS VOID AS $badges_m
                 -- Update badges for user
                 PERFORM api.update_user_preferences_fn('{badges}'::TEXT, badge::TEXT);
                 -- Gather user settings
-                user_settings := get_user_settings_from_clientid_fn(current_setting('vessel.client_id', false));
+                user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
                 SELECT user_settings::JSONB || '{"badge": "Anchormaster"}'::JSONB into user_settings;
                 -- Send notification
                 PERFORM send_notification_fn('new_badge'::TEXT, user_settings::JSONB);
@@ -1025,13 +1025,13 @@ CREATE OR REPLACE FUNCTION public.badges_geom_fn(IN logbook_id integer) RETURNS 
         user_settings jsonb;
         badge_tmp text;
     begin
-	    RAISE WARNING '--> user.email [%], vessel.client_id [%]', current_setting('user.email', false), current_setting('vessel.client_id', false);
+	    RAISE WARNING '--> user.email [%], vessel.id [%]', current_setting('user.email', false), current_setting('vessel.id', false);
         -- Tropical & Alaska zone manualy add into ne_10m_geography_marine_polys
         -- Check if each geographic marine zone exist as a badge
 	    FOR marine_rec IN
 	        WITH log AS (
 		            SELECT l.track_geom AS track_geom FROM api.logbook l
-                        WHERE l.id = logbook_id AND client_id = current_setting('vessel.client_id', false)
+                        WHERE l.id = logbook_id AND vessel_id = current_setting('vessel.id', false)
 		            )
 	        SELECT name from log, public.ne_10m_geography_marine_polys
                 WHERE ST_Intersects(
@@ -1055,7 +1055,7 @@ CREATE OR REPLACE FUNCTION public.badges_geom_fn(IN logbook_id integer) RETURNS 
                 --RAISE WARNING '--> badges_geom_fn [%]', badge;
                 -- Gather user settings
                 badge_tmp := '{"badge": "' || marine_rec.name || '"}';
-                user_settings := get_user_settings_from_clientid_fn(current_setting('vessel.client_id', false));
+                user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
                 SELECT user_settings::JSONB || badge_tmp::JSONB INTO user_settings;
                 -- Send notification
                 PERFORM send_notification_fn('new_badge'::TEXT, user_settings::JSONB);
@@ -1150,7 +1150,7 @@ BEGIN
             AND m.vessel_id = v.vessel_id
             AND v.owner_email = _email;
     -- Set session variables
-    PERFORM set_config('vessel.client_id', _clientid, false);
+    --PERFORM set_config('vessel.client_id', _clientid, false);
     --RAISE WARNING 'public.check_jwt() user_role vessel.client_id [%]', current_setting('vessel.client_id', false);
     --RAISE WARNING 'public.check_jwt() user_role vessel.id [%]', current_setting('vessel.id', false);
     --RAISE WARNING 'public.check_jwt() user_role vessel.name [%]', current_setting('vessel.name', false);
@@ -1172,7 +1172,7 @@ BEGIN
     --PERFORM set_config('vessel.client_id', vessel_rec.client_id, false);
     --RAISE WARNING 'public.check_jwt() user_role vessel.mmsi %', current_setting('vessel.mmsi', false);
     --RAISE WARNING 'public.check_jwt() user_role vessel.name %', current_setting('vessel.name', false);
-    --RAISE WARNING 'public.check_jwt() user_role vessel.client_id %', current_setting('vessel.client_id', false);
+    --RAISE WARNING 'public.check_jwt() user_role vessel.id %', current_setting('vessel.id', false);
   ELSIF _role <> 'api_anonymous' THEN
     RAISE EXCEPTION 'Invalid role'
       USING HINT = 'Stop being so evil and maybe you can log in';

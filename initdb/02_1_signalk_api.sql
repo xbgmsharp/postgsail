@@ -82,9 +82,11 @@ UPDATE pg_language SET lanpltrusted = true WHERE lanname = 'plpython3u';
 -- Metadata from signalk
 CREATE TABLE IF NOT EXISTS api.metadata(
   id SERIAL PRIMARY KEY,
-  name VARCHAR(150) NULL,
+  name TEXT NULL,
   mmsi NUMERIC NULL,
-  client_id VARCHAR(255) UNIQUE NOT NULL,
+  client_id TEXT NULL,
+  -- vessel_id link auth.vessels with api.metadata
+  vessel_id TEXT NOT NULL UNIQUE,
   length DOUBLE PRECISION NULL,
   beam DOUBLE PRECISION NULL,
   height DOUBLE PRECISION NULL,
@@ -93,7 +95,6 @@ CREATE TABLE IF NOT EXISTS api.metadata(
   signalk_version TEXT NOT NULL,
   time TIMESTAMP WITHOUT TIME ZONE NOT NULL, -- should be rename to last_update !?
   active BOOLEAN DEFAULT True, -- trigger monitor online/offline
-  -- vessel_id link auth.vessels with api.metadata
   created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
 );
@@ -103,8 +104,8 @@ COMMENT ON TABLE
     IS 'Stores metadata from vessel';
 COMMENT ON COLUMN api.metadata.active IS 'trigger monitor online/offline';
 -- Index
-CREATE INDEX metadata_client_id_idx ON api.metadata (client_id);
-CREATE INDEX metadata_mmsi_idx ON api.metadata (mmsi);
+CREATE INDEX metadata_vessel_id_idx ON api.metadata (vessel_id);
+--CREATE INDEX metadata_mmsi_idx ON api.metadata (mmsi);
 CREATE INDEX metadata_name_idx ON api.metadata (name);
 
 ---------------------------------------------------------------------------
@@ -114,7 +115,9 @@ CREATE TYPE status AS ENUM ('sailing', 'motoring', 'moored', 'anchored');
 -- Table api.metrics
 CREATE TABLE IF NOT EXISTS api.metrics (
   time TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-  client_id VARCHAR(255) NOT NULL REFERENCES api.metadata(client_id) ON DELETE RESTRICT,
+  --client_id VARCHAR(255) NOT NULL REFERENCES api.metadata(client_id) ON DELETE RESTRICT,
+  client_id TEXT NULL,
+  vessel_id TEXT NOT NULL REFERENCES api.metadata(vessel_id) ON DELETE RESTRICT,
   latitude DOUBLE PRECISION NULL,
   longitude DOUBLE PRECISION NULL,
   speedOverGround DOUBLE PRECISION NULL,
@@ -123,7 +126,7 @@ CREATE TABLE IF NOT EXISTS api.metrics (
   angleSpeedApparent DOUBLE PRECISION NULL,
   status status NULL,
   metrics jsonb NULL,
-  CONSTRAINT valid_client_id CHECK (length(client_id) > 10),
+  --CONSTRAINT valid_client_id CHECK (length(client_id) > 10),
   CONSTRAINT valid_latitude CHECK (latitude >= -90 and latitude <= 90),
   CONSTRAINT valid_longitude CHECK (longitude >= -180 and longitude <= 180)
 );
@@ -135,21 +138,22 @@ COMMENT ON COLUMN api.metrics.latitude IS 'With CONSTRAINT but allow NULL value 
 COMMENT ON COLUMN api.metrics.longitude IS 'With CONSTRAINT but allow NULL value to be ignored silently by trigger';
 
 -- Index
-CREATE INDEX ON api.metrics (client_id, time DESC);
+CREATE INDEX ON api.metrics (vessel_id, time DESC);
 CREATE INDEX ON api.metrics (status, time DESC);
 -- json index??
 CREATE INDEX ON api.metrics using GIN (metrics);
 -- timescaledb hypertable
---SELECT create_hypertable('api.metrics', 'time');
+SELECT create_hypertable('api.metrics', 'time', chunk_time_interval => INTERVAL '7 day');
 -- timescaledb hypertable with space partitions
-SELECT create_hypertable('api.metrics', 'time', 'client_id',
-    number_partitions => 2,
-    chunk_time_interval => INTERVAL '7 day',
-    if_not_exists => true);
+-- ERROR:  new row for relation "_hyper_1_2_chunk" violates check constraint "constraint_4"
+-- ((_timescaledb_internal.get_partition_hash(vessel_id) < 1073741823))
+--SELECT create_hypertable('api.metrics', 'time', 'vessel_id',
+--    number_partitions => 2,
+--    chunk_time_interval => INTERVAL '7 day',
+--    if_not_exists => true);
 
 ---------------------------------------------------------------------------
 -- Logbook
--- todo add clientid ref
 -- todo add cosumption fuel?
 -- todo add engine hour?
 -- todo add geom object http://epsg.io/4326 EPSG:4326 Unit: degres
@@ -162,8 +166,9 @@ SELECT create_hypertable('api.metrics', 'time', 'client_id',
 -- https://www.reddit.com/r/PostgreSQL/comments/di5mbr/postgresql_12_foreign_keys_and_partitioned_tables/f3tsoop/
 CREATE TABLE IF NOT EXISTS api.logbook(
   id SERIAL PRIMARY KEY,
-  client_id VARCHAR(255) NOT NULL REFERENCES api.metadata(client_id) ON DELETE RESTRICT,
---  client_id VARCHAR(255) NOT NULL,
+  --client_id VARCHAR(255) NOT NULL REFERENCES api.metadata(client_id) ON DELETE RESTRICT,
+  --client_id VARCHAR(255) NULL,
+  vessel_id TEXT NOT NULL REFERENCES api.metadata(vessel_id) ON DELETE RESTRICT,
   active BOOLEAN DEFAULT false,
   name VARCHAR(255),
   _from VARCHAR(255),
@@ -176,7 +181,7 @@ CREATE TABLE IF NOT EXISTS api.logbook(
   track_geom geometry(LINESTRING,4326) NULL,
   track_geog geography(LINESTRING) NULL,
   track_geojson JSON NULL,
---  track_gpx XML NULL,
+  track_gpx XML NULL,
   _from_time TIMESTAMP WITHOUT TIME ZONE NOT NULL,
   _to_time TIMESTAMP WITHOUT TIME ZONE NULL,
   distance NUMERIC, -- meters?
@@ -193,24 +198,23 @@ COMMENT ON TABLE
 COMMENT ON COLUMN api.logbook.distance IS 'in NM';
 
 -- Index todo!
-CREATE INDEX logbook_client_id_idx ON api.logbook (client_id);
+CREATE INDEX logbook_vessel_id_idx ON api.logbook (vessel_id);
 CREATE INDEX ON api.logbook USING GIST ( track_geom );
 COMMENT ON COLUMN api.logbook.track_geom IS 'postgis geometry type EPSG:4326 Unit: degres';
 CREATE INDEX ON api.logbook USING GIST ( track_geog );
 COMMENT ON COLUMN api.logbook.track_geog IS 'postgis geography type default SRID 4326 Unit: degres';
 -- Otherwise -- ERROR:  Only lon/lat coordinate systems are supported in geography.
 COMMENT ON COLUMN api.logbook.track_geojson IS 'store the geojson track metrics data, can not depend api.metrics table, should be generate from linetring to save disk space?';
---COMMENT ON COLUMN api.logbook.track_gpx IS 'store the gpx track metrics data, can not depend api.metrics table, should be generate from linetring to save disk space?';
+COMMENT ON COLUMN api.logbook.track_gpx IS 'store the gpx track metrics data, can not depend api.metrics table, should be generate from linetring to save disk space?';
 
 ---------------------------------------------------------------------------
 -- Stays
--- todo add clientid ref
--- todo add FOREIGN KEY?
 -- virtual logbook by boat? 
 CREATE TABLE IF NOT EXISTS api.stays(
   id SERIAL PRIMARY KEY,
-  client_id VARCHAR(255) NOT NULL REFERENCES api.metadata(client_id) ON DELETE RESTRICT,
---  client_id VARCHAR(255) NOT NULL,
+  --client_id VARCHAR(255) NOT NULL REFERENCES api.metadata(client_id) ON DELETE RESTRICT,
+  --client_id VARCHAR(255) NULL,
+  vessel_id TEXT NOT NULL REFERENCES api.metadata(vessel_id) ON DELETE RESTRICT,
   active BOOLEAN DEFAULT false,
   name VARCHAR(255),
   latitude DOUBLE PRECISION NULL,
@@ -228,21 +232,21 @@ COMMENT ON TABLE
     IS 'Stores generated stays';
 
 -- Index
-CREATE INDEX stays_client_id_idx ON api.stays (client_id);
+CREATE INDEX stays_vessel_id_idx ON api.stays (vessel_id);
 CREATE INDEX ON api.stays USING GIST ( geog );
 COMMENT ON COLUMN api.stays.geog IS 'postgis geography type default SRID 4326 Unit: degres';
 -- With other SRID ERROR: Only lon/lat coordinate systems are supported in geography.
 
 ---------------------------------------------------------------------------
 -- Moorages
--- todo add clientid ref
 -- virtual logbook by boat? 
 CREATE TABLE IF NOT EXISTS api.moorages(
   id SERIAL PRIMARY KEY,
-  client_id VARCHAR(255) NOT NULL REFERENCES api.metadata(client_id) ON DELETE RESTRICT,
---  client_id VARCHAR(255) NOT NULL,
-  name VARCHAR(255),
-  country VARCHAR(255), -- todo need to update reverse_geocode_py_fn
+  --client_id VARCHAR(255) NOT NULL REFERENCES api.metadata(client_id) ON DELETE RESTRICT,
+  --client_id VARCHAR(255) NULL,
+  vessel_id TEXT NOT NULL REFERENCES api.metadata(vessel_id) ON DELETE RESTRICT,
+  name TEXT,
+  country TEXT, -- todo need to update reverse_geocode_py_fn
   stay_id INT NOT NULL, -- needed?
   stay_code INT DEFAULT 1, -- needed?  REFERENCES api.stays_at(stay_code)
   stay_duration INTERVAL NULL,
@@ -259,7 +263,7 @@ COMMENT ON TABLE
     IS 'Stores generated moorages';
 
 -- Index
-CREATE INDEX moorages_client_id_idx ON api.moorages (client_id);
+CREATE INDEX moorages_vessel_id_idx ON api.moorages (vessel_id);
 CREATE INDEX ON api.moorages USING GIST ( geog );
 COMMENT ON COLUMN api.moorages.geog IS 'postgis geography type default SRID 4326 Unit: degres';
 -- With other SRID ERROR: Only lon/lat coordinate systems are supported in geography.
@@ -290,13 +294,13 @@ CREATE FUNCTION metadata_upsert_trigger_fn() RETURNS trigger AS $metadata_upsert
         metadata_active boolean;
     BEGIN
         -- Set client_id to new value to allow RLS
-        PERFORM set_config('vessel.client_id', NEW.client_id, false);
+        --PERFORM set_config('vessel.client_id', NEW.client_id, false);
         -- UPSERT - Insert vs Update for Metadata
         RAISE NOTICE 'metadata_upsert_trigger_fn';
+        RAISE WARNING 'metadata_upsert_trigger_fn [%] [%]', current_setting('vessel.id', true), NEW;
         SELECT m.id,m.active INTO metadata_id, metadata_active
             FROM api.metadata m
-            WHERE (m.vessel_id IS NOT NULL AND m.vessel_id = current_setting('vessel.id', true))
-                    OR (m.client_id IS NOT NULL AND m.client_id = NEW.client_id);
+            WHERE m.vessel_id IS NOT NULL AND m.vessel_id = current_setting('vessel.id', true);
         RAISE NOTICE 'metadata_id %', metadata_id;
         IF metadata_id IS NOT NULL THEN
             -- send notifitacion if boat is back online
@@ -397,14 +401,15 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
         valid_status BOOLEAN;
     BEGIN
         -- Set client_id to new value to allow RLS
-        PERFORM set_config('vessel.client_id', NEW.client_id, false);
+        --PERFORM set_config('vessel.client_id', NEW.client_id, false);
+        NEW.vessel_id = current_setting('vessel.id');
         --RAISE NOTICE 'metrics_trigger_fn client_id [%]', NEW.client_id;
         -- Boat metadata are check using api.metrics REFERENCES to api.metadata
         -- Fetch the latest entry to compare status against the new status to be insert
         SELECT coalesce(m.status, 'moored'), m.time INTO previous_status, previous_time
             FROM api.metrics m 
-            WHERE m.client_id IS NOT NULL
-                AND m.client_id = NEW.client_id
+            WHERE m.vessel_id IS NOT NULL
+                AND m.vessel_id = current_setting('vessel.id', true)
             ORDER BY m.time DESC LIMIT 1;
         --RAISE NOTICE 'Metrics Status, New:[%] Previous:[%]', NEW.status, previous_status;
         IF previous_time = NEW.time THEN
@@ -425,7 +430,7 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
         END IF;
         -- Check if status is null
         IF NEW.status IS NULL THEN
-            RAISE WARNING 'Metrics Unknow NEW.status from vessel [%], set to default moored', NEW.status;
+            RAISE WARNING 'Metrics Unknow NEW.status from vessel [%], set to default moored', NEW;
             NEW.status := 'moored';
         END IF;
         IF previous_status IS NULL THEN
@@ -438,8 +443,8 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
             END IF;
             -- Add new stay as no previous entry exist
             INSERT INTO api.stays 
-                (client_id, active, arrived, latitude, longitude, stay_code) 
-                VALUES (NEW.client_id, true, NEW.time, NEW.latitude, NEW.longitude, 1)
+                (vessel_id, active, arrived, latitude, longitude, stay_code)
+                VALUES (current_setting('vessel.id', true), true, NEW.time, NEW.latitude, NEW.longitude, 1)
                 RETURNING id INTO stay_id;
             -- Add stay entry to process queue for further processing
             INSERT INTO process_queue (channel, payload, stored)
@@ -461,11 +466,11 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
              OR (NEW.status::TEXT = 'motoring' AND previous_status::TEXT <> 'sailing') ) THEN
             RAISE WARNING 'Metrics Update status, try new logbook, New:[%] Previous:[%]', NEW.status, previous_status;
             -- Start new log
-            logbook_id := public.trip_in_progress_fn(NEW.client_id::TEXT);
+            logbook_id := public.trip_in_progress_fn(current_setting('vessel.id', true)::TEXT);
             IF logbook_id IS NULL THEN
                 INSERT INTO api.logbook
-                    (client_id, active, _from_time, _from_lat, _from_lng)
-                    VALUES (NEW.client_id, true, NEW.time, NEW.latitude, NEW.longitude)
+                    (vessel_id, active, _from_time, _from_lat, _from_lng)
+                    VALUES (current_setting('vessel.id', true), true, NEW.time, NEW.latitude, NEW.longitude)
                     RETURNING id INTO logbook_id;
                 RAISE WARNING 'Metrics Insert new logbook, logbook_id %', logbook_id;
             ELSE
@@ -480,7 +485,7 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
             END IF;
 
             -- End current stay
-            stay_id := public.stay_in_progress_fn(NEW.client_id::TEXT);
+            stay_id := public.stay_in_progress_fn(current_setting('vessel.id', true)::TEXT);
             IF stay_id IS NOT NULL THEN
                 UPDATE api.stays
                     SET
@@ -501,7 +506,7 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
              OR (NEW.status::TEXT = 'anchored' AND previous_status::TEXT <> 'moored') ) THEN
             -- Start new stays
             RAISE WARNING 'Metrics Update status, try new stay, New:[%] Previous:[%]', NEW.status, previous_status;
-            stay_id := public.stay_in_progress_fn(NEW.client_id::TEXT);
+            stay_id := public.stay_in_progress_fn(current_setting('vessel.id', true)::TEXT);
             IF stay_id IS NULL THEN
                 RAISE WARNING 'Metrics Inserting new stay [%]', NEW.status;
                 -- If metric status is anchored set stay_code accordingly
@@ -511,8 +516,8 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                 END IF;
                 -- Add new stay
                 INSERT INTO api.stays
-                    (client_id, active, arrived, latitude, longitude, stay_code)
-                    VALUES (NEW.client_id, true, NEW.time, NEW.latitude, NEW.longitude, stay_code)
+                    (vessel_id, active, arrived, latitude, longitude, stay_code)
+                    VALUES (current_setting('vessel.id', true), true, NEW.time, NEW.latitude, NEW.longitude, stay_code)
                     RETURNING id INTO stay_id;
                 -- Add stay entry to process queue for further processing
                 INSERT INTO process_queue (channel, payload, stored)
@@ -527,8 +532,8 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
             END IF;
 
             -- End current log/trip
-            -- Fetch logbook_id by client_id
-            logbook_id := public.trip_in_progress_fn(NEW.client_id::TEXT);
+            -- Fetch logbook_id by vessel_id
+            logbook_id := public.trip_in_progress_fn(current_setting('vessel.id', true)::TEXT);
             IF logbook_id IS NOT NULL THEN
                 -- todo check on time start vs end
                 RAISE WARNING 'Metrics Updating logbook status [%] [%] [%]', logbook_id, NEW.status, NEW.time;
@@ -628,7 +633,7 @@ CREATE FUNCTION api.export_logbook_geojson_fn(IN _id integer, OUT geojson JSON) 
         SELECT * INTO logbook_rec
             FROM api.logbook WHERE id = _id;
         -- Ensure the query is successful
-        IF logbook_rec.client_id IS NULL THEN
+        IF logbook_rec.vessel_id IS NULL THEN
             RAISE WARNING '-> export_logbook_geojson_fn invalid logbook %', _id;
             RETURN;
         END IF;
@@ -660,7 +665,7 @@ AS $export_logbook_gpx$
             api.logbook l
             WHERE l.id = _id;
         -- Ensure the query is successful
-        IF log_rec.client_id IS NULL THEN
+        IF log_rec.vessel_id IS NULL THEN
             RAISE WARNING '-> export_logbook_gpx_fn invalid logbook %', _id;
             RETURN '';
         END IF;
@@ -696,7 +701,7 @@ AS $export_logbook_gpx$
                 AND m.longitude IS NOT NULL
                 AND m.time >= log_rec._from_time::TIMESTAMP WITHOUT TIME ZONE
                 AND m.time <= log_rec._to_time::TIMESTAMP WITHOUT TIME ZONE
-                AND client_id = log_rec.client_id;
+                AND vessel_id = log_rec.vessel_id;
             -- ERROR:  column "m.time" must appear in the GROUP BY clause or be used in an aggregate function at character 2304
             --ORDER BY m.time ASC;
     END;
@@ -808,14 +813,14 @@ COMMENT ON FUNCTION
 
 -- trip_in_progress_fn
 DROP FUNCTION IF EXISTS public.trip_in_progress_fn;
-CREATE FUNCTION public.trip_in_progress_fn(IN _client_id TEXT) RETURNS INT AS $trip_in_progress$
+CREATE FUNCTION public.trip_in_progress_fn(IN _vessel_id TEXT) RETURNS INT AS $trip_in_progress$
     DECLARE
         logbook_id INT := NULL;
     BEGIN
         SELECT id INTO logbook_id
             FROM api.logbook l
-            WHERE l.client_id IS NOT NULL
-                AND l.client_id = _client_id
+            WHERE l.vessel_id IS NOT NULL
+                AND l.vessel_id = _vessel_id
                 AND active IS true
             LIMIT 1;
         RETURN logbook_id;
@@ -828,14 +833,14 @@ COMMENT ON FUNCTION
 
 -- stay_in_progress_fn
 DROP FUNCTION IF EXISTS public.stay_in_progress_fn;
-CREATE FUNCTION public.stay_in_progress_fn(IN _client_id TEXT) RETURNS INT AS $stay_in_progress$
+CREATE FUNCTION public.stay_in_progress_fn(IN _vessel_id TEXT) RETURNS INT AS $stay_in_progress$
     DECLARE
         stay_id INT := NULL;
     BEGIN
         SELECT id INTO stay_id
                 FROM api.stays s
-                WHERE s.client_id IS NOT NULL
-                    AND s.client_id = _client_id
+                WHERE s.vessel_id IS NOT NULL
+                    AND s.vessel_id = _vessel_id
                     AND active IS true
                 LIMIT 1;
         RETURN stay_id;

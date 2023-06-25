@@ -9,7 +9,8 @@ select current_database();
 \c signalk
 
 -- Link auth.vessels with api.metadata
-ALTER TABLE api.metadata ADD vessel_id TEXT NOT NULL REFERENCES auth.vessels(vessel_id) ON DELETE RESTRICT;
+--ALTER TABLE api.metadata ADD vessel_id TEXT NOT NULL REFERENCES auth.vessels(vessel_id) ON DELETE RESTRICT;
+ALTER TABLE api.metadata ADD FOREIGN KEY (vessel_id) REFERENCES auth.vessels(vessel_id) ON DELETE RESTRICT;
 COMMENT ON COLUMN api.metadata.vessel_id IS 'Link auth.vessels with api.metadata';
 
 -- Link auth.vessels with auth.accounts
@@ -93,7 +94,7 @@ AS $vessel$
                         WHERE
                             latitude IS NOT NULL
                             AND longitude IS NOT NULL
-                            AND client_id = current_setting('vessel.client_id', false)
+                            AND vessel_id = current_setting('vessel.id', false)
                         ORDER BY time DESC
                 ) AS geojson_t
             WHERE
@@ -206,7 +207,7 @@ $vessel_details$
 DECLARE
 BEGIN
      RETURN ( WITH tbl AS (
-                SELECT mmsi,ship_type,length,beam,height FROM api.metadata WHERE client_id = current_setting('vessel.client_id', false)
+                SELECT mmsi,ship_type,length,beam,height FROM api.metadata WHERE vessel_id = current_setting('vessel.id', false)
                 )
                 SELECT json_build_object(
                         'ship_type', (SELECT ais.description FROM aistypes ais, tbl WHERE t.ship_type = ais.id),

@@ -185,19 +185,19 @@ CREATE POLICY admin_all ON api.metadata TO current_user
     WITH CHECK (true);
 -- Allow vessel_role to insert and select on their own records
 CREATE POLICY api_vessel_role ON api.metadata TO vessel_role
-    USING (client_id = current_setting('vessel.client_id', false))
+    USING (vessel_id = current_setting('vessel.id', false))
     WITH CHECK (true);
 -- Allow user_role to update and select on their own records
 CREATE POLICY api_user_role ON api.metadata TO user_role
-    USING (client_id = current_setting('vessel.client_id', true))
-    WITH CHECK (client_id = current_setting('vessel.client_id', false));
--- Allow scheduler to update and select based on the client_id
+    USING (vessel_id = current_setting('vessel.id', true))
+    WITH CHECK (vessel_id = current_setting('vessel.id', false));
+-- Allow scheduler to update and select based on the vessel.id
 CREATE POLICY api_scheduler_role ON api.metadata TO scheduler
-    USING (client_id = current_setting('vessel.client_id', false))
-    WITH CHECK (client_id = current_setting('vessel.client_id', false));
+    USING (vessel_id = current_setting('vessel.id', false))
+    WITH CHECK (vessel_id = current_setting('vessel.id', false));
 -- Allow grafana to select based on email
 CREATE POLICY grafana_role ON api.metadata TO grafana
-    USING (client_id = current_setting('vessel.client_id', false))
+    USING (vessel_id = current_setting('vessel.id', false))
     WITH CHECK (false);
 -- Allow grafana_auth to select
 CREATE POLICY grafana_proxy_role ON api.metadata TO grafana_auth
@@ -211,19 +211,19 @@ CREATE POLICY admin_all ON api.metrics TO current_user
     WITH CHECK (true);
 -- Allow vessel_role to insert and select on their own records
 CREATE POLICY api_vessel_role ON api.metrics TO vessel_role
-    USING (client_id = current_setting('vessel.client_id', false))
+    USING (vessel_id = current_setting('vessel.id', false))
     WITH CHECK (true);
 -- Allow user_role to update and select on their own records
 CREATE POLICY api_user_role ON api.metrics TO user_role
-    USING (client_id = current_setting('vessel.client_id', true))
-    WITH CHECK (client_id = current_setting('vessel.client_id', false));
--- Allow scheduler to update and select based on the client_id
+    USING (vessel_id = current_setting('vessel.id', true))
+    WITH CHECK (vessel_id = current_setting('vessel.id', false));
+-- Allow scheduler to update and select based on the vessel.id
 CREATE POLICY api_scheduler_role ON api.metrics TO scheduler
-    USING (client_id = current_setting('vessel.client_id', false))
-    WITH CHECK (client_id = current_setting('vessel.client_id', false));
--- Allow grafana to select based on the client_id
+    USING (vessel_id = current_setting('vessel.id', false))
+    WITH CHECK (vessel_id = current_setting('vessel.id', false));
+-- Allow grafana to select based on the vessel.id
 CREATE POLICY grafana_role ON api.metrics TO grafana
-    USING (client_id = current_setting('vessel.client_id', false))
+    USING (vessel_id = current_setting('vessel.id', false))
     WITH CHECK (false);
 
 -- Be sure to enable row level security on the table
@@ -235,19 +235,19 @@ CREATE POLICY admin_all ON api.logbook TO current_user
     WITH CHECK (true);
 -- Allow vessel_role to insert and select on their own records
 CREATE POLICY api_vessel_role ON api.logbook TO vessel_role
-    USING (client_id = current_setting('vessel.client_id', false))
+    USING (vessel_id = current_setting('vessel.id', false))
     WITH CHECK (true);
 -- Allow user_role to update and select on their own records
 CREATE POLICY api_user_role ON api.logbook TO user_role
-    USING (client_id = current_setting('vessel.client_id', true))
-    WITH CHECK (client_id = current_setting('vessel.client_id', false));
--- Allow scheduler to update and select based on the client_id
+    USING (vessel_id = current_setting('vessel.id', true))
+    WITH CHECK (vessel_id = current_setting('vessel.id', false));
+-- Allow scheduler to update and select based on the vessel.id
 CREATE POLICY api_scheduler_role ON api.logbook TO scheduler
-    USING (client_id = current_setting('vessel.client_id', false))
-    WITH CHECK (client_id = current_setting('vessel.client_id', false));
--- Allow grafana to select based on the client_id
+    USING (vessel_id = current_setting('vessel.id', false))
+    WITH CHECK (vessel_id = current_setting('vessel.id', false));
+-- Allow grafana to select based on the vessel.id
 CREATE POLICY grafana_role ON api.logbook TO grafana
-    USING (client_id = current_setting('vessel.client_id', false))
+    USING (vessel_id = current_setting('vessel.id', false))
     WITH CHECK (false);
 
 -- Be sure to enable row level security on the table
@@ -258,19 +258,19 @@ CREATE POLICY admin_all ON api.stays TO current_user
     WITH CHECK (true);
 -- Allow vessel_role to insert and select on their own records
 CREATE POLICY api_vessel_role ON api.stays TO vessel_role
-    USING (client_id = current_setting('vessel.client_id', false))
+    USING (vessel_id = current_setting('vessel.id', false))
     WITH CHECK (true);
 -- Allow user_role to update and select on their own records
 CREATE POLICY api_user_role ON api.stays TO user_role
-    USING (client_id = current_setting('vessel.client_id', true))
-    WITH CHECK (client_id = current_setting('vessel.client_id', false));
--- Allow scheduler to update and select based on the client_id
+    USING (vessel_id = current_setting('vessel.id', true))
+    WITH CHECK (vessel_id = current_setting('vessel.id', false));
+-- Allow scheduler to update and select based on the vessel_id
 CREATE POLICY api_scheduler_role ON api.stays TO scheduler
-    USING (client_id = current_setting('vessel.client_id', false))
-    WITH CHECK (client_id = current_setting('vessel.client_id', false));
--- Allow grafana to select based on the client_id
+    USING (vessel_id = current_setting('vessel.id', false))
+    WITH CHECK (vessel_id = current_setting('vessel.id', false));
+-- Allow grafana to select based on the vessel_id
 CREATE POLICY grafana_role ON api.stays TO grafana
-    USING (client_id = current_setting('vessel.client_id', false))
+    USING (vessel_id = current_setting('vessel.id', false))
     WITH CHECK (false);
 
 -- Be sure to enable row level security on the table
@@ -281,19 +281,19 @@ CREATE POLICY admin_all ON api.moorages TO current_user
     WITH CHECK (true);
 -- Allow vessel_role to insert and select on their own records
 CREATE POLICY api_vessel_role ON api.moorages TO vessel_role
-    USING (client_id = current_setting('vessel.client_id', false))
+    USING (vessel_id = current_setting('vessel.id', false))
     WITH CHECK (true);
 -- Allow user_role to update and select on their own records
 CREATE POLICY api_user_role ON api.moorages TO user_role
-    USING (client_id = current_setting('vessel.client_id', true))
-    WITH CHECK (client_id = current_setting('vessel.client_id', false));
--- Allow scheduler to update and select based on the client_id
+    USING (vessel_id = current_setting('vessel.id', true))
+    WITH CHECK (vessel_id = current_setting('vessel.id', false));
+-- Allow scheduler to update and select based on the vessel_id
 CREATE POLICY api_scheduler_role ON api.moorages TO scheduler
-    USING (client_id = current_setting('vessel.client_id', false))
-    WITH CHECK (client_id = current_setting('vessel.client_id', false));
--- Allow grafana to select based on the client_id
+    USING (vessel_id = current_setting('vessel.id', false))
+    WITH CHECK (vessel_id = current_setting('vessel.id', false));
+-- Allow grafana to select based on the vessel_id
 CREATE POLICY grafana_role ON api.moorages TO grafana
-    USING (client_id = current_setting('vessel.client_id', false))
+    USING (vessel_id = current_setting('vessel.id', false))
     WITH CHECK (false);
 
 -- Be sure to enable row level security on the table

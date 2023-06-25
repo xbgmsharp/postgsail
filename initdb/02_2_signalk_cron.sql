@@ -124,21 +124,21 @@ begin
                 active = False
             WHERE id = metadata_rec.id;
 
-        IF metadata_rec.client_id IS NULL OR metadata_rec.client_id = '' THEN
-            RAISE WARNING '-> cron_process_monitor_offline_fn invalid metadata record client_id %', client_id;
+        IF metadata_rec.vessel_id IS NULL OR metadata_rec.vessel_id = '' THEN
+            RAISE WARNING '-> cron_process_monitor_offline_fn invalid metadata record vessel_id %', vessel_id;
             RAISE EXCEPTION 'Invalid metadata'
-                USING HINT = 'Unknow client_id';
+                USING HINT = 'Unknow vessel_id';
             RETURN;
         END IF;
-        PERFORM set_config('vessel.client_id', metadata_rec.client_id, false);
-        RAISE DEBUG '-> DEBUG cron_process_monitor_offline_fn vessel.client_id %', current_setting('vessel.client_id', false);
-        RAISE NOTICE '-> cron_process_monitor_offline_fn updated api.metadata table to inactive for [%] [%]', metadata_rec.id, metadata_rec.client_id;
+        PERFORM set_config('vessel.id', metadata_rec.vessel_id, false);
+        RAISE DEBUG '-> DEBUG cron_process_monitor_offline_fn vessel.id %', current_setting('vessel.id', false);
+        RAISE NOTICE '-> cron_process_monitor_offline_fn updated api.metadata table to inactive for [%] [%]', metadata_rec.id, metadata_rec.vessel_id;
 
         -- Gather email and pushover app settings
         --app_settings = get_app_settings_fn();
         -- Gather user settings
-        user_settings := get_user_settings_from_clientid_fn(metadata_rec.client_id::TEXT);
-        RAISE DEBUG '-> cron_process_monitor_offline_fn get_user_settings_from_clientid_fn [%]', user_settings;
+        user_settings := get_user_settings_from_vesselid_fn(metadata_rec.vessel_id::TEXT);
+        RAISE DEBUG '-> cron_process_monitor_offline_fn get_user_settings_from_vesselid_fn [%]', user_settings;
         -- Send notification
         PERFORM send_notification_fn('monitor_offline'::TEXT, user_settings::JSONB);
         --PERFORM send_email_py_fn('monitor_offline'::TEXT, user_settings::JSONB, app_settings::JSONB);
@@ -179,20 +179,20 @@ begin
             FROM api.metadata
             WHERE id = process_rec.payload::INTEGER;
 
-        IF metadata_rec.client_id IS NULL OR metadata_rec.client_id = '' THEN
-            RAISE WARNING '-> cron_process_monitor_online_fn invalid metadata record client_id %', client_id;
+        IF metadata_rec.vessel_id IS NULL OR metadata_rec.vessel_id = '' THEN
+            RAISE WARNING '-> cron_process_monitor_online_fn invalid metadata record vessel_id %', vessel_id;
             RAISE EXCEPTION 'Invalid metadata'
-                USING HINT = 'Unknow client_id';
+                USING HINT = 'Unknow vessel_id';
             RETURN;
         END IF;
-        PERFORM set_config('vessel.client_id', metadata_rec.client_id, false);
-        RAISE DEBUG '-> DEBUG cron_process_monitor_online_fn vessel.client_id %', current_setting('vessel.client_id', false);
+        PERFORM set_config('vessel.id', metadata_rec.vessel_id, false);
+        RAISE DEBUG '-> DEBUG cron_process_monitor_online_fn vessel_id %', current_setting('vessel.id', false);
 
         -- Gather email and pushover app settings
         --app_settings = get_app_settings_fn();
         -- Gather user settings
-        user_settings := get_user_settings_from_clientid_fn(metadata_rec.client_id::TEXT);
-        RAISE DEBUG '-> DEBUG cron_process_monitor_online_fn get_user_settings_from_clientid_fn [%]', user_settings;
+        user_settings := get_user_settings_from_vesselid_fn(metadata_rec.vessel_id::TEXT);
+        RAISE DEBUG '-> DEBUG cron_process_monitor_online_fn get_user_settings_from_vesselid_fn [%]', user_settings;
         -- Send notification
         PERFORM send_notification_fn('monitor_online'::TEXT, user_settings::JSONB);
         --PERFORM send_email_py_fn('monitor_online'::TEXT, user_settings::JSONB, app_settings::JSONB);
