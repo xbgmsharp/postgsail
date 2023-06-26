@@ -402,16 +402,20 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
         valid_status BOOLEAN;
         _vessel_id TEXT;
     BEGIN
-        -- Force vessel_id to import from SQL cli
+        -- Force vessel_id to import from SQL cli run as username role
         SELECT vessel_id INTO _vessel_id FROM api.metadata WHERE client_id = NEW.client_id;
         IF _vessel_id IS NOT NULL THEN
             NEW.vessel_id = _vessel_id;
             PERFORM set_config('vessel.id', _vessel_id, false) as vessel_id;
-            --RAISE NOTICE 'metrics_trigger_fn set vessel_id [%] [%] ', NEW.vessel_id, NEW.client_id;
+            RAISE NOTICE 'metrics_trigger_fn set vessel_id [%] [%] ', NEW.vessel_id, NEW.client_id;
+        ELSE
+            RAISE EXCEPTION 'Invalid vessel.id'
+                USING HINT = 'Unknow vessel.id';
+            RETURN NULL; -- Ingore insert if no vessel_id
         END IF;
         -- Set client_id to new value to allow RLS
         --PERFORM set_config('vessel.client_id', NEW.client_id, false);
-        NEW.vessel_id = current_setting('vessel.id');
+        NEW.vessel_id = current_setting('vessel.id', true);
         --RAISE NOTICE 'metrics_trigger_fn client_id [%]', NEW.client_id;
         -- Boat metadata are check using api.metrics REFERENCES to api.metadata
         -- Fetch the latest entry to compare status against the new status to be insert
@@ -423,31 +427,31 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
         --RAISE NOTICE 'Metrics Status, New:[%] Previous:[%]', NEW.status, previous_status;
         IF previous_time = NEW.time THEN
             -- Ignore entry if same time
-            RAISE WARNING 'Metrics Ignoring metric, duplicate time [%] = [%]', previous_time, NEW.time;
+            RAISE WARNING 'Metrics Ignoring metric, vessel_id [%], duplicate time [%] = [%]', NEW.vessel_id, previous_time, NEW.time;
             RETURN NULL;
         END IF;
         IF previous_time > NEW.time THEN
             -- Ignore entry if new time is later than previous time
-            RAISE WARNING 'Metrics Ignoring metric, new time is older [%] > [%]', previous_time, NEW.time;
+            RAISE WARNING 'Metrics Ignoring metric, vessel_id [%], new time is older [%] > [%]', NEW.vessel_id, previous_time, NEW.time;
             RETURN NULL;
         END IF;
         -- Check if latitude or longitude are null
         IF NEW.latitude IS NULL OR NEW.longitude IS NULL THEN
             -- Ignore entry if null latitude,longitude
-            RAISE WARNING 'Metrics Ignoring metric, null latitude,longitude [%] [%]', NEW.latitude, NEW.longitude;
+            RAISE WARNING 'Metrics Ignoring metric, vessel_id [%], null latitude,longitude [%] [%]', NEW.vessel_id, NEW.latitude, NEW.longitude;
             RETURN NULL;
         END IF;
         -- Check if status is null
         IF NEW.status IS NULL THEN
-            RAISE WARNING 'Metrics Unknow NEW.status from vessel [%], set to default moored', NEW;
+            RAISE WARNING 'Metrics Unknow NEW.status, null status, set to default moored [%]', NEW;
             NEW.status := 'moored';
         END IF;
         IF previous_status IS NULL THEN
             IF NEW.status = 'anchored' THEN
-                RAISE WARNING 'Metrics Unknow previous_status from vessel [%], set to default current status [%]', previous_status, NEW.status;
+                RAISE WARNING 'Metrics Unknow previous_status from vessel_id [%], [%] set to default current status [%]', NEW.vessel_id, previous_status, NEW.status;
                 previous_status := NEW.status;
             ELSE
-                RAISE WARNING 'Metrics Unknow previous_status from vessel [%], set to default status moored vs [%]', previous_status, NEW.status;
+                RAISE WARNING 'Metrics Unknow previous_status from vessel_id [%], [%] set to default status moored vs [%]', NEW.vessel_id, previous_status, NEW.status;
                 previous_status := 'moored';
             END IF;
             -- Add new stay as no previous entry exist
