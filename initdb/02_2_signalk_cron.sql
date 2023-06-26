@@ -18,7 +18,7 @@ begin
     FOR process_rec in 
         SELECT * FROM process_queue 
             WHERE channel = 'new_logbook' AND processed IS NULL
-            ORDER BY stored ASC
+            ORDER BY stored ASC LIMIT 100
     LOOP
         RAISE NOTICE '-> cron_process_new_logbook_fn [%]', process_rec.payload;
         -- update logbook
@@ -47,7 +47,7 @@ begin
     FOR process_rec in 
         SELECT * FROM process_queue 
             WHERE channel = 'new_stay' AND processed IS NULL
-            ORDER BY stored ASC
+            ORDER BY stored ASC LIMIT 100
     LOOP
         RAISE NOTICE '-> cron_process_new_stay_fn [%]', process_rec.payload;
         -- update stay
@@ -77,7 +77,7 @@ begin
     FOR process_rec in 
         SELECT * FROM process_queue 
             WHERE channel = 'new_moorage' AND processed IS NULL
-            ORDER BY stored ASC
+            ORDER BY stored ASC LIMIT 100
     LOOP
         RAISE NOTICE '-> cron_process_new_moorage_fn [%]', process_rec.payload;
         -- update moorage
@@ -362,3 +362,27 @@ $$ language plpgsql;
 COMMENT ON FUNCTION
     public.cron_vaccum_fn
     IS 'init by pg_cron to cleanup job_run_details table on schema public postgras db';
+
+-- CRON for alerts notification
+CREATE FUNCTION cron_process_alerts_fn() RETURNS void AS $$
+DECLARE
+    alert_rec record;
+BEGIN
+    -- Check for new event notification pending update
+    RAISE NOTICE 'cron_process_alerts_fn';
+    FOR alert_rec in
+        SELECT
+            a.user_id,a.email,v.vessel_id
+            FROM auth.accounts a, auth.vessels v, api.metadata m
+            WHERE m.vessel_id = v.vessel_id
+                AND a.email = v.owner_email
+                AND (preferences->'alerting'->'enabled')::boolean = false
+    LOOP
+        RAISE NOTICE '-> cron_process_alert_rec_fn for [%]', alert_rec;
+    END LOOP;
+END;
+$$ language plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.cron_process_alerts_fn
+    IS 'init by pg_cron to check for alerts, if so perform process_alerts_queue_fn';
