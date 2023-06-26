@@ -402,17 +402,6 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
         valid_status BOOLEAN;
         _vessel_id TEXT;
     BEGIN
-        -- Force vessel_id to import from SQL cli run as username role
-        SELECT vessel_id INTO _vessel_id FROM api.metadata WHERE client_id = NEW.client_id;
-        IF _vessel_id IS NOT NULL THEN
-            NEW.vessel_id = _vessel_id;
-            PERFORM set_config('vessel.id', _vessel_id, false) as vessel_id;
-            RAISE NOTICE 'metrics_trigger_fn set vessel_id [%] [%] ', NEW.vessel_id, NEW.client_id;
-        ELSE
-            RAISE EXCEPTION 'Invalid vessel.id'
-                USING HINT = 'Unknow vessel.id';
-            RETURN NULL; -- Ingore insert if no vessel_id
-        END IF;
         -- Set client_id to new value to allow RLS
         --PERFORM set_config('vessel.client_id', NEW.client_id, false);
         NEW.vessel_id = current_setting('vessel.id', true);
@@ -443,7 +432,7 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
         END IF;
         -- Check if status is null
         IF NEW.status IS NULL THEN
-            RAISE WARNING 'Metrics Unknow NEW.status, null status, set to default moored [%]', NEW;
+            RAISE WARNING 'Metrics Unknow NEW.status, vessel_id [%], null status, set to default moored from [%]', NEW.vessel_id, NEW.status;
             NEW.status := 'moored';
         END IF;
         IF previous_status IS NULL THEN
