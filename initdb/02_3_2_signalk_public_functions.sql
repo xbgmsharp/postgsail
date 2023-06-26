@@ -833,7 +833,7 @@ CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook_id integer) RETUR
 
         -- Wake Maker = windspeeds above 15kts
         SELECT (preferences->'badges'->'Wake Maker') IS NOT NULL INTO _exist FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
-        RAISE WARNING '-> Wake Maker %', _exist;
+        --RAISE WARNING '-> Wake Maker %', _exist;
         if _exist is false then
             -- is 15 knot+ logbook?
             select l.max_wind_speed into max_wind_speed from api.logbook l where l.id = logbook_id AND l.max_wind_speed >= 15 and vessel_id = current_setting('vessel.id', false);
