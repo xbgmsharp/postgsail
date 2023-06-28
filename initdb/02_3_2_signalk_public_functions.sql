@@ -1081,7 +1081,6 @@ DECLARE
   _email text;
   _mmsi name;
   _path name;
-  _clientid text;
   _vid text;
   account_rec record;
   vessel_rec record;
@@ -1142,19 +1141,10 @@ BEGIN
     -- Set session variables
     PERFORM set_config('vessel.id', vessel_rec.vessel_id, false);
     PERFORM set_config('vessel.name', vessel_rec.name, false);
-    -- ensure vessel is connected
-    SELECT coalesce(m.client_id, null) INTO _clientid
-        FROM auth.vessels v, api.metadata m
-        WHERE
-            m.vessel_id = current_setting('vessel.id')
-            AND m.vessel_id = v.vessel_id
-            AND v.owner_email = _email;
-    -- Set session variables
-    --PERFORM set_config('vessel.client_id', _clientid, false);
-    --RAISE WARNING 'public.check_jwt() user_role vessel.client_id [%]', current_setting('vessel.client_id', false);
     --RAISE WARNING 'public.check_jwt() user_role vessel.id [%]', current_setting('vessel.id', false);
     --RAISE WARNING 'public.check_jwt() user_role vessel.name [%]', current_setting('vessel.name', false);
   ELSIF _role = 'vessel_role' THEN
+    -- Extract vessel_id from jwt token
     SELECT current_setting('request.jwt.claims', true)::json->>'vid' INTO _vid;
     -- Check the vessel and user exist
     SELECT auth.vessels.* INTO vessel_rec
@@ -1168,9 +1158,6 @@ BEGIN
     END IF;
     PERFORM set_config('vessel.id', vessel_rec.vessel_id, false);
     PERFORM set_config('vessel.name', vessel_rec.name, false);
-    -- TODO add client_id
-    --PERFORM set_config('vessel.client_id', vessel_rec.client_id, false);
-    --RAISE WARNING 'public.check_jwt() user_role vessel.mmsi %', current_setting('vessel.mmsi', false);
     --RAISE WARNING 'public.check_jwt() user_role vessel.name %', current_setting('vessel.name', false);
     --RAISE WARNING 'public.check_jwt() user_role vessel.id %', current_setting('vessel.id', false);
   ELSIF _role <> 'api_anonymous' THEN
@@ -1195,3 +1182,23 @@ BEGIN
     perform public.cron_process_monitor_offline_fn();
 END
 $$ language plpgsql security definer;
+
+---------------------------------------------------------------------------
+-- Delete all data for a account by email and vessel_id
+CREATE OR REPLACE FUNCTION public.delete_account_fn(IN _email TEXT, IN _vessel_id TEXT) RETURNS BOOLEAN
+AS $delete_account_fn$
+BEGIN
+    select count(*) from api.metrics m where vessel_id = _vessel_id;
+    delete from api.metrics m where vessel_id = _vessel_id;
+    select * from api.metadata m where vessel_id = _vessel_id;
+    delete from api.logbook l where vessel_id = _vessel_id;
+    delete from api.moorages m where vessel_id = _vessel_id;
+    delete from api.stays s where vessel_id = _vessel_id;
+    delete from api.metadata m where vessel_id = _vessel_id;
+    select * from auth.vessels v where vessel_id = _vessel_id;
+    delete from auth.vessels v where vessel_id = _vessel_id;
+    select * from auth.accounts a where email  = _email;
+    delete from auth.accounts a where email  = _email;
+    RETURN True;
+END
+$delete_account$ language plpgsql security definer;
