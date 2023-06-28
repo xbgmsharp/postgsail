@@ -118,7 +118,7 @@
             "group": [],
             "metricColumn": "none",
             "rawQuery": true,
-            "rawSql": "SET vessel.id = '${__user.login}';\nSELECT\n  time AS \"time\",\n  cast(windspeedapparent AS numeric) * 1.9438444924406 AS windSpeed\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  and vessel_id = '${boat}'\nORDER BY 1\n",
+            "rawSql": "SELECT\n  time AS \"time\",\n  cast(windspeedapparent AS numeric) * 1.9438444924406 AS windSpeed\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  and vessel_id = '${boat}'\nORDER BY 1\n",
             "refId": "A",
             "select": [
               [
@@ -236,7 +236,7 @@
             "group": [],
             "metricColumn": "none",
             "rawQuery": true,
-            "rawSql": "SET vessel.id = '${__user.login}';\nSELECT cast(anglespeedapparent AS numeric) AS windAngleTrue from api.metrics WHERE vessel_id = '${boat}' ORDER BY time DESC LIMIT 1;",
+            "rawSql": "SELECT cast(anglespeedapparent AS numeric) AS windAngleTrue from api.metrics WHERE vessel_id = '${boat}' ORDER BY time DESC LIMIT 1;",
             "refId": "A",
             "select": [
               [
@@ -363,7 +363,7 @@
             "group": [],
             "metricColumn": "none",
             "rawQuery": true,
-            "rawSql": "SET vessel.id = '${__user.login}';\nSELECT\n  time AS \"time\",\n  cast(metrics-> 'environment.outside.temperature' AS numeric) - 273.15 AS outsideTemperature\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND vessel_id = '${boat}'\nORDER BY 1",
+            "rawSql": "SELECT\n  time AS \"time\",\n  cast(metrics-> 'environment.outside.temperature' AS numeric) - 273.15 AS outsideTemperature\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND vessel_id = '${boat}'\nORDER BY 1",
             "refId": "A",
             "select": [
               [
@@ -487,7 +487,7 @@
             "group": [],
             "metricColumn": "none",
             "rawQuery": true,
-            "rawSql": "SET vessel.id = '${__user.login}';\nSELECT\n  time AS \"time\",\n  cast(metrics-> 'environment.water.temperature' AS numeric) - 273.15 AS waterTemperature\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND vessel_id = '${boat}'\nORDER BY 1",
+            "rawSql": "SELECT\n  time AS \"time\",\n  cast(metrics-> 'environment.water.temperature' AS numeric) - 273.15 AS waterTemperature\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND vessel_id = '${boat}'\nORDER BY 1",
             "refId": "A",
             "select": [
               [
@@ -1936,7 +1936,7 @@
         "yBucketBound": "auto"
       }
     ],
-    "refresh": "1m",
+    "refresh": "5m",
     "schemaVersion": 37,
     "style": "dark",
     "tags": [],
@@ -1965,7 +1965,7 @@
       ]
     },
     "time": {
-      "from": "now-1h",
+      "from": "now-3h",
       "to": "now"
     },
     "timepicker": {
@@ -1980,7 +1980,7 @@
       ]
     },
     "timezone": "utc",
-    "title": "Weather",
+    "title": "Solar System",
     "uid": "62bzzlr7z",
     "version": 1,
     "weekStart": ""

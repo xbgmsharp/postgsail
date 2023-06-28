@@ -104,7 +104,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SET vessel.client_id = '${__user.login}';\nSELECT\n  time AS \"time\",\n  cast(metrics-> 'electrical.batteries.AUX2.voltage' AS numeric) AS AUX2Voltage\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND client_id = '${boat}'\nORDER BY 1",
+          "rawSql": "SET vessel.id = '${__user.login}';\nSELECT\n  time AS \"time\",\n  cast(metrics-> 'electrical.batteries.AUX2.voltage' AS numeric) AS AUX2Voltage\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND vessel_id = '${boat}'\nORDER BY 1",
           "refId": "A",
           "select": [
             [
@@ -210,7 +210,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SET vessel.client_id = '${__user.login}';\nSELECT\n  time AS \"time\",\n  cast(metrics-> 'environment.outside.temperature' AS numeric) - 273.15 AS OutsideTemperature\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND client_id = '${boat}'\nORDER BY 1",
+          "rawSql": "SET vessel.id = '${__user.login}';\nSELECT\n  time AS \"time\",\n  cast(metrics-> 'environment.outside.temperature' AS numeric) - 273.15 AS OutsideTemperature\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND vessel_id = '${boat}'\nORDER BY 1",
           "refId": "A",
           "select": [
             [
@@ -370,7 +370,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SET vessel.client_id = '${__user.login}';\nSELECT\n  time AS \"time\",\n  cast(metrics-> 'electrical.batteries.AUX2.voltage' AS numeric) AS AUX2,\n\tcast(metrics-> 'electrical.batteries.House.voltage' AS numeric) AS House,\n\tcast(metrics-> 'environment.rpi.pijuice.gpioVoltage' AS numeric) AS gpioVoltage,\n\tcast(metrics-> 'electrical.batteries.Seatalk.voltage' AS numeric) AS SeatalkVoltage,\n\tcast(metrics-> 'electrical.batteries.Starter.voltage' AS numeric) AS StarterVoltage,\n\tcast(metrics-> 'environment.rpi.pijuice.batteryVoltage' AS numeric) AS RPIBatteryVoltage,\n\tcast(metrics-> 'electrical.batteries.victronDevice.voltage' AS numeric) AS victronDeviceVoltage\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n\tAND client_id = '${boat}'\nORDER BY 1",
+          "rawSql": "SET vessel.id = '${__user.login}';\nSELECT\n  time AS \"time\",\n  cast(metrics-> 'electrical.batteries.AUX2.voltage' AS numeric) AS AUX2,\n\tcast(metrics-> 'electrical.batteries.House.voltage' AS numeric) AS House,\n\tcast(metrics-> 'environment.rpi.pijuice.gpioVoltage' AS numeric) AS gpioVoltage,\n\tcast(metrics-> 'electrical.batteries.Seatalk.voltage' AS numeric) AS SeatalkVoltage,\n\tcast(metrics-> 'electrical.batteries.Starter.voltage' AS numeric) AS StarterVoltage,\n\tcast(metrics-> 'environment.rpi.pijuice.batteryVoltage' AS numeric) AS RPIBatteryVoltage,\n\tcast(metrics-> 'electrical.batteries.victronDevice.voltage' AS numeric) AS victronDeviceVoltage\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n\tAND vessel_id = '${boat}'\nORDER BY 1",
           "refId": "A",
           "select": [
             [
@@ -505,7 +505,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SET vessel.client_id = '${__user.login}';\nSELECT\n  time AS \"time\",\n  cast(metrics-> 'environment.water.temperature' AS numeric) - 273.15 AS waterTemperature,\n\tcast(metrics-> 'environment.inside.temperature' AS numeric) - 273.15 AS insideTemperature,\n\tcast(metrics-> 'environment.outside.temperature' AS numeric) - 273.15 AS outsideTemperature\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND client_id = '${boat}'\nORDER BY 1",
+          "rawSql": "SET vessel.id = '${__user.login}';\nSELECT\n  time AS \"time\",\n  cast(metrics-> 'environment.water.temperature' AS numeric) - 273.15 AS waterTemperature,\n\tcast(metrics-> 'environment.inside.temperature' AS numeric) - 273.15 AS insideTemperature,\n\tcast(metrics-> 'environment.outside.temperature' AS numeric) - 273.15 AS outsideTemperature\nFROM api.metrics\nWHERE\n  $__timeFilter(time)\n  AND vessel_id = '${boat}'\nORDER BY 1",
           "refId": "A",
           "select": [
             [
@@ -638,7 +638,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SET vessel.client_id = '${__user.login}';\nwith config as (select set_config('vessel.id', '${boat}', false) ) select * from api.monitoring_view",
+          "rawSql": "SET vessel.id = '${__user.login}';\nwith config as (select set_config('vessel.id', '${boat}', false) ) select * from api.monitoring_view",
           "refId": "A",
           "select": [
             [
@@ -695,7 +695,7 @@
           "type": "postgres",
           "uid": "PCC52D03280B7034C"
         },
-        "definition": "SET \"user.email\" = '${__user.email}';\nSET vessel.client_id = '${__user.login}';\nSELECT\n        v.name AS __text,\n        m.client_id AS __value\n   FROM auth.vessels v\n   JOIN api.metadata m ON v.owner_email = '${__user.email}' and m.vessel_id = v.vessel_id;",
+        "definition": "SET \"user.email\" = '${__user.email}';\nSET vessel.id = '${__user.login}';\nSELECT\n        v.name AS __text,\n        m.vessel_id AS __value\n   FROM auth.vessels v\n   JOIN api.metadata m ON v.owner_email = '${__user.email}' and m.vessel_id = v.vessel_id;",
         "description": "Vessel name",
         "hide": 0,
         "includeAll": false,
@@ -703,7 +703,7 @@
         "multi": false,
         "name": "boat",
         "options": [],
-        "query": "SET \"user.email\" = '${__user.email}';\nSET vessel.client_id = '${__user.login}';\nSELECT\n        v.name AS __text,\n        m.client_id AS __value\n   FROM auth.vessels v\n   JOIN api.metadata m ON v.owner_email = '${__user.email}' and m.vessel_id = v.vessel_id;",
+        "query": "SET \"user.email\" = '${__user.email}';\nSET vessel.id = '${__user.login}';\nSELECT\n        v.name AS __text,\n        m.vessel_id AS __value\n   FROM auth.vessels v\n   JOIN api.metadata m ON v.owner_email = '${__user.email}' and m.vessel_id = v.vessel_id;",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,

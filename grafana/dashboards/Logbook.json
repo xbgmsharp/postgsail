@@ -133,7 +133,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SET vessel.client_id = '${__user.login}';\nSELECT * from api.logs_view",
+          "rawSql": "SET vessel.id = '${__user.login}';\nSELECT * from api.logs_view",
           "refId": "A",
           "select": [
             [
@@ -262,7 +262,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SET vessel.client_id = '${__user.login}';\nSELECT * from api.stays_view",
+          "rawSql": "SET vessel.id = '${__user.login}';\nSELECT * from api.stays_view",
           "refId": "A",
           "select": [
             [
@@ -391,7 +391,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SET vessel.client_id = '${__user.login}';\nselect * from api.moorages_view",
+          "rawSql": "SET vessel.id = '${__user.login}';\nselect * from api.moorages_view",
           "refId": "A",
           "select": [
             [
@@ -442,7 +442,7 @@
           "type": "postgres",
           "uid": "PCC52D03280B7034C"
         },
-        "definition": "SET \"user.email\" = '${__user.email}';\nSET vessel.client_id = '${__user.login}';\nSELECT\n        v.name AS __text,\n        m.client_id AS __value\n   FROM auth.vessels v\n   JOIN api.metadata m ON v.owner_email = '${__user.email}' and m.vessel_id = v.vessel_id;",
+        "definition": "SET \"user.email\" = '${__user.email}';\nSET vessel.id = '${__user.login}';\nSELECT\n        v.name AS __text,\n        m.vessel_id AS __value\n   FROM auth.vessels v\n   JOIN api.metadata m ON v.owner_email = '${__user.email}' and m.vessel_id = v.vessel_id;",
         "description": "Vessel Name",
         "hide": 0,
         "includeAll": false,
@@ -450,7 +450,7 @@
         "multi": false,
         "name": "boat",
         "options": [],
-        "query": "SET \"user.email\" = '${__user.email}';\nSET vessel.client_id = '${__user.login}';\nSELECT\n        v.name AS __text,\n        m.client_id AS __value\n   FROM auth.vessels v\n   JOIN api.metadata m ON v.owner_email = '${__user.email}' and m.vessel_id = v.vessel_id;",
+        "query": "SET \"user.email\" = '${__user.email}';\nSET vessel.id = '${__user.login}';\nSELECT\n        v.name AS __text,\n        m.vessel_id AS __value\n   FROM auth.vessels v\n   JOIN api.metadata m ON v.owner_email = '${__user.email}' and m.vessel_id = v.vessel_id;",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
