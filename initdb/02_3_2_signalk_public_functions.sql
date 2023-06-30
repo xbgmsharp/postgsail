@@ -1186,7 +1186,7 @@ $$ language plpgsql security definer;
 ---------------------------------------------------------------------------
 -- Delete all data for a account by email and vessel_id
 CREATE OR REPLACE FUNCTION public.delete_account_fn(IN _email TEXT, IN _vessel_id TEXT) RETURNS BOOLEAN
-AS $delete_account_fn$
+AS $delete_account$
 BEGIN
     select count(*) from api.metrics m where vessel_id = _vessel_id;
     delete from api.metrics m where vessel_id = _vessel_id;
