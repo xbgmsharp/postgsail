@@ -100,8 +100,11 @@ services:
         max-size: 10m
 
   web:
-    image: xbgmsharp/postgsail-vuestic
-    container_name: web
+    image: xbgmsharp/vuestic-postgsail:dev
+    build:
+      context: https://github.com/xbgmsharp/vuestic-postgsail.git#live
+      dockerfile: Dockerfile_dev
+    container_name: web_dev
     restart: unless-stopped
     volumes:
       - /etc/resolv.conf:/etc/resolv.conf:ro
@@ -109,6 +112,11 @@ services:
       - "3006:8080"
     network_mode: "host"
     env_file: .env
+    environment:
+      - VITE_PGSAIL_URL=${PGSAIL_API_URL}
+      - VUE_APP_INCLUDE_DEMOS=false
+      - VITE_APP_BUILD_VERSION=true
+      - VITE_APP_TITLE=PostgSail Dev
     depends_on:
       - db
       - api
