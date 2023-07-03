@@ -27,7 +27,7 @@ To understand the why and how, you might want to read [Why.md](https://github.co
 ## Architecture
 For more clarity and visibility the complete [Entity-Relationship Diagram (ERD)](https://github.com/xbgmsharp/postgsail/tree/main/ERD/README.md) is export as PNG and SVG file.
 
-### Cloud
+## Cloud
 If you prefer not to install or administer your instance of PostgSail, hosted versions of PostgSail are available in the cloud of your choice.
 
 The cloud advantage.
@@ -35,13 +35,25 @@ The cloud advantage.
 Hosted and fully–managed options for PostgSail, designed for all your deployment and business needs. Register and try for free at https://iot.openplotter.cloud/.
 
 ## Using PostgSail
+
+## Cloud developement
+ - https://codesandbox.io/p/sandbox/stoic-bird-5g6gk8
+
 ### pre-deploy configuration
 
 To get these running, copy `.env.example` and rename to `.env` then set the value accordinly.
 
+```bash
+# cp .env.example .env
+```
+
 Notice, that `PGRST_JWT_SECRET` must be at least 32 characters long.
 
 `$ head /dev/urandom | tr -dc A-Za-z0-9 | head -c 32 ; echo ''`
+
+```bash
+# nano .env
+```
 
 ### Deploy
 By default there is no network set and the postgresql data are store in a docker volume.
@@ -49,6 +61,18 @@ You can update the default settings by editing `docker-compose.yml` to your need
 Then simply excecute:
 ```bash
 $ docker-compose up
+```
+
+#### Initialize database
+Then simply excecute:
+```bash
+$ docker-compose up db
+```
+
+#### start backend (db, api)
+Then simply excecute:
+```bash
+$ docker-compose up db api
 ```
 
 ### SQL Configuration
