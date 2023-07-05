@@ -141,7 +141,7 @@ services:
     restart: unless-stopped
     volumes:
       - data:/var/lib/pgadmin
-      - $PWD/.codesandbox/servers.json:/servers.json:ro
+      - $PWD/pgadmin_servers.json:/servers.json:ro
     ports:
       - 5050:5050
     environment:
@@ -152,9 +152,10 @@ services:
       - PGADMIN_SERVER_JSON_FILE=/servers.json
       - PGADMIN_DISABLE_POSTFIX=true
     networks:
-      - iot
-    #depends_on:
-    #  - db
+      iot:
+        ipv4_address: 172.30.0.5
+    depends_on:
+      - db
     logging:
       options:
         max-size: 10m
