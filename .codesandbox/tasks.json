@@ -1,0 +1,104 @@
+{
+  // These tasks will run in order when initializing your CodeSandbox project.
+  "setupTasks": [
+    {
+      "name": "git udpate",
+      "command": "cd ~/workspace/ && git pull"
+    },
+    {
+      "name": "git udpate submodule",
+      "command": "cd ~/workspace/ && git submodule update --recursive --remote"
+    }
+  ],
+
+  // These tasks can be run from CodeSandbox. Running one will open a log in the app.
+  "tasks": {
+    "docker-compose up db": {
+      "name": "docker-compose up db",
+      "command": "docker-compose up db",
+      "runAtStart": true
+    },
+    "docker network inspect network": {
+      "name": "docker network inspect postgsail_iot",
+      "command": "docker network ls && docker network inspect postgsail_iot",
+      "runAtStart": false
+    },
+    "docker-compose up api": {
+      "name": "docker-compose up api",
+      "command": "docker-compose up api",
+      "runAtStart": false,
+      "preview": {
+        "port": 3000,
+        "prLink": "direct"
+      }
+    },
+    "docker volume rm volume": {
+      "name": "docker volume rm volume",
+      "command": "docker volume ls && docker volume rm postgsail_data",
+      "runAtStart": false
+    },
+    "docker-compose rm db": {
+      "name": "docker-compose rm db",
+      "command": "docker-compose rm db",
+      "runAtStart": false
+    },
+    "docker-compose rm api": {
+      "name": "docker-compose rm api",
+      "command": "docker-compose rm api",
+      "runAtStart": false
+    },
+    "docker-compose clean": {
+      "name": "docker-compose clean",
+      "command": "docker-compose stop && docker-compose rm && docker volume ls && docker volume rm postgsail_data",
+      "runAtStart": false
+    },
+    "docker-compose pgadmin": {
+      "name": "docker-compose up pgadmin",
+      "command": "docker-compose up pgadmin",
+      "runAtStart": false,
+      "preview": {
+        "port": 5050,
+        "prLink": "direct"
+      }
+    },
+    "docker-compose web": {
+      "name": "docker-compose up web",
+      "command": "docker-compose up web",
+      "runAtStart": false,
+      "preview": {
+        "port": 8080,
+        "prLink": "direct"
+      }
+    },
+    "docker-compose ps": {
+      "name": "docker-compose ps -a",
+      "command": "docker-compose ps -a",
+      "runAtStart": false
+    },
+    "docker ps": {
+      "name": "docker ps -a",
+      "command": "docker ps -a",
+      "runAtStart": false
+    },
+    "docker-compose stop": {
+      "name": "docker-compose stop",
+      "command": "docker-compose stop",
+      "runAtStart": false
+    },
+    "npm i": {
+      "name": "npm i",
+      "command": "cd frontend/ && npm i",
+      "runAtStart": false
+    },
+    "git submodule add https://github.com/xbgmsharp/vuestic-postgsail frontend": {
+      "name": "git submodule add https://github.com/xbgmsharp/vuestic-postgsail frontend",
+      "command": "git submodule add https://github.com/xbgmsharp/vuestic-postgsail frontend",
+      "runAtStart": false
+    },
+    "git pull": {
+      "name": "git pull",
+      "command": "git pull",
+      "runAtStart": false
+    }
+  }
+}
