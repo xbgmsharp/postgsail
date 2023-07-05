@@ -95,6 +95,11 @@
       "command": "git submodule add https://github.com/xbgmsharp/vuestic-postgsail frontend",
       "runAtStart": false
     },
+    "git submodule update --init --recursive": {
+      "name": "git submodule update --init --recursive",
+      "command": "git submodule update --init --recursive",
+      "runAtStart": false
+    },
     "git pull": {
       "name": "git pull",
       "command": "git pull",
