@@ -123,7 +123,8 @@ services:
     ports:
       - "3001:3000"
     networks:
-      - iot
+      iot:
+        ipv4_address: 172.30.0.6
     environment:
       - GF_INSTALL_PLUGINS=pr0ps-trackmap-panel,fatcloud-windrose-panel
       - GF_USERS_ALLOW_SIGN_UP=false
@@ -149,7 +150,8 @@ services:
     ports:
       - "3005:8080"
     networks:
-      - iot
+      iot:
+        ipv4_address: 172.30.0.7
     environment:
       - BOT_TOKEN=${PGSAIL_TELEGRAM_BOT_TOKEN}
       - PGSAIL_URL=${PGSAIL_API_URL}
@@ -171,7 +173,8 @@ services:
     environment:
       API_URL: http://172.30.0.3:3000/
     networks:
-      - iot
+      iot:
+        ipv4_address: 172.30.0.8
     depends_on:
       - db
       - api
