@@ -18,7 +18,7 @@ services:
       - "5432:5432"
     volumes:
       - ./db-data:/var/lib/postgresql/data
-      - $PWD/initdb:/docker-entrypoint-initdb.d
+      - ./initdb:/docker-entrypoint-initdb.d
     networks:
       iot:
         ipv4_address: 172.30.0.2
@@ -141,7 +141,7 @@ services:
     restart: unless-stopped
     volumes:
       - data:/var/lib/pgadmin
-      - $PWD/pgadmin_servers.json:/servers.json:ro
+      - ./pgadmin_servers.json:/servers.json:ro
     ports:
       - 5050:5050
     environment:
