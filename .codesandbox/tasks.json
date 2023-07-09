@@ -19,8 +19,8 @@
       "runAtStart": true
     },
     "docker network inspect network": {
-      "name": "docker network inspect postgsail_iot",
-      "command": "docker network ls && docker network inspect postgsail_iot",
+      "name": "docker network inspect postgsail_default",
+      "command": "docker network ls && docker network inspect postgsail_default",
       "runAtStart": false
     },
     "docker-compose up api": {
@@ -98,6 +98,11 @@
     "git submodule update --init --recursive": {
       "name": "git submodule update --init --recursive",
       "command": "git submodule update --init --recursive",
+      "runAtStart": false
+    },
+    "git submodule update --recursive --remote": {
+      "name": "git submodule update --recursive --remote",
+      "command": "git submodule update --recursive --remote",
       "runAtStart": false
     },
     "git pull": {
