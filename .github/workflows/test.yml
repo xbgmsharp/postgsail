@@ -26,10 +26,10 @@ jobs:
 
       - name: Run PostgSail
         # Environment variables
-        #env:
+        env:
         #  # The hostname used to communicate with the PostgreSQL service container
-        #  POSTGRES_HOST: localhost
-        #  POSTGRES_PORT: 5432
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
         #  POSTGRES_USER: username
         #  POSTGRES_PASSWORD: password
         run: |
@@ -41,7 +41,7 @@ jobs:
           docker-compose ps -a
           echo ${PGSAIL_API_URL}
           curl ${PGSAIL_API_URL}
-          if psql -c "select 1"
+          if psql -c "select 1;"
           then
             echo "Test PostgreSQL"
             psql -c "SELECT version();"
