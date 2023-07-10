@@ -410,6 +410,3 @@ CREATE OR REPLACE VIEW api.total_info_view WITH (security_invoker=true,security_
 COMMENT ON VIEW
     api.total_info_view
     IS 'Monitoring web view';
-
--- Badges
--- TODO View or function?
