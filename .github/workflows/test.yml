@@ -32,8 +32,8 @@ jobs:
         run: |
           set -eu
           source .env
-          docker-compose container stop || true
-          docker-compose container rm || true
+          docker-compose stop || true
+          docker-compose rm || true
           docker-compose up -d db && sleep 15 && docker-compose up -d api
           for _ in {1..120}
           do
