@@ -29,6 +29,8 @@ jobs:
         env:
           # The hostname used to communicate with the PostgreSQL service container
           PGHOST: localhost
+          PGPORT: 5432
+          PGDATABASE: signalk
           PGUSER: username
           PGPASSWORD: password
         run: |
@@ -40,13 +42,10 @@ jobs:
           docker-compose ps -a
           echo ${PGSAIL_API_URL}
           curl ${PGSAIL_API_URL}
-          if psql -c "select 1;"
-          then
-            echo "Test PostgreSQL"
-            psql -c "SELECT version();"
-            psql -c "SELECT value is not null FROM app_settings WHERE name = 'app.version';"
-            break
-          fi
+          psql -c "select 1"
+          echo "Test PostgreSQL"
+          psql -c "SELECT version();"
+          psql -c "SELECT value is not null FROM app_settings WHERE name = 'app.version';"
       - name: Show the logs
         if: always()
         run: |
