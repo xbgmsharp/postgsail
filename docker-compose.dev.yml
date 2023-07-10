@@ -63,7 +63,6 @@ services:
       context: ./tests
       dockerfile: Dockerfile
     container_name: tests
-    restart: unless-stopped
     volumes:
       - ./tests:/mnt
     working_dir: /mnt
@@ -75,7 +74,8 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - PGPASSWORD=${POSTGRES_PASSWORD}
-      - PGSAIL_API_URL=${PGSAIL_API_URL}
+      - PGSAIL_API_URI=http://api:3000
+      - PGSAIL_DB_URI=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/signalk
     depends_on:
       - db
       - api
