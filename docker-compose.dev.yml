@@ -69,6 +69,7 @@ services:
     command: 'bash tests.sh'
     links:
       - "api:postgrest"
+      - "db:database"
     env_file: .env
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
