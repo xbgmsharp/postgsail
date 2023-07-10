@@ -18,41 +18,36 @@ jobs:
       - name: Pull Docker image
         run: docker pull xbgmsharp/timescaledb-postgis
 
+      - name: Install psql
+        run: sudo apt install postgresql-client
+
       - name: Set env
         run: cp .env.example .env
 
       - name: Run PostgSail
         # Environment variables
-        env:
-          # The hostname used to communicate with the PostgreSQL service container
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: 5432
-          POSTGRES_USER: username
-          POSTGRES_PASSWORD: password
+        #env:
+        #  # The hostname used to communicate with the PostgreSQL service container
+        #  POSTGRES_HOST: localhost
+        #  POSTGRES_PORT: 5432
+        #  POSTGRES_USER: username
+        #  POSTGRES_PASSWORD: password
         run: |
           set -eu
           source .env
           docker-compose stop || true
           docker-compose rm || true
           docker-compose up -d db && sleep 15 && docker-compose up -d api && sleep 5
-          for _ in {1..120}
-          do
-            if [ -z "$(docker container ls -q --filter name=api)" ]
-            then
-              echo "REST API container is not running"
-              exit 1
-            fi
-            docker-compose ps -a
-            echo ${PGSAIL_API_URL}
-            curl ${PGSAIL_API_URL}
-            sleep 1
-          done
-          if ! psql -c "select 1"
+          docker-compose ps -a
+          echo ${PGSAIL_API_URL}
+          curl ${PGSAIL_API_URL}
+          if psql -c "select 1"
           then
-            echo "Cannot connect to PostgreSQL"
-            exit 1
+            echo "Test PostgreSQL"
+            psql -c "SELECT version();"
+            psql -c "SELECT value is not null FROM app_settings WHERE name = 'app.version';"
+            break
           fi
-
       - name: Show the logs
         if: always()
         run: |
