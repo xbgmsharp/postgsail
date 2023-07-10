@@ -31,6 +31,7 @@ jobs:
           POSTGRES_PASSWORD: password
         run: |
           set -eu
+          source .env
           docker-compose container stop || true
           docker-compose container rm || true
           docker-compose up -d db && sleep 15 && docker-compose up -d api
