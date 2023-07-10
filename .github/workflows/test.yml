@@ -34,7 +34,7 @@ jobs:
           source .env
           docker-compose stop || true
           docker-compose rm || true
-          docker-compose up -d db && sleep 15 && docker-compose up -d api
+          docker-compose up -d db && sleep 15 && docker-compose up -d api && sleep 5
           for _ in {1..120}
           do
             if [ -z "$(docker container ls -q --filter name=api)" ]
