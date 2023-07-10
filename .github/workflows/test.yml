@@ -27,11 +27,10 @@ jobs:
       - name: Run PostgSail
         # Environment variables
         env:
-        #  # The hostname used to communicate with the PostgreSQL service container
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: 5432
-        #  POSTGRES_USER: username
-        #  POSTGRES_PASSWORD: password
+          # The hostname used to communicate with the PostgreSQL service container
+          PGHOST: localhost
+          PGUSER: username
+          PGPASSWORD: password
         run: |
           set -eu
           source .env
