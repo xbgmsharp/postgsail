@@ -42,6 +42,8 @@ jobs:
               echo "REST API container is not running"
               exit 1
             fi
+            docker-compose ps -a
+            echo ${PGSAIL_API_URL}
             curl ${PGSAIL_API_URL}
             sleep 1
           done
