@@ -1,0 +1,73 @@
+name: Test initdb commit && PR
+
+on:
+  pull_request:
+    paths:
+      - 'initdb/**'
+    branches:
+      - 'main'
+  push:
+    branches:
+      - 'main'
+  workflow_dispatch:
+
+jobs:
+  ci-test:
+    runs-on: ubuntu-latest
+    outputs:
+      output1: ${{ steps.filter.outputs.workflows }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      # https://github.com/docker/setup-buildx-action
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      # https://github.com/marketplace/actions/build-and-push-docker-images
+      -
+        name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: false
+          tags: xbgmsharp/timescaledb-postgis-gh:latest
+      -
+        name: Run smoke test
+        run: |
+          set -eu
+          export PGHOST=localhost
+          export PGUSER=postgres
+          export PGPASSWORD=test1234
+          docker container stop smoketest-image || true
+          docker container rm smoketest-image || true
+          docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=${PGPASSWORD} --name smoketest-image xbgmsharp/timescaledb-postgis-gh
+          for _ in {1..120}
+          do
+            if [ -z "$(docker container ls -q --filter name=smoketest-image)" ]
+            then
+              echo "Smoketest container is not running"
+              exit 1
+            fi
+            if psql -c "select 1"
+            then
+              echo "Test PostgreSQL"
+              psql -c "SELECT version();"
+              bash tests/extensions_test/test*.sh
+              break
+            fi
+            sleep 1
+          done
+          if ! psql -c "select 1"
+          then
+            echo "Cannot connect to PostgreSQL"
+            exit 1
+          fi
+
+      - name: Show the logs
+        if: always()
+        run: |
+          docker logs smoketest-image

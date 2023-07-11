@@ -1,15 +1,17 @@
-name: Test PostgSail docker & schema
+name: PostgSail DB Tests docker & schema
 
 on:
   push:
     branches:
       - 'main'
+    paths:
+      - 'initdb/**'
     # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 jobs:
   smoketest:
-    name: smoketest
+    name: tests
     runs-on: ubuntu-latest
     steps:
       - name: Check out the source
@@ -43,9 +45,12 @@ jobs:
           echo ${PGSAIL_API_URL}
           curl ${PGSAIL_API_URL}
           psql -c "select 1"
-          echo "Test PostgreSQL"
+          echo "Test PostgreSQL version"
           psql -c "SELECT version();"
-          psql -c "SELECT value is not null FROM app_settings WHERE name = 'app.version';"
+          echo "Test PostgSail version"
+          psql -c "SELECT value FROM app_settings WHERE name = 'app.version';"
+          echo "Test PostgSail Unit Test"
+          docker-compose -f docker-compose.dev.yml -f docker-compose.yml up tests
       - name: Show the logs
         if: always()
         run: |
