@@ -1,4 +1,4 @@
-name: PostgSail DB Tests docker & schema
+name: PostgSail DB Tests docker & sql schema
 
 on:
   push:
@@ -26,7 +26,7 @@ jobs:
       - name: Set env
         run: cp .env.example .env
 
-      - name: Run PostgSail
+      - name: Run PostgSail Database & API tests
         # Environment variables
         env:
           # The hostname used to communicate with the PostgreSQL service container

@@ -1,0 +1,67 @@
+name: Test grafana commit && PR
+
+on:
+  pull_request:
+    paths:
+      - 'grafana/**'
+    branches:
+      - 'main'
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'initgrafanadb/**'
+  workflow_dispatch:
+
+jobs:
+  ci-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      # https://github.com/docker/setup-buildx-action
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      # https://github.com/marketplace/actions/build-and-push-docker-images
+      -
+        name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: false
+          tags: xbgmsharp/timescaledb-postgis:latest
+
+      - name: Set env
+        run: cp .env.example .env
+
+      - name: Run PostgSail Grafana test
+        # Environment variables
+        env:
+          # The hostname used to communicate with the PostgreSQL service container
+          PGHOST: localhost
+          PGPORT: 5432
+          PGDATABASE: signalk
+          PGUSER: username
+          PGPASSWORD: password
+        run: |
+          set -eu
+          source .env
+          docker-compose stop || true
+          docker-compose rm || true
+          docker-compose up -d db && sleep 15
+          docker-compose ps -a
+          echo ${PGSAIL_API_URL}
+          curl ${PGSAIL_API_URL}
+          echo "Test PostgSail Grafana Unit Test"
+          docker-compose -d up app && sleep 5
+          docker-compose ps -a
+          curl http://localhost:3001/
+      - name: Show the logs
+        if: always()
+        run: |
+          docker-compose logs
