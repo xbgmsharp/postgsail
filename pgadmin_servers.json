@@ -4,7 +4,7 @@
       "Name": "PostgSail dev db",
       "Group": "Servers",
       "Port": 5432,
-      "Host": "172.30.0.2",
+      "Host": "db",
       "SSLMode": "prefer",
       "MaintenanceDB": "postgres",
       "Username": "postgres"
