@@ -79,7 +79,7 @@ First let's initialize the database.
 
 #### Initialize database
 
-First let's import the SQL schema, excecute:
+First let's import the SQL schema, execute:
 
 ```bash
 $ docker-compose up db
@@ -87,7 +87,7 @@ $ docker-compose up db
 
 #### Start backend (db, api)
 
-Then launch the full stack (db, api) backend, excecute:
+Then launch the full stack (db, api) backend, execute:
 
 ```bash
 $ docker-compose up db api
@@ -120,10 +120,10 @@ Next, to ingest data from signalk, you need to install [signalk-postgsail](https
 Also, if you like, you can import saillogger data using the postgsail helpers, [postgsail-helpers](https://github.com/xbgmsharp/postgsail-helpers).
 
 You might want to import your influxdb1 data as well, [outflux](https://github.com/timescale/outflux).
-Any taker on influxdb2 to PostgSail? It is definitly possible.
+Any taker on influxdb2 to PostgSail? It is definitely possible.
 
 Last, if you like, you can import the sample data from Signalk NMEA Plaka by running the tests.
-If everything goes well all tests pass sucessfully and you should recieve a few notifications by email or PushOver.
+If everything goes well all tests pass successfully and you should receive a few notifications by email or PushOver.
 
 ```
 $ docker-compose up tests
