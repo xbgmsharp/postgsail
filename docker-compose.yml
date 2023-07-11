@@ -71,10 +71,13 @@ services:
       - ./grafana:/etc/grafana
     ports:
       - "3001:3000"
+    env_file: .env
     environment:
       - GF_INSTALL_PLUGINS=pr0ps-trackmap-panel,fatcloud-windrose-panel
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SMTP_ENABLED=false
+      - PGSAIL_GRAFANA_URI=db:5432
+      - PGSAIL_GRAFANA_PASSWORD=${PGSAIL_GRAFANA_PASSWORD}
     depends_on:
       - db
     logging:
