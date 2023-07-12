@@ -1,4 +1,4 @@
-name: Test services db and api
+name: Test services db, api
 
 on:
   pull_request:
@@ -21,14 +21,14 @@ jobs:
       - name: Check out the source
         uses: actions/checkout@v3
 
+      - name: Set env
+        run: cp .env.example .env
+
       - name: Pull Docker images
         run: docker-compose pull db api
 
       - name: Install psql
         run: sudo apt install postgresql-client
-
-      - name: Set env
-        run: cp .env.example .env
 
       - name: Run PostgSail Database & API tests
         # Environment variables

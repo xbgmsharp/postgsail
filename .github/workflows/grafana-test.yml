@@ -1,4 +1,4 @@
-name: Test services db and grafana
+name: Test services db, grafana
 
 on:
   pull_request:
@@ -20,11 +20,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Pull Docker images
-        run: docker-compose pull db app
-
       - name: Set env
         run: cp .env.example .env
+
+      - name: Pull Docker images
+        run: docker-compose pull db app
 
       - name: Run PostgSail Grafana test
         # Environment variables
