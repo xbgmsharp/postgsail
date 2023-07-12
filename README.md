@@ -28,6 +28,9 @@ It is based on a well known open-source technology stack, Signalk, PostgreSQL, T
 To understand the why and how, you might want to read [Why.md](https://github.com/xbgmsharp/postgsail/tree/main/Why.md)
 
 ## Architecture
+A simple scalable architecture:
+
+![Architecture overview](https://raw.githubusercontent.com/xbgmsharp/postgsail/main/PostgSail.png "Architecture overview")
 
 For more clarity and visibility the complete [Entity-Relationship Diagram (ERD)](https://github.com/xbgmsharp/postgsail/tree/main/ERD/README.md) is export as PNG and SVG file.
 
