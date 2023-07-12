@@ -43,7 +43,7 @@ jobs:
           docker-compose up -d db && sleep 15 && docker-compose up -d api && sleep 5
           docker-compose ps -a
           echo "Test PostgSail Web Unit Test"
-          docker-compose -d up web && sleep 5
+          docker-compose up -d web && sleep 5
           docker-compose ps -a
           curl http://localhost:8080/
       - name: Show the logs

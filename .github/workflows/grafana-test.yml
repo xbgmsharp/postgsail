@@ -43,7 +43,7 @@ jobs:
           docker-compose up -d db && sleep 15
           docker-compose ps -a
           echo "Test PostgSail Grafana Unit Test"
-          docker-compose -d up app && sleep 5
+          docker-compose up -d app && sleep 5
           docker-compose ps -a
           curl http://localhost:3001/
       - name: Show the logs
