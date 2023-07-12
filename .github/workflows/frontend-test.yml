@@ -1,36 +1,32 @@
-name: Test services db and api
+name: Test services db api web
 
 on:
   pull_request:
     paths:
-      - 'initdb/**'
+      - 'frontend/**'
     branches:
       - 'main'
   push:
     branches:
       - 'main'
     paths:
-      - 'initdb/**'
+      - 'frontend/**'
   workflow_dispatch:
 
 jobs:
-  smoketest:
-    name: tests
+  ci-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out the source
+      - name: Checkout
         uses: actions/checkout@v3
 
       - name: Pull Docker images
-        run: docker-compose pull db api
-
-      - name: Install psql
-        run: sudo apt install postgresql-client
+        run: docker-compose pull db api web
 
       - name: Set env
         run: cp .env.example .env
 
-      - name: Run PostgSail Database & API tests
+      - name: Run PostgSail Grafana test
         # Environment variables
         env:
           # The hostname used to communicate with the PostgreSQL service container
@@ -46,15 +42,10 @@ jobs:
           docker-compose rm || true
           docker-compose up -d db && sleep 15 && docker-compose up -d api && sleep 5
           docker-compose ps -a
-          echo ${PGSAIL_API_URL}
-          curl ${PGSAIL_API_URL}
-          psql -c "select 1"
-          echo "Test PostgreSQL version"
-          psql -c "SELECT version();"
-          echo "Test PostgSail version"
-          psql -c "SELECT value FROM app_settings WHERE name = 'app.version';"
-          echo "Test PostgSail Unit Test"
-          docker-compose -f docker-compose.dev.yml -f docker-compose.yml up tests
+          echo "Test PostgSail Web Unit Test"
+          docker-compose -d up web && sleep 5
+          docker-compose ps -a
+          curl http://localhost:8080/
       - name: Show the logs
         if: always()
         run: |

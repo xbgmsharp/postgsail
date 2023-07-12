@@ -1,4 +1,4 @@
-name: Test grafana commit && PR
+name: Test services db and grafana
 
 on:
   pull_request:
@@ -19,22 +19,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      -
-        name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-      # https://github.com/docker/setup-buildx-action
-      -
-        name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      # https://github.com/marketplace/actions/build-and-push-docker-images
-      -
-        name: Build and push
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: false
-          tags: xbgmsharp/timescaledb-postgis:latest
+
+      - name: Pull Docker images
+        run: docker-compose pull db app
 
       - name: Set env
         run: cp .env.example .env
