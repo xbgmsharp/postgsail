@@ -359,45 +359,75 @@ CREATE OR REPLACE VIEW api.monitoring_view WITH (security_invoker=true,security_
     ORDER BY time DESC LIMIT 1;
 COMMENT ON VIEW
     api.monitoring_view
-    IS 'Monitoring web view';
+    IS 'Monitoring static web view';
 
-CREATE VIEW api.monitoring_humidity AS
-    SELECT 
-        time AS "time",
-        metrics-> 'environment.inside.humidity' AS insideHumidity,
-        metrics-> 'environment.outside.humidity' AS outsideHumidity
-    FROM api.metrics m 
-    ORDER BY time DESC LIMIT 1;
+CREATE VIEW api.monitoring_humidity WITH (security_invoker=true,security_barrier=true) AS
+    SELECT m.time, key, value
+        FROM api.metrics m,
+            jsonb_each_text(m.metrics)
+        WHERE key ILIKE 'environment.%.humidity'
+        ORDER BY m.time DESC;
+COMMENT ON VIEW
+    api.monitoring_humidity
+    IS 'Monitoring environment.%.humidity web view';
 
 -- View System RPI monitoring for grafana
 -- View Electric monitoring for grafana
 
 -- View main monitoring for grafana
 -- LAST Monitoring data from json!
-CREATE VIEW api.monitoring_temperatures AS
-    SELECT 
-        time AS "time",
-        metrics-> 'environment.water.temperature' AS waterTemperature,
-        metrics-> 'environment.inside.temperature' AS insideTemperature,
-        metrics-> 'environment.outside.temperature' AS outsideTemperature
-    FROM api.metrics m 
-    ORDER BY time DESC LIMIT 1;
+CREATE VIEW api.monitoring_temperatures WITH (security_invoker=true,security_barrier=true) AS
+    SELECT m.time, key, value
+        FROM api.metrics m,
+            jsonb_each_text(m.metrics)
+        WHERE key ILIKE 'environment.%.temperature'
+        ORDER BY m.time DESC;
+COMMENT ON VIEW
+    api.monitoring_temperatures
+    IS 'Monitoring environment.%.temperature web view';
 
 -- json key regexp
 -- https://stackoverflow.com/questions/38204467/selecting-for-a-jsonb-array-contains-regex-match
 -- Last voltage data from json!
-CREATE VIEW api.monitoring_voltage AS
+CREATE VIEW api.monitoring_voltage WITH (security_invoker=true,security_barrier=true) AS
+    SELECT m.time, key, value
+        FROM api.metrics m,
+            jsonb_each_text(m.metrics)
+        WHERE key ILIKE 'electrical.%.voltage'
+        ORDER BY m.time DESC;
+COMMENT ON VIEW
+    api.monitoring_voltage
+    IS 'Monitoring electrical.%.voltage web view';
+
+-- Last whatever data from json!
+CREATE VIEW api.monitoring_view2 WITH (security_invoker=true,security_barrier=true) AS
     SELECT
-        time AS "time",
-        cast(metrics-> 'electrical.batteries.AUX2.voltage' AS numeric) AS AUX2,
-        cast(metrics-> 'electrical.batteries.House.voltage' AS numeric) AS House,
-        cast(metrics-> 'environment.rpi.pijuice.gpioVoltage' AS numeric) AS gpioVoltage,
-        cast(metrics-> 'electrical.batteries.Seatalk.voltage' AS numeric) AS SeatalkVoltage,
-        cast(metrics-> 'electrical.batteries.Starter.voltage' AS numeric) AS StarterVoltage,
-        cast(metrics-> 'environment.rpi.pijuice.batteryVoltage' AS numeric) AS RPIBatteryVoltage,
-        cast(metrics-> 'electrical.batteries.victronDevice.voltage' AS numeric) AS victronDeviceVoltage
-    FROM api.metrics m 
-    ORDER BY time DESC LIMIT 1;
+         *
+        FROM
+            jsonb_each(
+                ( SELECT metrics FROM api.metrics m ORDER BY time DESC LIMIT 1)
+            );
+    --      WHERE key ilike 'tanks.%.capacity%'
+    --          or key ilike 'electrical.solar.%.panelPower'
+    --          or key ilike 'electrical.batteries%stateOfCharge'
+    --          or key ilike 'tanks\.%currentLevel'
+COMMENT ON VIEW
+    api.monitoring_view2
+    IS 'Monitoring Last whatever data from json web view';
+
+-- Timeseries whatever data from json!
+CREATE VIEW api.monitoring_view3 WITH (security_invoker=true,security_barrier=true) AS
+    SELECT m.time, key, value
+        FROM api.metrics m,
+            jsonb_each_text(m.metrics)
+         ORDER BY m.time DESC;
+    --    WHERE key ILIKE '%257.voltage';
+    --      WHERE key ilike 'tanks.%.capacity%'
+    --          or key ilike 'electrical.solar.%.panelPower'
+    --          or key ilike 'electrical.batteries%stateOfCharge';
+COMMENT ON VIEW
+    api.monitoring_view3
+    IS 'Monitoring Timeseries whatever data from json web view';
 
 -- Infotiles web app
 CREATE OR REPLACE VIEW api.total_info_view WITH (security_invoker=true,security_barrier=true) AS
@@ -409,4 +439,4 @@ CREATE OR REPLACE VIEW api.total_info_view WITH (security_invoker=true,security_
         SELECT * FROM l,s,m;
 COMMENT ON VIEW
     api.total_info_view
-    IS 'Monitoring web view';
+    IS 'total_info_view web view';
