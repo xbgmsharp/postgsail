@@ -63,7 +63,27 @@ $has_vessel$ language plpgsql security definer;
 -- Description
 COMMENT ON FUNCTION
     public.has_vessel_fn
-    IS 'Expose has vessel to API';
+    IS 'Check if user has a vessel register';
+
+DROP FUNCTION IF EXISTS public.has_vessel_metadata_fn;
+CREATE OR REPLACE FUNCTION public.has_vessel_metadata_fn() RETURNS BOOLEAN
+AS $has_vessel_metadata$
+	DECLARE
+    BEGIN
+        -- Check a vessel metadata
+        RETURN (
+            SELECT m.vessel_id
+                FROM auth.accounts a, auth.vessels v, api.metadata m
+                WHERE m.vessel_id = v.vessel_id
+                    AND auth.vessels.owner_email = auth.accounts.email
+                    AND auth.accounts.email = current_setting('user.email')
+            ) IS NOT NULL;
+    END;
+$has_vessel_metadata$ language plpgsql security definer;
+-- Description
+COMMENT ON FUNCTION
+    public.has_vessel_metadata_fn
+    IS 'Check if user has a vessel register';
 
 -- Or function?
 -- TODO Improve: return null until the vessel has sent metadata?
@@ -110,15 +130,16 @@ COMMENT ON FUNCTION
 
 -- Export user settings
 DROP FUNCTION IF EXISTS api.settings_fn;
-CREATE FUNCTION api.settings_fn(out settings json) RETURNS JSON
+CREATE OR REPLACE FUNCTION api.settings_fn(out settings json) RETURNS JSON
 AS $user_settings$
     BEGIN
        select row_to_json(row)::json INTO settings
 		from (
-		    select email,first,last,preferences,created_at,
+		    select a.email, a.first, a.last, a.preferences, a.created_at,
                 INITCAP(CONCAT (LEFT(first, 1), ' ', last)) AS username,
                 public.has_vessel_fn() as has_vessel
-            from auth.accounts
+                --public.has_vessel_metadata_fn() as has_vessel_metadata,
+            from auth.accounts a
             where email = current_setting('user.email')
 		) row;
     END;
@@ -224,3 +245,15 @@ $vessel_details$ language plpgsql security definer;
 COMMENT ON FUNCTION
     api.vessel_details_fn
     IS 'Return vessel details such as metadata (length,beam,height), ais type and country name and country iso3166-alpha-2';
+
+DROP VIEW IF EXISTS api.eventlogs_view;
+CREATE VIEW api.eventlogs_view WITH (security_invoker=true,security_barrier=true) AS
+    SELECT pq.*
+            from public.process_queue pq
+            where ref_id = current_setting('user.id', true)
+                or ref_id = current_setting('vessel.id', true)
+            order by id desc;
+-- Description
+COMMENT ON VIEW
+    api.eventlogs_view
+    IS 'Event logs view';
