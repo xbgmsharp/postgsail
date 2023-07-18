@@ -1107,6 +1107,8 @@ BEGIN
         RAISE EXCEPTION 'Invalid user'
             USING HINT = 'Unknow user or password';
     END IF;
+    -- Set session variables
+    PERFORM set_config('user.id', account_rec.user_id, false);
     --RAISE WARNING 'req path %', current_setting('request.path', true);
     -- Function allow without defined vessel
     -- openapi doc, user settings, otp code and vessel registration
