@@ -33,6 +33,7 @@ COMMENT ON COLUMN api.metadata.active IS 'trigger monitor online/offline';
 -- Index
 CREATE INDEX metadata_vessel_id_idx ON api.metadata (vessel_id);
 --CREATE INDEX metadata_mmsi_idx ON api.metadata (mmsi);
+-- is unused index ?
 CREATE INDEX metadata_name_idx ON api.metadata (name);
 
 ---------------------------------------------------------------------------
@@ -55,7 +56,8 @@ CREATE TABLE IF NOT EXISTS api.metrics (
   metrics jsonb NULL,
   --CONSTRAINT valid_client_id CHECK (length(client_id) > 10),
   CONSTRAINT valid_latitude CHECK (latitude >= -90 and latitude <= 90),
-  CONSTRAINT valid_longitude CHECK (longitude >= -180 and longitude <= 180)
+  CONSTRAINT valid_longitude CHECK (longitude >= -180 and longitude <= 180),
+  PRIMARY KEY (time, vessel_id)
 );
 -- Description
 COMMENT ON TABLE
@@ -81,7 +83,7 @@ SELECT create_hypertable('api.metrics', 'time', chunk_time_interval => INTERVAL 
 
 ---------------------------------------------------------------------------
 -- Logbook
--- todo add cosumption fuel?
+-- todo add consumption fuel?
 -- todo add engine hour?
 -- todo add geom object http://epsg.io/4326 EPSG:4326 Unit: degres
 -- todo add geog object http://epsg.io/3857 EPSG:3857 Unit: meters
@@ -91,6 +93,8 @@ SELECT create_hypertable('api.metrics', 'time', chunk_time_interval => INTERVAL 
 -- https://www.postgresql.org/docs/current/ddl-partitioning.html
 -- Issue:
 -- https://www.reddit.com/r/PostgreSQL/comments/di5mbr/postgresql_12_foreign_keys_and_partitioned_tables/f3tsoop/
+-- Check unused index
+
 CREATE TABLE IF NOT EXISTS api.logbook(
   id SERIAL PRIMARY KEY,
   --client_id VARCHAR(255) NOT NULL REFERENCES api.metadata(client_id) ON DELETE RESTRICT,
@@ -256,7 +260,7 @@ CREATE FUNCTION metadata_upsert_trigger_fn() RETURNS trigger AS $metadata_upsert
         ELSE
             IF NEW.vessel_id IS NULL THEN
                 -- set vessel_id from jwt if not present in INSERT query
-                NEW.vessel_id = current_setting('vessel.id');
+                NEW.vessel_id := current_setting('vessel.id');
             END IF;
             -- Insert new vessel metadata and
             RETURN NEW; -- Insert new vessel metadata
@@ -329,10 +333,13 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
         valid_status BOOLEAN;
         _vessel_id TEXT;
     BEGIN
-        -- Set client_id to new value to allow RLS
-        --PERFORM set_config('vessel.client_id', NEW.client_id, false);
-        NEW.vessel_id = current_setting('vessel.id', true);
-        --RAISE NOTICE 'metrics_trigger_fn client_id [%]', NEW.client_id;
+        --RAISE NOTICE 'metrics_trigger_fn';
+        --RAISE WARNING 'metrics_trigger_fn [%] [%]', current_setting('vessel.id', true), NEW;
+        -- Ensure vessel.id to new value to allow RLS
+        IF NEW.vessel_id IS NULL THEN
+            -- set vessel_id from jwt if not present in INSERT query
+            NEW.vessel_id := current_setting('vessel.id');
+        END IF;
         -- Boat metadata are check using api.metrics REFERENCES to api.metadata
         -- Fetch the latest entry to compare status against the new status to be insert
         SELECT coalesce(m.status, 'moored'), m.time INTO previous_status, previous_time
