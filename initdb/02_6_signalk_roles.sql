@@ -87,6 +87,7 @@ GRANT user_role to authenticator;
 GRANT USAGE ON SCHEMA api TO user_role;
 GRANT USAGE, SELECT ON SEQUENCE api.logbook_id_seq,api.metadata_id_seq,api.moorages_id_seq,api.stays_id_seq TO user_role;
 GRANT SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata,api.stays_at TO user_role;
+GRANT SELECT ON TABLE public.process_queue TO user_role;
 -- To check?
 GRANT SELECT ON TABLE auth.vessels TO user_role;
 -- Allow users to update certain columns
@@ -106,10 +107,12 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO user_role;
 -- pg15 feature security_invoker=true,security_barrier=true
 GRANT SELECT ON TABLE api.logs_view,api.moorages_view,api.stays_view TO user_role;
 GRANT SELECT ON TABLE api.log_view,api.moorage_view,api.stay_view,api.vessels_view TO user_role;
-GRANT SELECT ON TABLE api.monitoring_view TO user_role;
+GRANT SELECT ON TABLE api.monitoring_view,api.monitoring_view2,api.monitoring_view3 TO user_role;
+GRANT SELECT ON TABLE api.monitoring_humidity,api.monitoring_voltage,api.monitoring_temperatures TO user_role;
 GRANT SELECT ON TABLE api.total_info_view TO user_role;
 GRANT SELECT ON TABLE api.stats_logs_view TO user_role;
 GRANT SELECT ON TABLE api.stats_moorages_view TO user_role;
+GRANT SELECT ON TABLE api.eventlogs_view TO user_role;
 -- Update ownership for security user_role as run by web user.
 -- Web listing
 --ALTER VIEW api.stays_view OWNER TO user_role;
@@ -329,7 +332,30 @@ CREATE POLICY admin_all ON auth.accounts TO current_user
 CREATE POLICY api_user_role ON auth.accounts TO user_role
     USING (email = current_setting('user.email', true))
     WITH CHECK (email = current_setting('user.email', true));
+-- Allow scheduler see all rows and add any rows
+CREATE POLICY api_scheduler_role ON auth.accounts TO scheduler
+    USING (email = current_setting('user.email', true))
+    WITH CHECK (email = current_setting('user.email', true));
 -- Allow grafana_auth to select
 CREATE POLICY grafana_proxy_role ON auth.accounts TO grafana_auth
     USING (true)
     WITH CHECK (false);
+
+-- Be sure to enable row level security on the table
+ALTER TABLE public.process_queue ENABLE ROW LEVEL SECURITY;
+-- Administrator can see all rows and add any rows
+CREATE POLICY admin_all ON public.process_queue TO current_user
+    USING (true)
+    WITH CHECK (true);
+-- Allow vessel_role to insert and select on their own records
+CREATE POLICY api_vessel_role ON public.process_queue TO vessel_role
+    USING (ref_id = current_setting('user.id', true) OR ref_id = current_setting('vessel.id', true))
+    WITH CHECK (true);
+-- Allow user_role to update and select on their own records
+CREATE POLICY api_user_role ON public.process_queue TO user_role
+    USING (ref_id = current_setting('user.id', true) OR ref_id = current_setting('vessel.id', true))
+    WITH CHECK (ref_id = current_setting('user.id', true) OR ref_id = current_setting('vessel.id', true));
+-- Allow scheduler see all rows and add any rows
+CREATE POLICY api_scheduler_role ON public.process_queue TO scheduler
+    USING (true)
+    WITH CHECK (true);
