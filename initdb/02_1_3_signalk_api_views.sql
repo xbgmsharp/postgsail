@@ -67,7 +67,7 @@ CREATE MATERIALIZED VIEW api.logs_mat_view AS
         WHERE _to_time IS NOT NULL
         ORDER BY _from_time DESC;
 -- Description
-COMMENT ON VIEW
+COMMENT ON MATERIALIZED VIEW
     api.logs_mat_view
     IS 'Logs MATERIALIZED web view';
 
