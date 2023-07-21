@@ -33,9 +33,6 @@ CREATE VIEW stay_in_progress AS
         FROM api.stays 
         WHERE active IS true;
 
--- list all json keys from api.metrics.metric jsonb
---select m.time,jsonb_object_keys(m.metrics) from last_metric m where m.client_id = 'vessels.urn:mrn:imo:mmsi:787654321';
-
 -- TODO: Use materialized views instead as it is not live data
 -- Logs web view
 DROP VIEW IF EXISTS api.logs_view;
@@ -56,7 +53,7 @@ COMMENT ON VIEW
     api.logs_view
     IS 'Logs web view';
 
--- Inital try of MATERIALIZED VIEW
+-- Initial try of MATERIALIZED VIEW
 CREATE MATERIALIZED VIEW api.logs_mat_view AS
     SELECT id,
             name as "Name",
@@ -69,6 +66,10 @@ CREATE MATERIALIZED VIEW api.logs_mat_view AS
         FROM api.logbook l
         WHERE _to_time IS NOT NULL
         ORDER BY _from_time DESC;
+-- Description
+COMMENT ON VIEW
+    api.logs_mat_view
+    IS 'Logs MATERIALIZED web view';
 
 DROP VIEW IF EXISTS api.log_view;
 CREATE OR REPLACE VIEW api.log_view WITH (security_invoker=true,security_barrier=true) AS
@@ -90,7 +91,7 @@ CREATE OR REPLACE VIEW api.log_view WITH (security_invoker=true,security_barrier
         ORDER BY _from_time DESC;
 -- Description
 COMMENT ON VIEW
-    api.logs_view
+    api.log_view
     IS 'Log web view';
 
 -- Stays web view
@@ -331,7 +332,7 @@ COMMENT ON VIEW
 
 -- View main monitoring for web app
 DROP VIEW IF EXISTS api.monitoring_view;
-CREATE OR REPLACE VIEW api.monitoring_view WITH (security_invoker=true,security_barrier=true) AS
+CREATE VIEW api.monitoring_view WITH (security_invoker=true,security_barrier=true) AS
     SELECT 
         time AS "time",
         (NOW() AT TIME ZONE 'UTC' - time) > INTERVAL '70 MINUTES' as offline,
@@ -361,6 +362,7 @@ COMMENT ON VIEW
     api.monitoring_view
     IS 'Monitoring static web view';
 
+DROP VIEW IF EXISTS api.monitoring_humidity;
 CREATE VIEW api.monitoring_humidity WITH (security_invoker=true,security_barrier=true) AS
     SELECT m.time, key, value
         FROM api.metrics m,
@@ -376,6 +378,7 @@ COMMENT ON VIEW
 
 -- View main monitoring for grafana
 -- LAST Monitoring data from json!
+DROP VIEW IF EXISTS api.monitoring_temperatures;
 CREATE VIEW api.monitoring_temperatures WITH (security_invoker=true,security_barrier=true) AS
     SELECT m.time, key, value
         FROM api.metrics m,
@@ -389,6 +392,7 @@ COMMENT ON VIEW
 -- json key regexp
 -- https://stackoverflow.com/questions/38204467/selecting-for-a-jsonb-array-contains-regex-match
 -- Last voltage data from json!
+DROP VIEW IF EXISTS api.monitoring_voltage;
 CREATE VIEW api.monitoring_voltage WITH (security_invoker=true,security_barrier=true) AS
     SELECT m.time, key, value
         FROM api.metrics m,
@@ -400,6 +404,7 @@ COMMENT ON VIEW
     IS 'Monitoring electrical.%.voltage web view';
 
 -- Last whatever data from json!
+DROP VIEW IF EXISTS api.monitoring_view2;
 CREATE VIEW api.monitoring_view2 WITH (security_invoker=true,security_barrier=true) AS
     SELECT
          *
@@ -416,6 +421,7 @@ COMMENT ON VIEW
     IS 'Monitoring Last whatever data from json web view';
 
 -- Timeseries whatever data from json!
+DROP VIEW IF EXISTS api.monitoring_view3;
 CREATE VIEW api.monitoring_view3 WITH (security_invoker=true,security_barrier=true) AS
     SELECT m.time, key, value
         FROM api.metrics m,
@@ -430,7 +436,8 @@ COMMENT ON VIEW
     IS 'Monitoring Timeseries whatever data from json web view';
 
 -- Infotiles web app
-CREATE OR REPLACE VIEW api.total_info_view WITH (security_invoker=true,security_barrier=true) AS
+DROP VIEW IF EXISTS api.total_info_view;
+CREATE VIEW api.total_info_view WITH (security_invoker=true,security_barrier=true) AS
 -- Infotiles web app, not used calculated client side
     WITH
         l as (SELECT count(*) as logs FROM api.logbook),
