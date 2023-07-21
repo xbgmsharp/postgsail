@@ -197,7 +197,7 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
             RAISE WARNING '-> process_logbook_queue_fn invalid input %', _id;
             RETURN;
         END IF;
-        -- Get the logbook record with all necesary fields exist
+        -- Get the logbook record with all necessary fields exist
         SELECT * INTO logbook_rec
             FROM api.logbook
             WHERE active IS false
@@ -338,7 +338,7 @@ CREATE OR REPLACE FUNCTION process_stay_queue_fn(IN _id integer) RETURNS void AS
             RAISE WARNING '-> process_stay_queue_fn invalid input %', _id;
             RETURN;
         END IF;
-        -- Get the stay record with all necesary fields exist
+        -- Get the stay record with all necessary fields exist
         SELECT * INTO stay_rec
             FROM api.stays
             WHERE id = _id
@@ -385,7 +385,7 @@ CREATE OR REPLACE FUNCTION process_moorage_queue_fn(IN _id integer) RETURNS void
             RAISE WARNING '-> process_moorage_queue_fn invalid input %', _id;
             RETURN;
         END IF;
-        -- Get the stay record with all necesary fields exist
+        -- Get the stay record with all necessary fields exist
         SELECT * INTO stay_rec
             FROM api.stays
             WHERE active IS false 
@@ -479,7 +479,7 @@ CREATE OR REPLACE FUNCTION process_account_queue_fn(IN _email TEXT) RETURNS void
     BEGIN
         IF _email IS NULL OR _email = '' THEN
             RAISE EXCEPTION 'Invalid email'
-                USING HINT = 'Unknow email';
+                USING HINT = 'Unknown email';
             RETURN;
         END IF;
         SELECT * INTO account_rec
@@ -487,7 +487,7 @@ CREATE OR REPLACE FUNCTION process_account_queue_fn(IN _email TEXT) RETURNS void
             WHERE email = _email;
         IF account_rec.email IS NULL OR account_rec.email = '' THEN
             RAISE EXCEPTION 'Invalid email'
-                USING HINT = 'Unknow email';
+                USING HINT = 'Unknown email';
             RETURN;
         END IF;
         -- Gather email and pushover app settings
@@ -518,7 +518,7 @@ CREATE OR REPLACE FUNCTION process_account_otp_validation_queue_fn(IN _email TEX
     BEGIN
         IF _email IS NULL OR _email = '' THEN
             RAISE EXCEPTION 'Invalid email'
-                USING HINT = 'Unknow email';
+                USING HINT = 'Unknown email';
             RETURN;
         END IF;
         SELECT * INTO account_rec
@@ -526,7 +526,7 @@ CREATE OR REPLACE FUNCTION process_account_otp_validation_queue_fn(IN _email TEX
             WHERE email = _email;
         IF account_rec.email IS NULL OR account_rec.email = '' THEN
             RAISE EXCEPTION 'Invalid email'
-                USING HINT = 'Unknow email';
+                USING HINT = 'Unknown email';
             RETURN;
         END IF;
         -- Gather email and pushover app settings
@@ -559,7 +559,7 @@ AS $process_notification_queue$
     BEGIN
         IF _email IS NULL OR _email = '' THEN
             RAISE EXCEPTION 'Invalid email'
-                USING HINT = 'Unknow email';
+                USING HINT = 'Unknown email';
             RETURN;
         END IF;
         SELECT * INTO account_rec
@@ -567,7 +567,7 @@ AS $process_notification_queue$
             WHERE email = _email;
         IF account_rec.email IS NULL OR account_rec.email = '' THEN
             RAISE EXCEPTION 'Invalid email'
-                USING HINT = 'Unknow email';
+                USING HINT = 'Unknown email';
             RETURN;
         END IF;
 
@@ -584,7 +584,7 @@ AS $process_notification_queue$
                 WHERE owner_email = _email;
             IF vessel_rec.owner_email IS NULL OR vessel_rec.owner_email = '' THEN
                 RAISE EXCEPTION 'Invalid email'
-                    USING HINT = 'Unknow email';
+                    USING HINT = 'Unknown email';
                 RETURN;
             END IF;
             user_settings := '{"email": "' || vessel_rec.owner_email || '", "boat": "' || vessel_rec.name || '"}';
@@ -610,7 +610,7 @@ CREATE OR REPLACE FUNCTION process_vessel_queue_fn(IN _email TEXT) RETURNS void 
     BEGIN
         IF _email IS NULL OR _email = '' THEN
             RAISE EXCEPTION 'Invalid email'
-                USING HINT = 'Unknow email';
+                USING HINT = 'Unknown email';
             RETURN;
         END IF;
         SELECT * INTO vessel_rec
@@ -618,7 +618,7 @@ CREATE OR REPLACE FUNCTION process_vessel_queue_fn(IN _email TEXT) RETURNS void 
             WHERE owner_email = _email;
         IF vessel_rec.owner_email IS NULL OR vessel_rec.owner_email = '' THEN
             RAISE EXCEPTION 'Invalid email'
-                USING HINT = 'Unknow email';
+                USING HINT = 'Unknown email';
             RETURN;
         END IF;
         -- Gather email and pushover app settings
@@ -1026,7 +1026,7 @@ CREATE OR REPLACE FUNCTION public.badges_geom_fn(IN logbook_id integer) RETURNS 
         badge_tmp text;
     begin
 	    RAISE WARNING '--> user.email [%], vessel.id [%]', current_setting('user.email', false), current_setting('vessel.id', false);
-        -- Tropical & Alaska zone manualy add into ne_10m_geography_marine_polys
+        -- Tropical & Alaska zone manually add into ne_10m_geography_marine_polys
         -- Check if each geographic marine zone exist as a badge
 	    FOR marine_rec IN
 	        WITH log AS (
@@ -1039,7 +1039,7 @@ CREATE OR REPLACE FUNCTION public.badges_geom_fn(IN logbook_id integer) RETURNS 
                         log.track_geom
 		            )
 	    LOOP
-            -- If not generate and insert the new bagde
+            -- If not generate and insert the new badge
             --RAISE WARNING 'geography_marine [%]', marine_rec.name;
             SELECT jsonb_extract_path(a.preferences, 'badges', marine_rec.name) IS NOT NULL INTO _exist FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
             --RAISE WARNING 'geography_marine [%]', _exist;
@@ -1132,13 +1132,13 @@ BEGIN
 		RAISE sqlstate 'PT551' using
 		  message = 'Vessel Required',
 		  detail = 'Invalid vessel',
-		  hint = 'Unknow vessel';
+		  hint = 'Unknown vessel';
         --RETURN; -- ignore if not exist
     END IF;
     -- Redundant?
     IF vessel_rec.vessel_id IS NULL THEN
         RAISE EXCEPTION 'Invalid vessel'
-            USING HINT = 'Unknow vessel id';
+            USING HINT = 'Unknown vessel id';
     END IF;
     -- Set session variables
     PERFORM set_config('vessel.id', vessel_rec.vessel_id, false);
@@ -1156,7 +1156,7 @@ BEGIN
             AND auth.vessels.vessel_id = _vid;
     IF vessel_rec.owner_email IS NULL THEN
         RAISE EXCEPTION 'Invalid vessel'
-            USING HINT = 'Unknow vessel owner_email';
+            USING HINT = 'Unknown vessel owner_email';
     END IF;
     PERFORM set_config('vessel.id', vessel_rec.vessel_id, false);
     PERFORM set_config('vessel.name', vessel_rec.name, false);
@@ -1171,7 +1171,7 @@ $$ language plpgsql security definer;
 
 ---------------------------------------------------------------------------
 -- Function to trigger cron_jobs using API for tests.
--- Todo limit access and permision
+-- Todo limit access and permission
 -- Run con jobs
 CREATE OR REPLACE FUNCTION public.run_cron_jobs() RETURNS void AS $$
 BEGIN

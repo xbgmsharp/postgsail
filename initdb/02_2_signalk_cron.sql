@@ -330,12 +330,12 @@ COMMENT ON FUNCTION
     IS 'init by pg_cron to check for new event pending notifications, if so perform process_notification_queue_fn';
 
 -- CRON for Vacuum database
-CREATE FUNCTION cron_vaccum_fn() RETURNS void AS $$
+CREATE FUNCTION cron_vacuum_fn() RETURNS void AS $$
 -- ERROR:  VACUUM cannot be executed from a function
 declare
 begin
     -- Vacuum
-    RAISE NOTICE 'cron_vaccum_fn';
+    RAISE NOTICE 'cron_vacuum_fn';
     VACUUM (FULL, VERBOSE, ANALYZE, INDEX_CLEANUP) api.logbook;
     VACUUM (FULL, VERBOSE, ANALYZE, INDEX_CLEANUP) api.stays;
     VACUUM (FULL, VERBOSE, ANALYZE, INDEX_CLEANUP) api.moorages;
@@ -345,10 +345,10 @@ END;
 $$ language plpgsql;
 -- Description
 COMMENT ON FUNCTION 
-    public.cron_vaccum_fn
-    IS 'init by pg_cron to full vaccum tables on schema api';
+    public.cron_vacuum_fn
+    IS 'init by pg_cron to full vacuum tables on schema api';
 
--- CRON for Vacuum database
+-- CRON for clean up job details logs
 CREATE FUNCTION job_run_details_cleanup_fn() RETURNS void AS $$
 DECLARE
 BEGIN
@@ -360,8 +360,8 @@ END;
 $$ language plpgsql;
 -- Description
 COMMENT ON FUNCTION
-    public.cron_vaccum_fn
-    IS 'init by pg_cron to cleanup job_run_details table on schema public postgras db';
+    public.job_run_details_cleanup_fn
+    IS 'init by pg_cron to cleanup job_run_details table on schema public postgres db';
 
 -- CRON for alerts notification
 CREATE FUNCTION cron_process_alerts_fn() RETURNS void AS $$
