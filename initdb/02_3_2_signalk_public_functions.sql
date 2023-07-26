@@ -93,14 +93,14 @@ CREATE FUNCTION logbook_update_geom_distance_fn(IN _id integer, IN _start text, 
                     ORDER BY m.time ASC
             )
         ) INTO _track_geom;
-        RAISE NOTICE '-> GIS LINESTRING %', _track_geom;
+        --RAISE NOTICE '-> GIS LINESTRING %', _track_geom;
         -- SELECT ST_Length(_track_geom,false) INTO _track_distance;
         -- Meter to Nautical Mile (international) Conversion
         -- SELECT TRUNC (st_length(st_transform(track_geom,4326)::geography)::INT / 1.852) from logbook where id = 209; -- in NM
         -- SELECT (st_length(st_transform(track_geom,4326)::geography)::INT * 0.0005399568) from api.logbook where id = 1; -- in NM
         --SELECT TRUNC (ST_Length(_track_geom,false)::INT / 1.852) INTO _track_distance; -- in NM
         SELECT TRUNC (ST_Length(_track_geom,false)::INT * 0.0005399568, 4) INTO _track_distance; -- in NM
-        RAISE NOTICE '-> GIS Length %', _track_distance;
+        RAISE NOTICE '-> logbook_update_geom_distance_fn GIS Length %', _track_distance;
     END;
 $logbook_geo_distance$ LANGUAGE plpgsql;
 -- Description
@@ -108,7 +108,7 @@ COMMENT ON FUNCTION
     public.logbook_update_geom_distance_fn
     IS 'Update logbook details with geometry data an distance, ST_Length in Nautical Mile (international)';
 
--- Create GeoJSON for api consum.
+-- Create GeoJSON for api consume.
 CREATE FUNCTION logbook_update_geojson_fn(IN _id integer, IN _start text, IN _end text,
     OUT _track_geojson JSON
  ) AS $logbook_geojson$
@@ -170,6 +170,74 @@ COMMENT ON FUNCTION
     public.logbook_update_geojson_fn
     IS 'Update log details with geojson';
 
+create FUNCTION logbook_update_extra_json_fn(IN _id integer, IN _start text, IN _end text,
+    OUT _extra_json JSON
+ ) AS $logbook_extra_json$
+    declare
+     log_json jsonb default '{}'::jsonb;
+	 runtime_json jsonb default '{}'::jsonb;
+     metric_rec record;
+    begin
+	    -- Calculate 'navigation.log'
+		with
+			start_trip as (
+				-- Fetch 'navigation.log' start
+				SELECT key, value
+				FROM api.metrics m,
+				     jsonb_each_text(m.metrics)
+				WHERE key ILIKE 'navigation.log' AND time = _start::timestamp without time zone AND vessel_id = '76ea3a2d0ae0'
+			),
+			end_trip as (
+				-- Fetch 'navigation.log' end
+				SELECT key, value
+				FROM api.metrics m,
+				     jsonb_each_text(m.metrics)
+				WHERE key ILIKE 'navigation.log' AND time = _end::timestamp without time zone AND vessel_id = '76ea3a2d0ae0'
+			),
+			nm as (
+				-- calculate distance and convert to nautical miles
+				select ((end_trip.value::NUMERIC - start_trip.value::numeric) / 1.852) as trip from start_trip,end_trip
+			)
+		-- Generate JSON
+		select jsonb_build_object('navigation.log', trip) into log_json from nm;
+		raise notice '-> logbook_update_extra_json_fn navigation.log: %', log_json;
+
+		-- Calculate engine hours from propulsion.%.runTime
+	    for metric_rec in
+			SELECT key, value
+				FROM api.metrics m,
+				     jsonb_each_text(m.metrics)
+				WHERE key ILIKE 'propulsion.%.runTime' AND time = _start::timestamp without time zone AND vessel_id = '76ea3a2d0ae0'
+		loop
+			-- Engine Hours in seconds
+			raise notice '-> logbook_update_extra_json_fn propulsion.*.runTime: %', metric_rec;
+			with
+			end_runtime as (
+				-- Fetch 'propulsion.*.runTime' end
+				SELECT key, value
+					FROM api.metrics m,
+					     jsonb_each_text(m.metrics)
+					WHERE key ILIKE metric_rec.key AND time = _end::timestamp without time zone AND vessel_id = '76ea3a2d0ae0'
+			),
+			runtime as (
+				-- calculate runTime Engine Hours in seconds
+				select (end_runtime.value::numeric - metric_rec.value::numeric) as value from end_runtime
+			)
+			-- Generate JSON
+			select jsonb_build_object(metric_rec.key, runtime.value) into runtime_json from runtime;
+			raise notice '-> logbook_update_extra_json_fn key: %, value: %', metric_rec.key, runtime_json;
+		end loop;
+
+		-- Update logbook with extra value and return json
+        select COALESCE(log_json::JSONB, '{}'::jsonb) || COALESCE(runtime_json::JSONB, '{}'::jsonb) into _extra_json;
+        raise notice '-> logbook_update_extra_json_fn %', _extra_json;
+    END;
+$logbook_extra_json$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.logbook_update_extra_json_fn
+    IS 'Update log details with extra_json using `propulsion.*.runTime` and `navigation.log`';
+
 -- Update pending new logbook from process queue
 DROP FUNCTION IF EXISTS process_logbook_queue_fn;
 CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void AS $process_logbook_queue$
@@ -191,6 +259,7 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         current_stays_departed text;
         current_stays_id numeric;
         current_stays_active boolean;
+        extra_json jsonb;
     BEGIN
         -- If _id is not NULL
         IF _id IS NULL OR _id < 1 THEN
@@ -231,10 +300,11 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         SELECT geo_rec._track_distance < 0.010 INTO _invalid_distance;
         -- Is duration is less than 100sec
         SELECT (logbook_rec._to_time::timestamp without time zone - logbook_rec._from_time::timestamp without time zone) < (100::text||' secs')::interval INTO _invalid_interval;
-        -- if stationnary fix data metrics,logbook,stays,moorage
+        -- if stationary fix data metrics,logbook,stays,moorage
         IF _invalid_time IS True OR _invalid_distance IS True
-            OR _invalid_distance IS True OR count_metric = avg_rec.count_metric THEN
-            RAISE WARNING '-> process_logbook_queue_fn invalid logbook data [%]', logbook_rec.id;
+            OR _invalid_interval IS True OR count_metric = avg_rec.count_metric THEN
+            RAISE NOTICE '-> process_logbook_queue_fn invalid logbook data id [%], _invalid_time [%], _invalid_distance [%], _invalid_interval [%], count_metric [%]',
+                logbook_rec.id, _invalid_time, _invalid_distance, _invalid_interval, count_metric;
             -- Update metrics status to moored
             UPDATE api.metrics
                 SET status = 'moored'
@@ -268,7 +338,7 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
                     active = current_stays_active
                 WHERE vessel_id = current_setting('vessel.id', false)
                     AND id = previous_stays_id;
-            -- Clean u, remove invalid logbook and stay entry
+            -- Clean up, remove invalid logbook and stay entry
             DELETE FROM api.logbook WHERE id = logbook_rec.id;
             RAISE WARNING '-> process_logbook_queue_fn delete invalid logbook [%]', logbook_rec.id;
             DELETE FROM api.stays WHERE id = current_stays_id;
@@ -277,12 +347,16 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
             RETURN;
         END IF;
 
-        -- Generate logbook name, concat _from_location and _to_locacion
+        -- Generate logbook name, concat _from_location and _to_location
         -- geo reverse _from_lng _from_lat
         -- geo reverse _to_lng _to_lat
         from_name := reverse_geocode_py_fn('nominatim', logbook_rec._from_lng::NUMERIC, logbook_rec._from_lat::NUMERIC);
         to_name := reverse_geocode_py_fn('nominatim', logbook_rec._to_lng::NUMERIC, logbook_rec._to_lat::NUMERIC);
         SELECT CONCAT(from_name, ' to ' , to_name) INTO log_name;
+
+        -- Generate `propulsion.*.runTime` and `navigation.log`
+        -- Calculate extra json
+        extra_json := logbook_update_extra_json_fn(logbook_rec.id, logbook_rec._from_time::TEXT, logbook_rec._to_time::TEXT);
 
         RAISE NOTICE 'Updating valid logbook entry [%] [%] [%]', logbook_rec.id, logbook_rec._from_time, logbook_rec._to_time;
         UPDATE api.logbook
@@ -295,7 +369,8 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
                 _to = to_name,
                 name = log_name,
                 track_geom = geo_rec._track_geom,
-                distance = geo_rec._track_distance
+                distance = geo_rec._track_distance,
+                extra = extra_json
             WHERE id = logbook_rec.id;
 
         -- GeoJSON require track_geom field
