@@ -85,7 +85,8 @@ CREATE OR REPLACE VIEW api.log_view WITH (security_invoker=true,security_barrier
             track_geojson as geojson,
             avg_speed as avg_speed,
             max_speed as max_speed,
-            max_wind_speed as max_wind_speed
+            max_wind_speed as max_wind_speed,
+            extra as extra
         FROM api.logbook l
         WHERE _to_time IS NOT NULL
         ORDER BY _from_time DESC;
@@ -427,10 +428,12 @@ CREATE VIEW api.monitoring_view3 WITH (security_invoker=true,security_barrier=tr
         FROM api.metrics m,
             jsonb_each_text(m.metrics)
          ORDER BY m.time DESC;
-    --    WHERE key ILIKE '%257.voltage';
+    --    WHERE key ILIKE 'electrical.batteries%voltage';
     --      WHERE key ilike 'tanks.%.capacity%'
     --          or key ilike 'electrical.solar.%.panelPower'
     --          or key ilike 'electrical.batteries%stateOfCharge';
+    -- key ILIKE 'propulsion.%.runTime'
+    -- key ILIKE 'navigation.log'
 COMMENT ON VIEW
     api.monitoring_view3
     IS 'Monitoring Timeseries whatever data from json web view';
