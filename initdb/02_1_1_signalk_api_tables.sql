@@ -120,7 +120,8 @@ CREATE TABLE IF NOT EXISTS api.logbook(
   avg_speed DOUBLE PRECISION NULL,
   max_speed DOUBLE PRECISION NULL,
   max_wind_speed DOUBLE PRECISION NULL,
-  notes TEXT NULL
+  notes TEXT NULL,
+  extra JSONB NULL
 );
 -- Description
 COMMENT ON TABLE
@@ -227,15 +228,15 @@ CREATE FUNCTION metadata_upsert_trigger_fn() RETURNS trigger AS $metadata_upsert
         -- Set client_id to new value to allow RLS
         --PERFORM set_config('vessel.client_id', NEW.client_id, false);
         -- UPSERT - Insert vs Update for Metadata
-        RAISE NOTICE 'metadata_upsert_trigger_fn';
+        --RAISE NOTICE 'metadata_upsert_trigger_fn';
         --PERFORM set_config('vessel.id', NEW.vessel_id, true);
-        RAISE WARNING 'metadata_upsert_trigger_fn [%] [%]', current_setting('vessel.id', true), NEW;
+        --RAISE WARNING 'metadata_upsert_trigger_fn [%] [%]', current_setting('vessel.id', true), NEW;
         SELECT m.id,m.active INTO metadata_id, metadata_active
             FROM api.metadata m
             WHERE m.vessel_id IS NOT NULL AND m.vessel_id = current_setting('vessel.id', true);
-        RAISE NOTICE 'metadata_id %', metadata_id;
+        --RAISE NOTICE 'metadata_id is [%]', metadata_id;
         IF metadata_id IS NOT NULL THEN
-            -- send notifitacion if boat is back online
+            -- send notification if boat is back online
             IF metadata_active is False THEN
                 -- Add monitor online entry to process queue for later notification
                 INSERT INTO process_queue (channel, payload, stored, ref_id)
@@ -366,15 +367,15 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
         END IF;
         -- Check if status is null
         IF NEW.status IS NULL THEN
-            RAISE WARNING 'Metrics Unknow NEW.status, vessel_id [%], null status, set to default moored from [%]', NEW.vessel_id, NEW.status;
+            RAISE WARNING 'Metrics Unknown NEW.status, vessel_id [%], null status, set to default moored from [%]', NEW.vessel_id, NEW.status;
             NEW.status := 'moored';
         END IF;
         IF previous_status IS NULL THEN
             IF NEW.status = 'anchored' THEN
-                RAISE WARNING 'Metrics Unknow previous_status from vessel_id [%], [%] set to default current status [%]', NEW.vessel_id, previous_status, NEW.status;
+                RAISE WARNING 'Metrics Unknown previous_status from vessel_id [%], [%] set to default current status [%]', NEW.vessel_id, previous_status, NEW.status;
                 previous_status := NEW.status;
             ELSE
-                RAISE WARNING 'Metrics Unknow previous_status from vessel_id [%], [%] set to default status moored vs [%]', NEW.vessel_id, previous_status, NEW.status;
+                RAISE WARNING 'Metrics Unknown previous_status from vessel_id [%], [%] set to default status moored vs [%]', NEW.vessel_id, previous_status, NEW.status;
                 previous_status := 'moored';
             END IF;
             -- Add new stay as no previous entry exist
@@ -396,7 +397,7 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
         END IF;
 
         -- Check the state and if any previous/current entry
-        -- If new status is sailing or motoring
+        -- If change of state and new status is sailing or motoring
         IF previous_status::TEXT <> NEW.status::TEXT AND
             ( (NEW.status::TEXT = 'sailing' AND previous_status::TEXT <> 'motoring')
              OR (NEW.status::TEXT = 'motoring' AND previous_status::TEXT <> 'sailing') ) THEN
@@ -436,7 +437,7 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                 RAISE WARNING 'Metrics Invalid stay_id [%] [%]', stay_id, NEW.time;
             END IF;
 
-        -- If new status is moored or anchored
+        -- If change of state and new status is moored or anchored
         ELSIF previous_status::TEXT <> NEW.status::TEXT AND
             ( (NEW.status::TEXT = 'moored' AND previous_status::TEXT <> 'anchored')
              OR (NEW.status::TEXT = 'anchored' AND previous_status::TEXT <> 'moored') ) THEN
@@ -493,7 +494,7 @@ $metrics$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
     public.metrics_trigger_fn
-    IS 'process metrics from vessel, generate new_logbook and new_stay';
+    IS 'process metrics from vessel, generate new_logbook and new_stay.';
 
 --
 -- Triggers logbook update on metrics insert
