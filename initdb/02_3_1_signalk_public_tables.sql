@@ -100,7 +100,7 @@ INSERT INTO email_templates VALUES
     E'Hi!\nYou successfully validate your account.\n'),
 ('email_reset',
     'Password reset',
-    E'Hello,\nYou requested a password reset. To reset your password __APP_URL__/reset?__RESET_QS__.\nThe PostgSail Team',
+    E'Hello,\nYou requested a password reset. To reset your password __APP_URL__/reset-password?__RESET_QS__.\nThe PostgSail Team',
     'Password reset',
     E'You requested a password recovery. Check your email!\n'),
 ('telegram_otp',
