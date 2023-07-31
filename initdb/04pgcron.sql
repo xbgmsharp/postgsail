@@ -52,11 +52,17 @@ SELECT cron.schedule('cron_new_notification', '*/2 * * * *', 'select public.cron
 SELECT cron.schedule('cron_vacuum', '1 1 * * 0', 'VACUUM (FULL, VERBOSE, ANALYZE, INDEX_CLEANUP) api.logbook,api.stays,api.moorages,api.metadata,api.metrics;');
 -- Remove all jobs log at “At 02:02 on Sunday.”
 SELECT cron.schedule('job_run_details_cleanup', '2 2 * * 0', 'select public.job_run_details_cleanup_fn()');
+-- Rebuilding indexes at “first day of each month at 23:01.”
+SELECT cron.schedule('cron_reindex', '1 23 1 * *', 'REINDEX TABLE api.logbook; REINDEX TABLE api.stays; REINDEX TABLE api.moorages; REINDEX TABLE api.metadata; REINDEX TABLE api.metrics;');
 -- Any other maintenance require?
 
 -- OTP
 -- Create a every 15 minute job cron_process_prune_otp_fn
 SELECT cron.schedule('cron_prune_otp', '*/15 * * * *', 'select public.cron_process_prune_otp_fn()');
+
+-- Alerts
+-- Create a every 11 minute job cron_process_alerts_fn
+--SELECT cron.schedule('cron_alerts', '*/11 * * * *', 'select public.cron_process_alerts_fn()');
 
 -- Cron job settings
 UPDATE cron.job SET database = 'signalk';
@@ -72,6 +78,6 @@ SELECT * FROM cron.job;
 -- TRUNCATE TABLE cron.job_run_details
 --TRUNCATE TABLE cron.job_run_details CONTINUE IDENTITY RESTRICT;
 -- check job log
-select * from cron.job_run_details ORDER BY end_time DESC LIMIT 10;
+SELECT * FROM cron.job_run_details ORDER BY end_time DESC;
 -- DEBUG Disable all
 UPDATE cron.job SET active = False;
