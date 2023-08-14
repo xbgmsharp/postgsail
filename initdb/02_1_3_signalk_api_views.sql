@@ -194,6 +194,7 @@ CREATE OR REPLACE VIEW api.moorages_view WITH (security_invoker=true,security_ba
     FROM api.moorages m, api.stays_at sa
     WHERE m.name is not null
         AND m.stay_code = sa.stay_code
+        AND geog IS NOT NULL
    GROUP BY m.id,m.name,sa.description,m.stay_duration,m.reference_count,m.geog,sa.stay_code
 --   ORDER BY 4 DESC;
    ORDER BY m.reference_count DESC;
@@ -213,7 +214,8 @@ CREATE OR REPLACE VIEW api.moorage_view WITH (security_invoker=true,security_bar
         m.notes
 --        m.geog
     FROM api.moorages m
-    WHERE m.name IS NOT NULL;
+    WHERE m.name IS NOT NULL
+        AND geog IS NOT NULL;
 -- Description
 COMMENT ON VIEW
     api.moorage_view

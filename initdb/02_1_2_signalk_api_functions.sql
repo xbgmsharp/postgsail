@@ -327,6 +327,7 @@ CREATE FUNCTION api.export_moorages_geojson_fn(OUT geojson JSONB) RETURNS JSONB 
                         EXTRACT(DAY FROM justify_hours ( stay_duration )) AS Total_Stay,
                         geog
                         FROM api.moorages
+                        WHERE geog IS NOT NULL
                     ) AS m
                 )
             ) INTO geojson;
@@ -372,7 +373,8 @@ CREATE FUNCTION api.export_moorages_gpx_fn() RETURNS pg_catalog.xml AS $export_m
                                                         xmlelement(name "opencpn:scale_min_max", xmlattributes(true as UseScale, 30000 as ScaleMin, 0 as ScaleMax)
                                                         ))))
                     )::pg_catalog.xml
-            FROM api.moorages m;
+            FROM api.moorages m
+            WHERE geog IS NOT NULL;
     END;
 $export_moorages_gpx$ LANGUAGE plpgsql;
 -- Description
