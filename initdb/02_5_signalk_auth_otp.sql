@@ -99,6 +99,8 @@ AS $recover_fn$
         -- Generate OTP
         otp_pass := api.generate_otp_fn(email);
         SELECT CONCAT('uuid=', _user_id, '&token=', otp_pass) INTO _reset_qs;
+        -- Enable email_notifications
+        PERFORM api.update_user_preferences_fn('{email_notifications}'::TEXT, True::TEXT);
         -- Send email/notifications
         user_settings := '{"email": "' || _email || '", "reset_qs": "' || _reset_qs || '"}';
         PERFORM send_notification_fn('email_reset'::TEXT, user_settings::JSONB);
