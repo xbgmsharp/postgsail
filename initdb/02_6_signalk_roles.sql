@@ -355,7 +355,7 @@ CREATE POLICY api_vessel_role ON public.process_queue TO vessel_role
 CREATE POLICY api_user_role ON public.process_queue TO user_role
     USING (ref_id = current_setting('user.id', true) OR ref_id = current_setting('vessel.id', true))
     WITH CHECK (ref_id = current_setting('user.id', true) OR ref_id = current_setting('vessel.id', true));
--- Allow scheduler see all rows and add any rows
+-- Allow scheduler see all rows and updates any rows
 CREATE POLICY api_scheduler_role ON public.process_queue TO scheduler
     USING (true)
-    WITH CHECK (true);
+    WITH CHECK (false);
