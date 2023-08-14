@@ -42,9 +42,11 @@ COMMENT ON TABLE
     auth.accounts
     IS 'users account table';
 -- Indexes
-CREATE INDEX accounts_role_idx ON auth.accounts (role);
+-- is unused index?
+--CREATE INDEX accounts_role_idx ON auth.accounts (role);
 CREATE INDEX accounts_preferences_idx ON auth.accounts using GIN (preferences);
-CREATE INDEX accounts_userid_idx ON auth.accounts (userid);
+-- is unused index?
+--CREATE INDEX accounts_userid_idx ON auth.accounts (userid);
 
 CREATE TRIGGER accounts_moddatetime
 	BEFORE UPDATE ON auth.accounts
@@ -75,8 +77,10 @@ COMMENT ON TABLE
     auth.vessels
     IS 'vessels table link to accounts email user_id column';
 -- Indexes
-CREATE INDEX vessels_role_idx ON auth.vessels (role);
-CREATE INDEX vessels_name_idx ON auth.vessels (name);
+-- is unused index?
+--CREATE INDEX vessels_role_idx ON auth.vessels (role);
+-- is unused index?
+--CREATE INDEX vessels_name_idx ON auth.vessels (name);
 CREATE INDEX vessels_vesselid_idx ON auth.vessels (vessel_id);
 
 CREATE TRIGGER vessels_moddatetime
