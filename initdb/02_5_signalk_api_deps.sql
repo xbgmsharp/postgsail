@@ -11,7 +11,7 @@ select current_database();
 -- Link auth.vessels with api.metadata
 --ALTER TABLE api.metadata ADD vessel_id TEXT NOT NULL REFERENCES auth.vessels(vessel_id) ON DELETE RESTRICT;
 ALTER TABLE api.metadata ADD FOREIGN KEY (vessel_id) REFERENCES auth.vessels(vessel_id) ON DELETE RESTRICT;
-COMMENT ON COLUMN api.metadata.vessel_id IS 'Link auth.vessels with api.metadata';
+COMMENT ON COLUMN api.metadata.vessel_id IS 'Link auth.vessels with api.metadata via FOREIGN KEY and REFERENCES';
 
 -- Link auth.vessels with auth.accounts
 --ALTER TABLE auth.vessels ADD user_id TEXT NOT NULL REFERENCES auth.accounts(user_id) ON DELETE RESTRICT;
@@ -156,6 +156,7 @@ AS $version$
         _appv TEXT;
         _sysv TEXT;
     BEGIN
+        -- Add postgrest version https://postgrest.org/en/v11.2/references/admin.html#server-version
         SELECT
             value, rtrim(substring(version(), 0, 17)) AS sys_version into _appv,_sysv
             FROM app_settings
@@ -173,6 +174,7 @@ COMMENT ON FUNCTION
 
 DROP VIEW IF EXISTS api.versions_view;
 CREATE OR REPLACE VIEW api.versions_view AS
+    -- Add postgrest version https://postgrest.org/en/v11.2/references/admin.html#server-version
     SELECT
         value AS api_version,
         --version() as sys_version
@@ -252,7 +254,7 @@ CREATE VIEW api.eventlogs_view WITH (security_invoker=true,security_barrier=true
             from public.process_queue pq
             where ref_id = current_setting('user.id', true)
                 or ref_id = current_setting('vessel.id', true)
-            order by id desc;
+            order by id asc;
 -- Description
 COMMENT ON VIEW
     api.eventlogs_view
