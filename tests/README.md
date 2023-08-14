@@ -1,5 +1,5 @@
 # PostgSail Unit Tests
-The Unit Tests allow to automatically validate the workflow.
+The Unit Tests allow to automatically validate api workflow.
 
 ## A global overview
 Based on `mocha` & `psql`
@@ -7,7 +7,7 @@ Based on `mocha` & `psql`
 ## get started
 ```bash
 $ npm i
-$ alias mocha="./node_modules/mocha/bin/_mocha"
+$ alias mocha="./node_modules/.bin/mocha"
 $ bash tests.sh
 ```
 
