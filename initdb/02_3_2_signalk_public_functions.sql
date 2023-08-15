@@ -170,7 +170,77 @@ COMMENT ON FUNCTION
     public.logbook_update_geojson_fn
     IS 'Update log details with geojson';
 
-create FUNCTION logbook_update_extra_json_fn(IN _id integer, IN _start text, IN _end text,
+-- Generate GPX XML file output
+-- https://opencpn.org/OpenCPN/info/gpxvalidation.html
+--
+CREATE OR REPLACE FUNCTION public.logbook_update_gpx_fn(IN _id INTEGER, IN _start text, IN _end text,
+    OUT _track_gpx XML) RETURNS pg_catalog.xml
+AS $logbook_update_gpx$
+    DECLARE
+        log_rec record;
+        app_settings jsonb;
+    BEGIN
+        -- If _id is is not NULL and > 0
+        IF _id IS NULL OR _id < 1 THEN
+            RAISE WARNING '-> logbook_update_gpx_fn invalid input %', _id;
+            RETURN;
+        END IF;
+        -- Gather log details _from_time and _to_time
+        SELECT * INTO log_rec
+            FROM
+            api.logbook l
+            WHERE l.id = _id;
+        -- Ensure the query is successful
+        IF log_rec.vessel_id IS NULL THEN
+            RAISE WARNING '-> logbook_update_gpx_fn invalid logbook %', _id;
+            RETURN;
+        END IF;
+        -- Gathe url from app settings
+        app_settings := get_app_settings_fn();
+        --RAISE DEBUG '-> logbook_update_gpx_fn app_settings %', app_settings;
+        -- Generate XML
+        SELECT xmlelement(name gpx,
+                            xmlattributes(  '1.1' as version,
+                                            'PostgSAIL' as creator,
+                                            'http://www.topografix.com/GPX/1/1' as xmlns,
+                                            'http://www.opencpn.org' as "xmlns:opencpn",
+                                            app_settings->>'app.url' as "xmlns:postgsail",
+                                            'http://www.w3.org/2001/XMLSchema-instance' as "xmlns:xsi",
+                                            'http://www.garmin.com/xmlschemas/GpxExtensions/v3' as "xmlns:gpxx",
+                                            'http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd' as "xsi:schemaLocation"),
+                xmlelement(name trk,
+                    xmlelement(name name, log_rec.name),
+                    xmlelement(name desc, log_rec.notes),
+                    xmlelement(name link, xmlattributes(concat(app_settings->>'app.url', '/log/', log_rec.id) as href),
+                                                xmlelement(name text, log_rec.name)),
+                    xmlelement(name extensions, xmlelement(name "postgsail:log_id", 1),
+                                                xmlelement(name "postgsail:link", concat(app_settings->>'app.url','/log/', log_rec.id)),
+                                                xmlelement(name "opencpn:guid", uuid_generate_v4()),
+                                                xmlelement(name "opencpn:viz", '1'),
+                                                xmlelement(name "opencpn:start", log_rec._from_time),
+                                                xmlelement(name "opencpn:end", log_rec._to_time)
+                                                ),
+                    xmlelement(name trkseg, xmlagg(
+                                                xmlelement(name trkpt,
+                                                    xmlattributes(latitude as lat, longitude as lon),
+                                                        xmlelement(name time, time)
+                                                )))))::pg_catalog.xml INTO _track_gpx
+            FROM api.metrics m
+            WHERE m.latitude IS NOT NULL
+                AND m.longitude IS NOT NULL
+                AND m.time >= log_rec._from_time::TIMESTAMP WITHOUT TIME ZONE
+                AND m.time <= log_rec._to_time::TIMESTAMP WITHOUT TIME ZONE
+                AND vessel_id = log_rec.vessel_id;
+            -- ERROR:  column "m.time" must appear in the GROUP BY clause or be used in an aggregate function at character 2304
+            --ORDER BY m.time ASC;
+    END;
+$logbook_update_gpx$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.logbook_update_gpx_fn
+    IS 'Update log details with gpx xml';
+
+CREATE FUNCTION logbook_update_extra_json_fn(IN _id integer, IN _start text, IN _end text,
     OUT _extra_json JSON
  ) AS $logbook_extra_json$
     declare
@@ -181,18 +251,22 @@ create FUNCTION logbook_update_extra_json_fn(IN _id integer, IN _start text, IN 
 	    -- Calculate 'navigation.log'
 		with
 			start_trip as (
-				-- Fetch 'navigation.log' start
+				-- Fetch 'navigation.log' start, first entry
 				SELECT key, value
 				FROM api.metrics m,
 				     jsonb_each_text(m.metrics)
-				WHERE key ILIKE 'navigation.log' AND time = _start::timestamp without time zone AND vessel_id = '76ea3a2d0ae0'
+				WHERE key ILIKE 'navigation.log'
+                    AND time = _start::timestamp without time zone
+                    AND vessel_id = current_setting('vessel.id', false)
 			),
 			end_trip as (
-				-- Fetch 'navigation.log' end
+				-- Fetch 'navigation.log' end, last entry
 				SELECT key, value
 				FROM api.metrics m,
 				     jsonb_each_text(m.metrics)
-				WHERE key ILIKE 'navigation.log' AND time = _end::timestamp without time zone AND vessel_id = '76ea3a2d0ae0'
+				WHERE key ILIKE 'navigation.log'
+                    AND time = _end::timestamp without time zone
+                    AND vessel_id = current_setting('vessel.id', false)
 			),
 			nm as (
 				-- calculate distance and convert to nautical miles
@@ -202,22 +276,26 @@ create FUNCTION logbook_update_extra_json_fn(IN _id integer, IN _start text, IN 
 		select jsonb_build_object('navigation.log', trip) into log_json from nm;
 		raise notice '-> logbook_update_extra_json_fn navigation.log: %', log_json;
 
-		-- Calculate engine hours from propulsion.%.runTime
+		-- Calculate engine hours from propulsion.%.runTime first entry
 	    for metric_rec in
 			SELECT key, value
 				FROM api.metrics m,
 				     jsonb_each_text(m.metrics)
-				WHERE key ILIKE 'propulsion.%.runTime' AND time = _start::timestamp without time zone AND vessel_id = '76ea3a2d0ae0'
+                WHERE key ILIKE 'propulsion.%.runTime'
+                 AND time = _start::timestamp without time zone
+                 AND vessel_id = current_setting('vessel.id', false)
 		loop
 			-- Engine Hours in seconds
 			raise notice '-> logbook_update_extra_json_fn propulsion.*.runTime: %', metric_rec;
 			with
 			end_runtime as (
-				-- Fetch 'propulsion.*.runTime' end
+				-- Fetch 'propulsion.*.runTime' last entry
 				SELECT key, value
 					FROM api.metrics m,
 					     jsonb_each_text(m.metrics)
-					WHERE key ILIKE metric_rec.key AND time = _end::timestamp without time zone AND vessel_id = '76ea3a2d0ae0'
+					WHERE key ILIKE metric_rec.key
+                        AND time = _end::timestamp without time zone
+                        AND vessel_id = current_setting('vessel.id', false)
 			),
 			runtime as (
 				-- calculate runTime Engine Hours in seconds
@@ -230,7 +308,7 @@ create FUNCTION logbook_update_extra_json_fn(IN _id integer, IN _start text, IN 
 
 		-- Update logbook with extra value and return json
         select COALESCE(log_json::JSONB, '{}'::jsonb) || COALESCE(runtime_json::JSONB, '{}'::jsonb) into _extra_json;
-        raise notice '-> logbook_update_extra_json_fn %', _extra_json;
+        raise notice '-> logbook_update_extra_json_fn log_json: %, runtime_json: %, _extra_json: %', log_json, runtime_json, _extra_json;
     END;
 $logbook_extra_json$ LANGUAGE plpgsql;
 -- Description
@@ -251,6 +329,7 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         log_settings jsonb;
         user_settings jsonb;
         geojson jsonb;
+        gpx xml;
         _invalid_time boolean;
         _invalid_interval boolean;
         _invalid_distance boolean;
@@ -343,7 +422,7 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
             RAISE WARNING '-> process_logbook_queue_fn delete invalid logbook [%]', logbook_rec.id;
             DELETE FROM api.stays WHERE id = current_stays_id;
             RAISE WARNING '-> process_logbook_queue_fn delete invalid stays [%]', current_stays_id;
-            -- TODO should we substract (-1) moorages ref count or reprocess it?!?
+            -- TODO should we subtract (-1) moorages ref count or reprocess it?!?
             RETURN;
         END IF;
 
@@ -354,7 +433,7 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         to_name := reverse_geocode_py_fn('nominatim', logbook_rec._to_lng::NUMERIC, logbook_rec._to_lat::NUMERIC);
         SELECT CONCAT(from_name, ' to ' , to_name) INTO log_name;
 
-        -- Generate `propulsion.*.runTime` and `navigation.log`
+        -- Process `propulsion.*.runTime` and `navigation.log`
         -- Calculate extra json
         extra_json := logbook_update_extra_json_fn(logbook_rec.id, logbook_rec._from_time::TEXT, logbook_rec._to_time::TEXT);
 
@@ -380,6 +459,13 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
                 track_geojson = geojson
             WHERE id = logbook_rec.id;
 
+        -- GPX field
+        gpx := logbook_update_gpx_fn(logbook_rec.id, logbook_rec._from_time::TEXT, logbook_rec._to_time::TEXT);
+        UPDATE api.logbook
+            SET
+                track_gpx = gpx
+            WHERE id = logbook_rec.id;
+
         -- Prepare notification, gather user settings
         SELECT json_build_object('logbook_name', log_name, 'logbook_link', logbook_rec.id) into log_settings;
         user_settings := get_user_settings_from_vesselid_fn(logbook_rec.vessel_id::TEXT);
@@ -389,7 +475,7 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         -- Send notification
         PERFORM send_notification_fn('logbook'::TEXT, user_settings::JSONB);
         -- Process badges
-        RAISE NOTICE '--> user_settings [%]', user_settings->>'email'::TEXT;
+        RAISE DEBUG '-> debug process_logbook_queue_fn user_settings [%]', user_settings->>'email'::TEXT;
         PERFORM set_config('user.email', user_settings->>'email'::TEXT, false);
         PERFORM badges_logbook_fn(logbook_rec.id);
         PERFORM badges_geom_fn(logbook_rec.id);

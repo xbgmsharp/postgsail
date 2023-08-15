@@ -86,61 +86,25 @@ COMMENT ON FUNCTION
 -- https://opencpn.org/OpenCPN/info/gpxvalidation.html
 --
 DROP FUNCTION IF EXISTS api.export_logbook_gpx_fn;
-CREATE OR REPLACE FUNCTION api.export_logbook_gpx_fn(IN _id INTEGER) RETURNS pg_catalog.xml
+CREATE OR REPLACE FUNCTION api.export_logbook_gpx_fn(IN _id INTEGER, OUT gpx XML) RETURNS pg_catalog.xml
 AS $export_logbook_gpx$
     DECLARE
-        log_rec record;
+        logbook_rec record;
     BEGIN
         -- If _id is is not NULL and > 0
         IF _id IS NULL OR _id < 1 THEN
-            RAISE WARNING '-> export_logbook_geojson_fn invalid input %', _id;
-            RETURN '';
+            RAISE WARNING '-> export_logbook_gpx_fn invalid input %', _id;
+            RETURN;
         END IF;
-        -- Gather log details _from_time and _to_time
-        SELECT * INTO log_rec
-            FROM
-            api.logbook l
-            WHERE l.id = _id;
+        -- Gather log details
+        SELECT * INTO logbook_rec
+            FROM api.logbook WHERE id = _id;
         -- Ensure the query is successful
-        IF log_rec.vessel_id IS NULL THEN
+        IF logbook_rec.vessel_id IS NULL THEN
             RAISE WARNING '-> export_logbook_gpx_fn invalid logbook %', _id;
-            RETURN '';
+            RETURN;
         END IF;
-        -- Generate XML
-        RETURN xmlelement(name gpx,
-                            xmlattributes(  '1.1' as version,
-                                            'PostgSAIL' as creator,
-                                            'http://www.topografix.com/GPX/1/1' as xmlns,
-                                            'http://www.opencpn.org' as "xmlns:opencpn",
-                                            'https://iot.openplotter.cloud' as "xmlns:postgsail",
-                                            'http://www.w3.org/2001/XMLSchema-instance' as "xmlns:xsi",
-                                            'http://www.garmin.com/xmlschemas/GpxExtensions/v3' as "xmlns:gpxx",
-                                            'http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd' as "xsi:schemaLocation"),
-                xmlelement(name trk,
-                    xmlelement(name name, log_rec.name),
-                    xmlelement(name desc, log_rec.notes),
-                    xmlelement(name link, xmlattributes(concat('https://iot.openplotter.cloud/log/', log_rec.id) as href),
-                                                xmlelement(name text, log_rec.name)),
-                    xmlelement(name extensions, xmlelement(name "postgsail:log_id", 1),
-                                                xmlelement(name "postgsail:link", concat('https://iot.openplotter.cloud/log/', log_rec.id)),
-                                                xmlelement(name "opencpn:guid", uuid_generate_v4()),
-                                                xmlelement(name "opencpn:viz", '1'),
-                                                xmlelement(name "opencpn:start", log_rec._from_time),
-                                                xmlelement(name "opencpn:end", log_rec._to_time)
-                                                ),
-                    xmlelement(name trkseg, xmlagg(
-                                                xmlelement(name trkpt,
-                                                    xmlattributes(latitude as lat, longitude as lon),
-                                                        xmlelement(name time, time)
-                                                )))))::pg_catalog.xml
-            FROM api.metrics m
-            WHERE m.latitude IS NOT NULL
-                AND m.longitude IS NOT NULL
-                AND m.time >= log_rec._from_time::TIMESTAMP WITHOUT TIME ZONE
-                AND m.time <= log_rec._to_time::TIMESTAMP WITHOUT TIME ZONE
-                AND vessel_id = log_rec.vessel_id;
-            -- ERROR:  column "m.time" must appear in the GROUP BY clause or be used in an aggregate function at character 2304
-            --ORDER BY m.time ASC;
+        gpx := logbook_rec.track_gpx;
     END;
 $export_logbook_gpx$ LANGUAGE plpgsql;
 -- Description
