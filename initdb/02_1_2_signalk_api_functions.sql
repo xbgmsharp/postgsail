@@ -25,17 +25,20 @@ CREATE OR REPLACE FUNCTION api.timelapse_fn(
             SELECT jsonb_agg(track_geojson->'features') INTO _geojson
                 FROM api.logbook
                 WHERE id >= start_log
-                    AND id <= end_log;
+                    AND id <= end_log
+                    AND track_geojson IS NOT NULL;
             --raise WARNING 'by log _geojson %' , _geojson;
         ELSIF start_date IS NOT NULL AND public.isdate(start_date::text) AND public.isdate(end_date::text) THEN
             SELECT jsonb_agg(track_geojson->'features') INTO _geojson
                 FROM api.logbook
                 WHERE _from_time >= start_log::TIMESTAMP WITHOUT TIME ZONE
-                    AND _to_time <= end_date::TIMESTAMP WITHOUT TIME ZONE + interval '23 hours 59 minutes';
+                    AND _to_time <= end_date::TIMESTAMP WITHOUT TIME ZONE + interval '23 hours 59 minutes'
+                    AND track_geojson IS NOT NULL;
             --raise WARNING 'by date _geojson %' , _geojson;
         ELSE
             SELECT jsonb_agg(track_geojson->'features') INTO _geojson
-                FROM api.logbook;
+                FROM api.logbook
+                WHERE track_geojson IS NOT NULL;
             --raise WARNING 'all result _geojson %' , _geojson;
         END IF;
         -- Return a GeoJSON filter on Point
