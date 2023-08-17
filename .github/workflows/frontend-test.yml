@@ -26,6 +26,9 @@ jobs:
       - name: Pull Docker images
         run: docker-compose pull db api web
 
+      - name: Build Docker images
+        run: docker-compose -f docker-compose.dev.yml -f docker-compose.yml build web_tests
+
       - name: Run PostgSail Web test
         # Environment variables
         env:
@@ -46,7 +49,7 @@ jobs:
           docker-compose up -d web_dev && sleep 60
           docker-compose ps -a
           curl http://localhost:8080/
-          docker-compose -f docker-compose.dev.yml -f docker-compose.yml up --exit-code-from web_tests
+          docker-compose -f docker-compose.dev.yml -f docker-compose.yml up web_tests --abort-on-container-exit --exit-code-from web_tests
           if [ $? != 0 ];
           then
               echo "Error running frontend-tests"
