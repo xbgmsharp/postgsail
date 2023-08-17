@@ -59,7 +59,7 @@ jobs:
           echo "Test PostgSail version"
           psql -c "SELECT value FROM app_settings WHERE name = 'app.version';"
           echo "Test PostgSail Unit Test"
-          docker-compose -f docker-compose.dev.yml -f docker-compose.yml up tests --abort-on-container-exit --exit-code-from tests
+          docker-compose -f docker-compose.dev.yml -f docker-compose.yml up tests --exit-code-from tests
           if [ $? != 0 ];
           then
               echo "Error running db-tests"
