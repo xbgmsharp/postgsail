@@ -54,7 +54,12 @@ jobs:
           echo "Test PostgSail version"
           psql -c "SELECT value FROM app_settings WHERE name = 'app.version';"
           echo "Test PostgSail Unit Test"
-          docker-compose -f docker-compose.dev.yml -f docker-compose.yml up tests
+          docker-compose -f docker-compose.dev.yml -f docker-compose.yml up --exit-code-from tests
+          if [ $? != 0 ];
+          then
+              echo "Error running db-tests"
+              exit 1
+          fi
       - name: Show the logs
         if: always()
         run: |

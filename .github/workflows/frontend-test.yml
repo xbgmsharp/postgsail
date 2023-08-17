@@ -43,9 +43,15 @@ jobs:
           docker-compose up -d db && sleep 15 && docker-compose up -d api && sleep 5
           docker-compose ps -a
           echo "Test PostgSail Web Unit Test"
-          docker-compose up -d web && sleep 5
+          docker-compose up -d web_dev && sleep 60
           docker-compose ps -a
           curl http://localhost:8080/
+          docker-compose -f docker-compose.dev.yml -f docker-compose.yml up --exit-code-from web_tests
+          if [ $? != 0 ];
+          then
+              echo "Error running frontend-tests"
+              exit 1
+          fi
       - name: Show the logs
         if: always()
         run: |
