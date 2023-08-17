@@ -27,6 +27,9 @@ jobs:
       - name: Pull Docker images
         run: docker-compose pull db api
 
+      - name: Build Docker images
+        run: docker-compose -f docker-compose.dev.yml -f docker-compose.yml build tests
+
       - name: Install psql
         run: sudo apt install postgresql-client
 
