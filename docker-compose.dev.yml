@@ -90,6 +90,7 @@ services:
       context: https://github.com/xbgmsharp/vuestic-postgsail.git#live
       dockerfile: Dockerfile_dev
     container_name: web_dev
+    hostname: web_dev
     restart: unless-stopped
     volumes:
       - ./frontend:/app
@@ -97,14 +98,35 @@ services:
       - "api:postgrest"
     ports:
       - 8080:8080
+    env_file: .env
     environment:
-      - VITE_PGSAIL_URL=${PGSAIL_API_URL}
+      - VITE_PGSAIL_URL=http://api:3000
       - VITE_APP_INCLUDE_DEMOS=false
       - VITE_APP_BUILD_VERSION=true
       - VITE_APP_TITLE=${VITE_APP_TITLE}
     depends_on:
       - db
       - api
+    logging:
+      options:
+        max-size: 10m
+
+  web_tests:
+    image: cypress/included
+    container_name: web_tests
+    restart: unless-stopped
+    volumes:
+      - ./frontend/e2e:/e2e
+    links:
+      - "api:postgrest"
+      - "web_dev:frontend"
+    env_file: .env
+    environment:
+      - CYPRESS_BASE_URL=http://web_dev:8080
+    depends_on:
+      - db
+      - api
+      - web_dev
     logging:
       options:
         max-size: 10m
