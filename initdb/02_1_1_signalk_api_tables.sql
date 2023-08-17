@@ -120,14 +120,15 @@ CREATE TABLE IF NOT EXISTS api.logbook(
   avg_speed DOUBLE PRECISION NULL,
   max_speed DOUBLE PRECISION NULL,
   max_wind_speed DOUBLE PRECISION NULL,
-  notes TEXT NULL,
-  extra JSONB NULL
+  notes TEXT NULL, -- remarks
+  extra JSONB NULL -- other signalk metrics of interest
 );
 -- Description
 COMMENT ON TABLE
     api.logbook
     IS 'Stores generated logbook';
 COMMENT ON COLUMN api.logbook.distance IS 'in NM';
+COMMENT ON COLUMN api.logbook.extra IS 'other metrics of interest, runTime, currentLevel, etc';
 
 -- Index todo!
 CREATE INDEX logbook_vessel_id_idx ON api.logbook (vessel_id);
