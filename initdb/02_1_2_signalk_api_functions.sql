@@ -348,3 +348,58 @@ $export_moorages_gpx$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION
     api.export_moorages_gpx_fn
     IS 'Export moorages as gpx';
+
+-- Statistics
+DROP FUNCTION IF EXISTS api.stats_logs_fn;
+CREATE OR REPLACE FUNCTION api.stats_logs_fn(
+    IN start_date TEXT DEFAULT NULL,
+    IN end_date TEXT DEFAULT NULL,
+    OUT stats JSON) RETURNS JSON AS $stats_logs$
+    DECLARE
+        _start_date TIMESTAMP WITHOUT TIME ZONE DEFAULT '1970-01-01';
+        _end_date TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW();
+    BEGIN
+        IF start_date IS NOT NULL AND public.isdate(start_date::text) AND public.isdate(end_date::text) THEN
+            RAISE WARNING '--> stats_fn, filter result stats by date [%]', start_date;
+            _start_date := start_date::TIMESTAMP WITHOUT TIME ZONE;
+			_end_date := end_date::TIMESTAMP WITHOUT TIME ZONE;
+        END IF;
+		RAISE WARNING '--> stats_fn, _start_date [%], _end_date [%]', _start_date, _end_date;
+        WITH
+            logs_view AS (
+                SELECT *
+                    FROM api.logbook l
+                    WHERE _from_time >= _start_date::TIMESTAMP WITHOUT TIME ZONE
+                        AND _to_time <= _end_date::TIMESTAMP WITHOUT TIME ZONE + interval '23 hours 59 minutes'
+                ),
+            max_speed_id AS (
+                SELECT id FROM logs_view WHERE max_speed = (SELECT max(max_speed) FROM logs_view) ),
+            max_wind_speed_id AS (
+                SELECT id FROM logs_view WHERE max_wind_speed = (SELECT max(max_wind_speed) FROM logs_view)),
+            max_distance_id AS (
+                SELECT id FROM logs_view WHERE distance = (SELECT max(distance) FROM logs_view)),
+            max_duration_id AS (
+                SELECT id FROM logs_view WHERE duration = (SELECT max(duration) FROM logs_view)),
+            logs_stats AS (
+                SELECT
+                    count(*) AS count,
+                    max(max_speed) AS max_speed,
+                    max(max_wind_speed) AS max_wind_speed,
+                    max(distance) AS max_distance,
+                    max(duration) AS max_duration,
+                    sum(duration) AS sum_duration
+                FROM logs_view l )
+              --select * from logbook;
+        -- Return a JSON
+        SELECT jsonb_build_object(
+            'max_speed_id', max_speed_id.id,
+            'max_wind_speed_id', max_wind_speed_id.id,
+            'max_distance_id', max_distance_id.id)::jsonb || to_jsonb(logs_stats.*)::jsonb INTO stats
+            FROM max_speed_id, max_wind_speed_id, max_distance_id, logs_stats, max_duration_id;
+        -- TODO Add moorages
+    END;
+$stats_logs$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    api.stats_logs_fn
+    IS 'Logs stats by date';
