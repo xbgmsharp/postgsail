@@ -57,7 +57,10 @@ ALTER DATABASE signalk SET TIMEZONE='UTC';
 
 -- Schema
 CREATE SCHEMA IF NOT EXISTS api;
-COMMENT ON SCHEMA api IS 'api schema expose to postgrest';
+COMMENT ON SCHEMA api IS
+$$PostgSail API
+
+A RESTful API that serves PostgSail data using postgrest.$$;
 
 -- Revoke default privileges to all public functions
 ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
