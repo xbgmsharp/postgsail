@@ -2,6 +2,23 @@
 
 Effortless cloud based solution for storing and sharing your SignalK data. Allow you to effortlessly log your sails and monitor your boat with historical data.
 
+[![release](https://img.shields.io/github/release/xbgmsharp/postgsail?include_prereleases=&sort=semver&color=blue)](https://github.com/xbgmsharp/postgsail/releases/latest)
+[![License](https://img.shields.io/badge/License-MIT-blue)](#license)
+[![issues - postgsail](https://img.shields.io/github/issues/xbgmsharp/postgsail)](https://github.com/xbgmsharp/postgsail/issues)
+
+[![Test services db, api](https://github.com/xbgmsharp/postgsail/actions/workflows/db-test.yml/badge.svg)](https://github.com/xbgmsharp/postgsail/actions/workflows/db-test.yml)
+[![Test services db, api, web](https://github.com/xbgmsharp/postgsail/actions/workflows/frontend-test.yml/badge.svg)](https://github.com/xbgmsharp/postgsail/actions/workflows/frontend-test.yml)
+[![Test services db, grafana](https://github.com/xbgmsharp/postgsail/actions/workflows/grafana-test.yml/badge.svg)](https://github.com/xbgmsharp/postgsail/actions/workflows/grafana-test.yml)
+
+signalk-postgsail:
+[![GitHub Release](https://img.shields.io/github/release/xbgmsharp/signalk-postgsail.svg)](https://github.com/xbgmsharp/signalk-postgsail/releases/latest)
+
+postgsail-frontend:
+[![GitHub Release](https://img.shields.io/github/release/xbgmsharp/vuestic-postgsail.svg)](https://github.com/xbgmsharp/vuestic-postgsail/releases/latest)
+
+postgsail-telegram-bot:
+[![GitHub Release](https://img.shields.io/github/release/xbgmsharp/postgsail-telegram-bot.svg)](https://github.com/xbgmsharp/postgsail-telegram-bot/releases/latest)
+
 ## Features
 
 - Automatically log your voyages without manually starting or stopping a trip.
@@ -17,6 +34,8 @@ Effortless cloud based solution for storing and sharing your SignalK data. Allow
 - Notification via email or PushOver, Telegram
 - Offline mode
 - Low Bandwidth mode
+- Awesome statistics and graphs
+- Anything missing? just ask!
 
 ## Context
 
@@ -44,17 +63,22 @@ Hosted and fully–managed options for PostgSail, designed for all your deployme
 
 ## Using PostgSail
 
-### full-featured development environment
-The Visual Studio Code Remote - Containers extension lets you use a Docker container as a full-featured development environment.
+A full-featured development environment.
 
-#### With codesandbox
-- https://codesandbox.io/p/github/xbgmsharp/postgsail/main
+#### With CodeSandbox
+
+- Develop on [![CodeSandbox Ready-to-Code](https://img.shields.io/badge/CodeSandbox-Ready--to--Code-blue?logo=codesandbox)](https://codesandbox.io/p/github/xbgmsharp/postgsail/main)
+  - or via [direct link](https://codesandbox.io/p/github/xbgmsharp/postgsail/main)
 
 #### With DevPod
-- https://devpod.sh/open#https://github.com/xbgmsharp/postgsail/&workspace=postgsail&provider=docker&ide=openvscode
+
+- [![Open in DevPod!](https://devpod.sh/assets/open-in-devpod.svg)](https://devpod.sh/open#https://github.com/xbgmsharp/postgsail/&workspace=postgsail&provider=docker&ide=openvscode)
+  - or via [direct link](https://devpod.sh/open#https://github.com/xbgmsharp/postgsail&workspace=postgsail&provider=docker&ide=openvscode)
 
 #### With Docker Dev Environments
-- https://open.docker.com/dashboard/dev-envs?url=https://github.com/xbgmsharp/postgsail/
+- [![Open in Docker dev-envs!](https://upload.wikimedia.org/wikipedia/commons/4/4e/Docker_%28container_engine%29_logo.svg)](https://open.docker.com/dashboard/dev-envs?url=https://github.com/xbgmsharp/postgsail/)
+
+  - or via [direct link](https://open.docker.com/dashboard/dev-envs?url=https://github.com/xbgmsharp/postgsail/)
   Open in Docker Dev Environments Open in Docker Dev Environments
 
 ### pre-deploy configuration
@@ -136,6 +160,8 @@ $ docker-compose up tests
 
 The OpenAPI description output depends on the permissions of the role that is contained in the JWT role claim.
 
+Other applications can also use the [PostgSAIL API](https://editor.swagger.io/?url=https://raw.githubusercontent.com/xbgmsharp/postgsail/main/schema/openapi.yaml).
+
 API anonymous:
 
 ```
@@ -156,7 +182,7 @@ $ curl http://localhost:3000/ -H 'Authorization: Bearer my_token_from_register_v
 
 #### API main workflow
 
-Check the [unit test sample](https://github.com/xbgmsharp/postgsail/blob/main/tests/index.js).
+Check the [e2e unit test sample](https://github.com/xbgmsharp/postgsail/blob/main/tests/).
 
 ### Docker dependencies
 
