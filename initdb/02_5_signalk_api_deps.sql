@@ -156,7 +156,6 @@ AS $version$
         _appv TEXT;
         _sysv TEXT;
     BEGIN
-        -- Add postgrest version https://postgrest.org/en/v11.2/references/admin.html#server-version
         SELECT
             value, rtrim(substring(version(), 0, 17)) AS sys_version into _appv,_sysv
             FROM app_settings
@@ -164,7 +163,8 @@ AS $version$
         RETURN json_build_object('api_version', _appv,
                            'sys_version', _sysv,
                            'timescaledb', (SELECT extversion as timescaledb FROM pg_extension WHERE extname='timescaledb'),
-                           'postgis', (SELECT extversion as postgis FROM pg_extension WHERE extname='postgis'));
+                           'postgis', (SELECT extversion as postgis FROM pg_extension WHERE extname='postgis'),
+                           'postgrest', (SELECT rtrim(substring(application_name, 0, length(application_name)-8)) as postgrest FROM pg_stat_activity WHERE application_name ilike '%postgrest%' LIMIT 1));
     END;
 $version$ language plpgsql security definer;
 -- Description
@@ -174,13 +174,13 @@ COMMENT ON FUNCTION
 
 DROP VIEW IF EXISTS api.versions_view;
 CREATE OR REPLACE VIEW api.versions_view AS
-    -- Add postgrest version https://postgrest.org/en/v11.2/references/admin.html#server-version
     SELECT
         value AS api_version,
         --version() as sys_version
         rtrim(substring(version(), 0, 17)) AS sys_version,
         (SELECT extversion as timescaledb FROM pg_extension WHERE extname='timescaledb'),
-        (SELECT extversion as postgis FROM pg_extension WHERE extname='postgis')
+        (SELECT extversion as postgis FROM pg_extension WHERE extname='postgis'),
+        (SELECT rtrim(substring(application_name, 0, length(application_name)-8)) as postgrest FROM pg_stat_activity WHERE application_name ilike '%postgrest%' limit 1)
     FROM app_settings
     WHERE name = 'app.version';
 -- Description
