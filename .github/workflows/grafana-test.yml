@@ -11,6 +11,8 @@ on:
       - 'main'
     paths:
       - 'grafana/**'
+    tags:
+      - "*"
   workflow_dispatch:
 
 jobs:

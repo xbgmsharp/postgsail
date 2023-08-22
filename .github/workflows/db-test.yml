@@ -13,6 +13,8 @@ on:
     paths:
       - 'initdb/**'
       - 'tests/**'
+    tags:
+        - "*"
   workflow_dispatch:
 
 jobs:
@@ -58,7 +60,6 @@ jobs:
           psql -c "SELECT version();"
           echo "Test PostgSail version"
           psql -c "SELECT value FROM app_settings WHERE name = 'app.version';"
-          docker compose up -h
           echo "Test PostgSail Unit Test"
           docker compose -f docker-compose.dev.yml -f docker-compose.yml up tests --abort-on-container-exit --exit-code-from tests
           if [ $? != 0 ];

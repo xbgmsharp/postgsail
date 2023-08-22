@@ -11,6 +11,8 @@ on:
       - 'main'
     paths:
       - 'frontend/**'
+    tags:
+      - "*"
   workflow_dispatch:
 
 jobs:
@@ -49,7 +51,6 @@ jobs:
           docker-compose up -d web_dev && sleep 60
           docker-compose ps -a
           curl http://localhost:8080/
-          docker compose up
           docker compose -f docker-compose.dev.yml -f docker-compose.yml up web_tests --abort-on-container-exit --exit-code-from web_tests
           if [ $? != 0 ];
           then
