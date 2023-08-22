@@ -160,7 +160,7 @@ $ docker-compose up tests
 
 The OpenAPI description output depends on the permissions of the role that is contained in the JWT role claim.
 
-Other applications can also use the [PostgSAIL API](https://editor.swagger.io/?url=https://raw.githubusercontent.com/xbgmsharp/postgsail/main/openapi.json).
+Other applications can also use the [PostgSAIL API](https://petstore.swagger.io/?url=https://raw.githubusercontent.com/xbgmsharp/postgsail/main/openapi.json).
 
 API anonymous:
 
