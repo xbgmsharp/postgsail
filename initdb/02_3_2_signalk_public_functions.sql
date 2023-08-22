@@ -240,16 +240,61 @@ COMMENT ON FUNCTION
     public.logbook_update_gpx_fn
     IS 'Update log details with gpx xml';
 
+CREATE FUNCTION logbook_get_extra_json_fn(IN search TEXT, OUT output_json JSON)
+AS $logbook_get_extra_json$
+    declare
+     metric_json jsonb default '{}'::jsonb;
+     metric_rec record;
+    BEGIN
+    -- TODO
+		-- Calculate 'search' first entry
+        FOR metric_rec IN
+			SELECT key, value
+				FROM api.metrics m,
+				     jsonb_each_text(m.metrics)
+                WHERE key ILIKE search
+                 AND time = _start::timestamp without time zone
+                 AND vessel_id = current_setting('vessel.id', false)
+        LOOP
+			-- Engine Hours in seconds
+			raise notice '-> logbook_get_extra_json_fn metric: %', metric_rec;
+			with
+			end_metric AS (
+				-- Fetch 'tanks.%.currentVolume' last entry
+				SELECT key, value
+					FROM api.metrics m,
+					     jsonb_each_text(m.metrics)
+					WHERE key ILIKE metric_rec.key
+                        AND time = _end::timestamp without time zone
+                        AND vessel_id = current_setting('vessel.id', false)
+			),
+			metric AS (
+				-- Subtract
+				SELECT (end_metric.value::numeric - metric_rec.value::numeric) AS value FROM end_metric
+			)
+			-- Generate JSON
+			SELECT jsonb_build_object(metric_rec.key, metric.value) INTO metric_json FROM metrics;
+			raise notice '-> logbook_get_extra_json_fn key: %, value: %', metric_rec.key, metric_json;
+        END LOOP;
+    END;
+$logbook_get_extra_json$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.logbook_get_extra_json_fn
+    IS 'TODO';
+
 CREATE FUNCTION logbook_update_extra_json_fn(IN _id integer, IN _start text, IN _end text,
     OUT _extra_json JSON
  ) AS $logbook_extra_json$
     declare
+     obs_json jsonb default '{ "seaState": -1, "cloudCoverage": -1, "visibility": -1}'::jsonb;
      log_json jsonb default '{}'::jsonb;
 	 runtime_json jsonb default '{}'::jsonb;
+     metrics_json jsonb default '{}'::jsonb;
      metric_rec record;
-    begin
-	    -- Calculate 'navigation.log'
-		with
+    BEGIN
+	    -- Calculate 'navigation.log' metrics
+		WITH
 			start_trip as (
 				-- Fetch 'navigation.log' start, first entry
 				SELECT key, value
@@ -270,25 +315,25 @@ CREATE FUNCTION logbook_update_extra_json_fn(IN _id integer, IN _start text, IN 
 			),
 			nm as (
 				-- calculate distance and convert to nautical miles
-				select ((end_trip.value::NUMERIC - start_trip.value::numeric) / 1.852) as trip from start_trip,end_trip
+				SELECT ((end_trip.value::NUMERIC - start_trip.value::numeric) / 1.852) as trip from start_trip,end_trip
 			)
 		-- Generate JSON
-		select jsonb_build_object('navigation.log', trip) into log_json from nm;
-		raise notice '-> logbook_update_extra_json_fn navigation.log: %', log_json;
+        SELECT jsonb_build_object('navigation.log', trip) INTO log_json FROM nm;
+        raise notice '-> logbook_update_extra_json_fn navigation.log: %', log_json;
 
 		-- Calculate engine hours from propulsion.%.runTime first entry
-	    for metric_rec in
+        FOR metric_rec IN
 			SELECT key, value
 				FROM api.metrics m,
 				     jsonb_each_text(m.metrics)
                 WHERE key ILIKE 'propulsion.%.runTime'
                  AND time = _start::timestamp without time zone
                  AND vessel_id = current_setting('vessel.id', false)
-		loop
+        LOOP
 			-- Engine Hours in seconds
 			raise notice '-> logbook_update_extra_json_fn propulsion.*.runTime: %', metric_rec;
 			with
-			end_runtime as (
+			end_runtime AS (
 				-- Fetch 'propulsion.*.runTime' last entry
 				SELECT key, value
 					FROM api.metrics m,
@@ -297,17 +342,18 @@ CREATE FUNCTION logbook_update_extra_json_fn(IN _id integer, IN _start text, IN 
                         AND time = _end::timestamp without time zone
                         AND vessel_id = current_setting('vessel.id', false)
 			),
-			runtime as (
+			runtime AS (
 				-- calculate runTime Engine Hours in seconds
-				select (end_runtime.value::numeric - metric_rec.value::numeric) as value from end_runtime
+				SELECT (end_runtime.value::numeric - metric_rec.value::numeric) AS value FROM end_runtime
 			)
 			-- Generate JSON
-			select jsonb_build_object(metric_rec.key, runtime.value) into runtime_json from runtime;
+			SELECT jsonb_build_object(metric_rec.key, runtime.value) INTO runtime_json FROM runtime;
 			raise notice '-> logbook_update_extra_json_fn key: %, value: %', metric_rec.key, runtime_json;
-		end loop;
+        END LOOP;
 
-		-- Update logbook with extra value and return json
-        select COALESCE(log_json::JSONB, '{}'::jsonb) || COALESCE(runtime_json::JSONB, '{}'::jsonb) into _extra_json;
+        -- Update logbook with extra value and return json
+        SELECT COALESCE(log_json::JSONB, '{}'::jsonb) || COALESCE(runtime_json::JSONB, '{}'::jsonb) INTO metrics_json;
+        SELECT jsonb_build_object('metrics', metrics_json, 'observations', obs_json) INTO _extra_json;
         raise notice '-> logbook_update_extra_json_fn log_json: %, runtime_json: %, _extra_json: %', log_json, runtime_json, _extra_json;
     END;
 $logbook_extra_json$ LANGUAGE plpgsql;
