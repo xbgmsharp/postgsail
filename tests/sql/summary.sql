@@ -12,7 +12,9 @@ select current_database();
 \x on
 
 -- List PostgreSQL version
-SELECT version();
+--SELECT version();
+-- check only version number to remove arch details
+SHOW server_version;
 
 -- List Postgis version
 SELECT postgis_full_version();
