@@ -5,4 +5,3 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get -q update && apt-get -qy upgrade && apt-get -qy install postgresql-client
 # Clean up APT when done.
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-

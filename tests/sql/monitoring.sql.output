@@ -1,0 +1,38 @@
+ current_database 
+------------------
+ signalk
+(1 row)
+
+You are now connected to database "signalk" as user "username".
+Expanded display is on.
+Set vessel_id and vessel.name
+-[ RECORD 1 ]
+vessel_id | t
+
+-[ RECORD 1 ]
+name | t
+
+Test monitoring_view for user
+-[ RECORD 1 ]
+count | 1
+
+Test monitoring_view2 for user
+-[ RECORD 1 ]
+count | 21
+
+Test monitoring_view3 for user
+-[ RECORD 1 ]
+count | 3682
+
+Test monitoring_voltage for user
+-[ RECORD 1 ]
+count | 46
+
+Test monitoring_temperatures for user
+-[ RECORD 1 ]
+count | 119
+
+Test monitoring_humidity for user
+-[ RECORD 1 ]
+count | 0
+

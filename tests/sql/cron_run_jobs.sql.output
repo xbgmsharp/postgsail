@@ -1,0 +1,16 @@
+ current_database 
+------------------
+ signalk
+(1 row)
+
+You are now connected to database "signalk" as user "username".
+Expanded display is on.
+-[ RECORD 1 ]
+jobs | 28
+
+-[ RECORD 1 ]-+-
+run_cron_jobs | 
+
+-[ RECORD 1 ]----+--
+any_pending_jobs | 0
+
