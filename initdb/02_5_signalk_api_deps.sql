@@ -164,7 +164,7 @@ AS $version$
                            'sys_version', _sysv,
                            'timescaledb', (SELECT extversion as timescaledb FROM pg_extension WHERE extname='timescaledb'),
                            'postgis', (SELECT extversion as postgis FROM pg_extension WHERE extname='postgis'),
-                           'postgrest', (SELECT rtrim(substring(application_name, 0, length(application_name)-8)) as postgrest FROM pg_stat_activity WHERE application_name ilike '%postgrest%' LIMIT 1));
+                           'postgrest', (SELECT rtrim(substring(application_name from 'PostgREST [0-9.]+')) as postgrest FROM pg_stat_activity WHERE application_name ilike '%postgrest%' LIMIT 1));
     END;
 $version$ language plpgsql security definer;
 -- Description
@@ -180,7 +180,7 @@ CREATE OR REPLACE VIEW api.versions_view AS
         rtrim(substring(version(), 0, 17)) AS sys_version,
         (SELECT extversion as timescaledb FROM pg_extension WHERE extname='timescaledb'),
         (SELECT extversion as postgis FROM pg_extension WHERE extname='postgis'),
-        (SELECT rtrim(substring(application_name, 0, length(application_name)-8)) as postgrest FROM pg_stat_activity WHERE application_name ilike '%postgrest%' limit 1)
+        (SELECT rtrim(substring(application_name from 'PostgREST [0-9.]+')) as postgrest FROM pg_stat_activity WHERE application_name ilike '%postgrest%' limit 1)
     FROM app_settings
     WHERE name = 'app.version';
 -- Description
