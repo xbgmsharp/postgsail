@@ -76,10 +76,7 @@ A full-featured development environment.
   - or via [direct link](https://devpod.sh/open#https://github.com/xbgmsharp/postgsail&workspace=postgsail&provider=docker&ide=openvscode)
 
 #### With Docker Dev Environments
-- [![Open in Docker dev-envs!](https://upload.wikimedia.org/wikipedia/commons/4/4e/Docker_%28container_engine%29_logo.svg)](https://open.docker.com/dashboard/dev-envs?url=https://github.com/xbgmsharp/postgsail/)
-
-  - or via [direct link](https://open.docker.com/dashboard/dev-envs?url=https://github.com/xbgmsharp/postgsail/)
-  Open in Docker Dev Environments Open in Docker Dev Environments
+- [Open in Docker dev-envs!](https://open.docker.com/dashboard/dev-envs?url=https://github.com/xbgmsharp/postgsail/)
 
 ### pre-deploy configuration
 
