@@ -49,7 +49,7 @@ jobs:
           docker-compose ps -a
           echo "Test PostgSail Web Unit Test"
           docker compose -f docker-compose.dev.yml -f docker-compose.yml up -d web_dev && sleep 100
-          docker compose logs web_dev
+          docker compose -f docker-compose.dev.yml -f docker-compose.yml logs web_dev
           docker compose ps -a
           curl http://localhost:8080/
           docker compose -f docker-compose.dev.yml -f docker-compose.yml up web_tests --abort-on-container-exit --exit-code-from web_tests
