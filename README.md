@@ -96,12 +96,12 @@ Notice, that `PGRST_JWT_SECRET` must be at least 32 characters long.
 
 ### Deploy
 
-By default there is no network set and the postgresql data are store in a docker volume.
-You can update the default settings by editing `docker-compose.yml` to your need.
+By default there is no network set and all data are store in a docker volume.
+You can update the default settings by editing `docker-compose.yml` and `docker-compose.dev.yml` to your need.
 
 First let's initialize the database.
 
-#### Initialize database
+#### Step 1. Initialize database
 
 First let's import the SQL schema, execute:
 
@@ -109,7 +109,7 @@ First let's import the SQL schema, execute:
 $ docker-compose up db
 ```
 
-#### Start backend (db, api)
+#### Step 2. Start backend (db, api)
 
 Then launch the full stack (db, api) backend, execute:
 
@@ -147,7 +147,8 @@ You might want to import your influxdb1 data as well, [outflux](https://github.c
 Any taker on influxdb2 to PostgSail? It is definitely possible.
 
 Last, if you like, you can import the sample data from Signalk NMEA Plaka by running the tests.
-If everything goes well all tests pass successfully and you should receive a few notifications by email or PushOver.
+If everything goes well all tests pass successfully and you should receive a few notifications by email or PushOver or Telegram.
+[End-to-End (E2E) Testing.](https://github.com/xbgmsharp/postgsail/blob/main/tests/)
 
 ```
 $ docker-compose up tests
@@ -179,7 +180,7 @@ $ curl http://localhost:3000/ -H 'Authorization: Bearer my_token_from_register_v
 
 #### API main workflow
 
-Check the [e2e unit test sample](https://github.com/xbgmsharp/postgsail/blob/main/tests/).
+Check the [End-to-End (E2E) test sample](https://github.com/xbgmsharp/postgsail/blob/main/tests/).
 
 ### Docker dependencies
 
