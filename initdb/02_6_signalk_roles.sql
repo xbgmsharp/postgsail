@@ -58,6 +58,8 @@ GRANT SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadat
 GRANT SELECT ON TABLE api.logs_view,api.moorages_view,api.stays_view TO grafana;
 GRANT SELECT ON TABLE api.log_view,api.moorage_view,api.stay_view,api.vessels_view TO grafana;
 GRANT SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata,api.stays_at TO grafana;
+GRANT SELECT ON TABLE api.monitoring_view,api.monitoring_view2,api.monitoring_view3 TO grafana;
+GRANT SELECT ON TABLE api.monitoring_humidity,api.monitoring_voltage,api.monitoring_temperatures TO grafana;
 -- Allow Auth schema and Tables
 GRANT USAGE ON SCHEMA auth TO grafana;
 GRANT SELECT ON TABLE auth.vessels TO grafana;
