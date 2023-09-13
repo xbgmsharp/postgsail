@@ -259,3 +259,26 @@ CREATE VIEW api.eventlogs_view WITH (security_invoker=true,security_barrier=true
 COMMENT ON VIEW
     api.eventlogs_view
     IS 'Event logs view';
+
+DROP FUNCTION IF EXISTS api.update_logbook_observations_fn;
+-- Update/Add a specific user observations into logbook
+CREATE OR REPLACE FUNCTION api.update_logbook_observations_fn(IN _id INT, IN observations TEXT) RETURNS BOOLEAN AS
+$update_logbook_observations$
+DECLARE
+	_value TEXT := NULL;
+BEGIN
+    RAISE WARNING '-> update_logbook_extra_fn id:[%] observations:[%]', _id, observations;
+    _value := to_jsonb(observations)::jsonb;
+    -- { 'observations': { 'seaState': -1, 'cloudCoverage': -1, 'visibility': -1 } }
+    UPDATE api.logbook SET extra = public.jsonb_recursive_merge(extra, _value) WHERE id = _id;
+    IF FOUND IS True THEN
+        RETURN True;
+    END IF;
+    RETURN False;
+END;
+$update_logbook_observations$ language plpgsql security definer;
+
+-- Description
+COMMENT ON FUNCTION
+    api.update_logbook_observations_fn
+    IS 'Update logbook observations jsonb key pair value';
