@@ -192,7 +192,7 @@ CREATE OR REPLACE VIEW api.moorages_view WITH (security_invoker=true,security_ba
 --        m.stay_duration,
 --        justify_hours ( m.stay_duration )
     FROM api.moorages m, api.stays_at sa
-    WHERE m.name is not null
+    WHERE m.name IS NOT NULL
         AND geog IS NOT NULL
         AND m.stay_code = sa.stay_code
    GROUP BY m.id,m.name,sa.description,m.stay_duration,m.reference_count,m.geog,sa.stay_code
@@ -207,7 +207,7 @@ DROP VIEW IF EXISTS api.moorage_view;
 CREATE OR REPLACE VIEW api.moorage_view WITH (security_invoker=true,security_barrier=true) AS -- TODO
     SELECT id,
         m.name AS Name,
-        m.stay_code AS Default_Stay,
+        sa.description AS Default_Stay,
         sa.stay_code AS Default_Stay_Id,
         m.home_flag AS Home,
         EXTRACT(DAY FROM justify_hours ( m.stay_duration )) AS Total_Stay,
@@ -215,7 +215,7 @@ CREATE OR REPLACE VIEW api.moorage_view WITH (security_invoker=true,security_bar
         m.notes
 --        m.geog
     FROM api.moorages m, api.stays_at sa
-    WHERE m.name is not null
+    WHERE m.name IS NOT NULL
         AND geog IS NOT NULL
         AND m.stay_code = sa.stay_code;
 -- Description
