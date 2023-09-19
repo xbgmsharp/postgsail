@@ -51,6 +51,10 @@ CREATE DATABASE signalk;
 ALTER DATABASE signalk WITH CONNECTION LIMIT = 100;
 -- Set timezone to UTC
 ALTER DATABASE signalk SET TIMEZONE='UTC';
+-- Set datestyle output
+ALTER DATABASE signalk SET datestyle TO "ISO, DMY";
+-- Set intervalstyle output
+ALTER DATABASE signalk SET intervalstyle TO 'iso_8601';
 
 -- connect to the DB
 \c signalk
