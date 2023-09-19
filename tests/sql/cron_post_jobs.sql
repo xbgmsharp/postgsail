@@ -35,9 +35,25 @@ SELECT active,name,geog,stay_code FROM api.stays WHERE vessel_id = current_setti
 
 -- Test event logs view for user
 \echo 'eventlogs_view'
-select count(*) from api.eventlogs_view;
+SELECT count(*) from api.eventlogs_view;
 
 -- Test event logs view for user
 \echo 'stats_logs_fn'
-select api.stats_logs_fn(null, null);
-select api.stats_logs_fn('2022-01-01'::text,'2022-06-12'::text);
+SELECT api.stats_logs_fn(null, null) INTO stats_jsonb;
+SELECT stats_logs_fn->'name' AS name,
+        stats_logs_fn->'count' AS count,
+        stats_logs_fn->'max_speed' As max_speed,
+        stats_logs_fn->'max_distance' AS max_distance,
+        stats_logs_fn->'max_duration' AS max_duration,
+        stats_logs_fn->'max_speed_id',
+        stats_logs_fn->'sum_distance',
+        stats_logs_fn->'sum_duration',
+        stats_logs_fn->'max_wind_speed',
+        stats_logs_fn->'max_distance_id',
+        stats_logs_fn->'max_duration_id',
+        stats_logs_fn->'max_wind_speed_id',
+        stats_logs_fn->'first_date' IS NOT NULL AS first_date,
+        stats_logs_fn->'last_date' IS NOT NULL AS last_date
+        FROM stats_jsonb;
+DROP TABLE stats_jsonb;
+SELECT api.stats_logs_fn('2022-01-01'::text,'2022-06-12'::text);
