@@ -278,6 +278,32 @@ COMMENT ON FUNCTION
     api.logs_by_month_fn
     IS 'logbook by month for web charts';
 
+-- logs_by_day_fn
+DROP FUNCTION IF EXISTS api.logs_by_day_fn;
+CREATE FUNCTION api.logs_by_day_fn(OUT charts JSONB) RETURNS JSONB AS $logs_by_day$
+    DECLARE
+        data JSONB;
+    BEGIN
+        -- Query logs by day
+        SELECT json_object_agg(day,count) INTO data
+            FROM (
+                    SELECT
+                        to_char(date_trunc('day', _from_time), 'D') as day,
+                        count(*) as count
+                        FROM api.logbook
+                        GROUP BY day
+                        ORDER BY day
+                ) AS t;
+        -- Merge jsonb to get all 7 days
+        SELECT '{"01": 0, "02": 0, "03": 0, "04": 0, "05": 0, "06": 0, "07": 0}'::jsonb ||
+            data::jsonb INTO charts;
+    END;
+$logs_by_day$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    api.logs_by_day_fn
+    IS 'logbook by day for web charts';
+
 -- moorage_geojson_fn
 DROP FUNCTION IF EXISTS api.export_moorages_geojson_fn;
 CREATE FUNCTION api.export_moorages_geojson_fn(OUT geojson JSONB) RETURNS JSONB AS $export_moorages_geojson$
@@ -349,6 +375,7 @@ COMMENT ON FUNCTION
     api.export_moorages_gpx_fn
     IS 'Export moorages as gpx';
 
+----------------------------------------------------------------------------------------------
 -- Statistics
 DROP FUNCTION IF EXISTS api.stats_logs_fn;
 CREATE OR REPLACE FUNCTION api.stats_logs_fn(
@@ -362,16 +389,24 @@ CREATE OR REPLACE FUNCTION api.stats_logs_fn(
         IF start_date IS NOT NULL AND public.isdate(start_date::text) AND public.isdate(end_date::text) THEN
             RAISE WARNING '--> stats_fn, filter result stats by date [%]', start_date;
             _start_date := start_date::TIMESTAMP WITHOUT TIME ZONE;
-			_end_date := end_date::TIMESTAMP WITHOUT TIME ZONE;
+            _end_date := end_date::TIMESTAMP WITHOUT TIME ZONE;
         END IF;
-		RAISE WARNING '--> stats_fn, _start_date [%], _end_date [%]', _start_date, _end_date;
+        RAISE NOTICE '--> stats_fn, _start_date [%], _end_date [%]', _start_date, _end_date;
         WITH
+            meta AS (
+                SELECT m.name FROM api.metadata m ),
             logs_view AS (
                 SELECT *
                     FROM api.logbook l
                     WHERE _from_time >= _start_date::TIMESTAMP WITHOUT TIME ZONE
                         AND _to_time <= _end_date::TIMESTAMP WITHOUT TIME ZONE + interval '23 hours 59 minutes'
                 ),
+            first_date AS (
+                SELECT _from_time as first_date from logs_view ORDER BY first_date ASC LIMIT 1
+            ),
+            last_date AS (
+                SELECT _to_time as last_date from logs_view ORDER BY _to_time DESC LIMIT 1
+            ),
             max_speed_id AS (
                 SELECT id FROM logs_view WHERE max_speed = (SELECT max(max_speed) FROM logs_view) ),
             max_wind_speed_id AS (
@@ -386,16 +421,22 @@ CREATE OR REPLACE FUNCTION api.stats_logs_fn(
                     max(max_speed) AS max_speed,
                     max(max_wind_speed) AS max_wind_speed,
                     max(distance) AS max_distance,
+                    sum(distance) AS sum_distance,
                     max(duration) AS max_duration,
                     sum(duration) AS sum_duration
                 FROM logs_view l )
               --select * from logbook;
         -- Return a JSON
         SELECT jsonb_build_object(
+            'name', meta.name,
+            'first_date', first_date.first_date,
+            'last_date', last_date.last_date,
             'max_speed_id', max_speed_id.id,
             'max_wind_speed_id', max_wind_speed_id.id,
+            'max_duration_id', max_duration_id.id,
             'max_distance_id', max_distance_id.id)::jsonb || to_jsonb(logs_stats.*)::jsonb INTO stats
-            FROM max_speed_id, max_wind_speed_id, max_distance_id, logs_stats, max_duration_id;
+            FROM max_speed_id, max_wind_speed_id, max_distance_id, max_duration_id,
+                logs_stats, meta, logs_view, first_date, last_date;
         -- TODO Add moorages
     END;
 $stats_logs$ LANGUAGE plpgsql;
@@ -403,3 +444,61 @@ $stats_logs$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION
     api.stats_logs_fn
     IS 'Logs stats by date';
+
+DROP FUNCTION IF EXISTS api.stats_stays_fn;
+CREATE OR REPLACE FUNCTION api.stats_stays_fn(
+    IN start_date TEXT DEFAULT NULL,
+    IN end_date TEXT DEFAULT NULL,
+    OUT stats JSON) RETURNS JSON AS $stats_stays$
+    DECLARE
+        _start_date TIMESTAMP WITHOUT TIME ZONE DEFAULT '1970-01-01';
+        _end_date TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW();
+    BEGIN
+        IF start_date IS NOT NULL AND public.isdate(start_date::text) AND public.isdate(end_date::text) THEN
+            RAISE NOTICE '--> stats_stays_fn, custom filter result stats by date [%]', start_date;
+            _start_date := start_date::TIMESTAMP WITHOUT TIME ZONE;
+            _end_date := end_date::TIMESTAMP WITHOUT TIME ZONE;
+        END IF;
+        RAISE NOTICE '--> stats_stays_fn, _start_date [%], _end_date [%]', _start_date, _end_date;
+        WITH
+            moorages_log AS (
+                SELECT s.id as stays_id, m.id as moorages_id, *
+                    FROM api.stays s, api.moorages m
+                    WHERE arrived >= _start_date::TIMESTAMP WITHOUT TIME ZONE
+                        AND departed <= _end_date::TIMESTAMP WITHOUT TIME ZONE + interval '23 hours 59 minutes'
+                        AND s.id = m.stay_id
+                ),
+	        home_ports AS (
+	            select count(*) as home_ports from moorages_log m where home_flag is true
+	        ),
+	        unique_moorage AS (
+	            select count(*) as unique_moorage from moorages_log m
+	        ),
+	        time_at_home_ports AS (
+	            select sum(m.stay_duration) as time_at_home_ports from moorages_log m where home_flag is true
+	        ),
+	        sum_stay_duration AS (
+	            select sum(m.stay_duration) as sum_stay_duration from moorages_log m where home_flag is false
+            ),
+            time_spent_away AS (
+                select m.stay_code,sum(m.stay_duration) as stay_duration from api.moorages m where home_flag is false group by m.stay_code order by m.stay_code
+            ),
+            time_spent as (
+                select jsonb_agg(t.*) as time_spent_away from time_spent_away t
+            )
+        -- Return a JSON
+        SELECT jsonb_build_object(
+            'home_ports', home_ports.home_ports,
+            'unique_moorage', unique_moorage.unique_moorage,
+            'time_at_home_ports', time_at_home_ports.time_at_home_ports,
+            'sum_stay_duration', sum_stay_duration.sum_stay_duration,
+            'time_spent_away', time_spent.time_spent_away) INTO stats
+            FROM moorages_log, home_ports, unique_moorage,
+                        time_at_home_ports, sum_stay_duration, time_spent;
+        -- TODO Add moorages
+    END;
+$stats_stays$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    api.stats_stays_fn
+    IS 'Stays/Moorages stats by date';
