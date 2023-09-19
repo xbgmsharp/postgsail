@@ -357,7 +357,7 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
         END IF;
         IF previous_time > NEW.time THEN
             -- Ignore entry if new time is later than previous time
-            RAISE WARNING 'Metrics Ignoring metric, vessel_id [%], new time is older [%] > [%]', NEW.vessel_id, previous_time, NEW.time;
+            RAISE WARNING 'Metrics Ignoring metric, vessel_id [%], new time is older than previous_time [%] > [%]', NEW.vessel_id, previous_time, NEW.time;
             RETURN NULL;
         END IF;
         -- Check if latitude or longitude are null
@@ -394,6 +394,12 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
         IF valid_status IS False THEN
             -- Ignore entry if status is invalid
             RAISE WARNING 'Metrics Ignoring metric, invalid status [%]', NEW.status;
+            RETURN NULL;
+        END IF;
+        -- Check if speedOverGround is valid value
+        IF NEW.speedoverground >= 40 THEN
+            -- Ignore entry as speedOverGround is invalid
+            RAISE WARNING 'Metrics Ignoring metric, vessel_id [%], speedOverGround is invalid, over 40 < [%]', NEW.vessel_id, NEW.speedoverground;
             RETURN NULL;
         END IF;
 
