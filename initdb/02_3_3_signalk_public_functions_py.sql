@@ -49,6 +49,7 @@ AS $reverse_geocode_py$
     # Option2: Return the json for future reference like country
     if r.status_code == 200 and "name" in r.json():
       r_dict = r.json()
+      plpy.notice('reverse_geocode_py_fn Parameters [{}] [{}] Response [{}]'.format(lon, lat, r_dict))
       if r_dict["name"]:
         return r_dict["name"]
       elif "address" in r_dict and r_dict["address"]:
@@ -71,7 +72,7 @@ AS $reverse_geocode_py$
     else:
       plpy.warning('Failed to received a geo full address %s', r.json())
       #plpy.error('Failed to received a geo full address %s', r.json())
-      return 'unknow'
+      return 'unknown'
 $reverse_geocode_py$ LANGUAGE plpython3u;
 -- Description
 COMMENT ON FUNCTION 
@@ -157,7 +158,7 @@ AS $send_email_py$
     # Send the message via our own SMTP server.
     try:
         # send your message with credentials specified above
-        with smtplib.SMTP(server_smtp, 25) as server:
+        with smtplib.SMTP(server_smtp, 587) as server:
             if 'app.email_user' in app and app['app.email_user'] \
                 and 'app.email_pass' in app and app['app.email_pass']:
                 server.starttls()
@@ -358,7 +359,7 @@ AS $reverse_geoip_py$
     r = requests.get(url)
     #print(r.text)
     # Return something boolean?
-    #plpy.notice('IP [{}] [{}]'.format(_ip, r.status_code))
+    plpy.warning('IP [{}] [{}]'.format(_ip, r.status_code))
     if r.status_code == 200:
         #plpy.notice('Got [{}] [{}]'.format(r.text, r.status_code))
         return r.text;
