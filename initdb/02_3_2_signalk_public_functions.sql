@@ -54,7 +54,7 @@ CREATE OR REPLACE FUNCTION logbook_update_avg_fn(
     OUT count_metric integer
 ) AS $logbook_update_avg$
     BEGIN
-        RAISE NOTICE '-> Updating avg for logbook id=%, start:"%", end:"%"', _id, _start, _end;
+        RAISE NOTICE '-> logbook_update_avg_fn calculate avg for logbook id=%, start:"%", end:"%"', _id, _start, _end;
         SELECT AVG(speedoverground), MAX(speedoverground), MAX(windspeedapparent), COUNT(*) INTO
                 avg_speed, max_speed, max_wind_speed, count_metric
             FROM api.metrics m
@@ -63,7 +63,7 @@ CREATE OR REPLACE FUNCTION logbook_update_avg_fn(
                 AND m.time >= _start::TIMESTAMP WITHOUT TIME ZONE
                 AND m.time <= _end::TIMESTAMP WITHOUT TIME ZONE
                 AND vessel_id = current_setting('vessel.id', false);
-        RAISE NOTICE '-> Updated avg for logbook id=%, avg_speed:%, max_speed:%, max_wind_speed:%, count:%', _id, avg_speed, max_speed, max_wind_speed, count_metric;
+        RAISE NOTICE '-> logbook_update_avg_fn avg for logbook id=%, avg_speed:%, max_speed:%, max_wind_speed:%, count:%', _id, avg_speed, max_speed, max_wind_speed, count_metric;
     END;
 $logbook_update_avg$ LANGUAGE plpgsql;
 -- Description
@@ -256,25 +256,25 @@ AS $logbook_get_extra_json$
                  AND time = _start::timestamp without time zone
                  AND vessel_id = current_setting('vessel.id', false)
         LOOP
-			-- Engine Hours in seconds
-			raise notice '-> logbook_get_extra_json_fn metric: %', metric_rec;
-			with
-			end_metric AS (
-				-- Fetch 'tanks.%.currentVolume' last entry
-				SELECT key, value
-					FROM api.metrics m,
-					     jsonb_each_text(m.metrics)
-					WHERE key ILIKE metric_rec.key
-                        AND time = _end::timestamp without time zone
-                        AND vessel_id = current_setting('vessel.id', false)
-			),
-			metric AS (
-				-- Subtract
-				SELECT (end_metric.value::numeric - metric_rec.value::numeric) AS value FROM end_metric
-			)
-			-- Generate JSON
-			SELECT jsonb_build_object(metric_rec.key, metric.value) INTO metric_json FROM metrics;
-			raise notice '-> logbook_get_extra_json_fn key: %, value: %', metric_rec.key, metric_json;
+            -- Engine Hours in seconds
+            RAISE NOTICE '-> logbook_get_extra_json_fn metric: %', metric_rec;
+            WITH
+                end_metric AS (
+                    -- Fetch 'tanks.%.currentVolume' last entry
+                    SELECT key, value
+                        FROM api.metrics m,
+                            jsonb_each_text(m.metrics)
+                        WHERE key ILIKE metric_rec.key
+                            AND time = _end::timestamp without time zone
+                            AND vessel_id = current_setting('vessel.id', false)
+                ),
+                metric AS (
+                    -- Subtract
+                    SELECT (end_metric.value::numeric - metric_rec.value::numeric) AS value FROM end_metric
+                )
+            -- Generate JSON
+            SELECT jsonb_build_object(metric_rec.key, metric.value) INTO metric_json FROM metrics;
+            RAISE NOTICE '-> logbook_get_extra_json_fn key: %, value: %', metric_rec.key, metric_json;
         END LOOP;
     END;
 $logbook_get_extra_json$ LANGUAGE plpgsql;
@@ -319,7 +319,7 @@ CREATE FUNCTION logbook_update_extra_json_fn(IN _id integer, IN _start text, IN 
 			)
 		-- Generate JSON
         SELECT jsonb_build_object('navigation.log', trip) INTO log_json FROM nm;
-        raise notice '-> logbook_update_extra_json_fn navigation.log: %', log_json;
+        RAISE NOTICE '-> logbook_update_extra_json_fn navigation.log: %', log_json;
 
 		-- Calculate engine hours from propulsion.%.runTime first entry
         FOR metric_rec IN
@@ -331,7 +331,7 @@ CREATE FUNCTION logbook_update_extra_json_fn(IN _id integer, IN _start text, IN 
                  AND vessel_id = current_setting('vessel.id', false)
         LOOP
 			-- Engine Hours in seconds
-			raise notice '-> logbook_update_extra_json_fn propulsion.*.runTime: %', metric_rec;
+			RAISE NOTICE '-> logbook_update_extra_json_fn propulsion.*.runTime: %', metric_rec;
 			with
 			end_runtime AS (
 				-- Fetch 'propulsion.*.runTime' last entry
@@ -348,13 +348,13 @@ CREATE FUNCTION logbook_update_extra_json_fn(IN _id integer, IN _start text, IN 
 			)
 			-- Generate JSON
 			SELECT jsonb_build_object(metric_rec.key, runtime.value) INTO runtime_json FROM runtime;
-			raise notice '-> logbook_update_extra_json_fn key: %, value: %', metric_rec.key, runtime_json;
+			RAISE NOTICE '-> logbook_update_extra_json_fn key: %, value: %', metric_rec.key, runtime_json;
         END LOOP;
 
         -- Update logbook with extra value and return json
         SELECT COALESCE(log_json::JSONB, '{}'::jsonb) || COALESCE(runtime_json::JSONB, '{}'::jsonb) INTO metrics_json;
         SELECT jsonb_build_object('metrics', metrics_json, 'observations', obs_json) INTO _extra_json;
-        raise notice '-> logbook_update_extra_json_fn log_json: %, runtime_json: %, _extra_json: %', log_json, runtime_json, _extra_json;
+        RAISE NOTICE '-> logbook_update_extra_json_fn log_json: %, runtime_json: %, _extra_json: %', log_json, runtime_json, _extra_json;
     END;
 $logbook_extra_json$ LANGUAGE plpgsql;
 -- Description
@@ -385,6 +385,7 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         current_stays_id numeric;
         current_stays_active boolean;
         extra_json jsonb;
+        geo jsonb;
     BEGIN
         -- If _id is not NULL
         IF _id IS NULL OR _id < 1 THEN
@@ -475,8 +476,10 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         -- Generate logbook name, concat _from_location and _to_location
         -- geo reverse _from_lng _from_lat
         -- geo reverse _to_lng _to_lat
-        from_name := reverse_geocode_py_fn('nominatim', logbook_rec._from_lng::NUMERIC, logbook_rec._from_lat::NUMERIC);
-        to_name := reverse_geocode_py_fn('nominatim', logbook_rec._to_lng::NUMERIC, logbook_rec._to_lat::NUMERIC);
+        geo := reverse_geocode_py_fn('nominatim', logbook_rec._from_lng::NUMERIC, logbook_rec._from_lat::NUMERIC);
+        from_name := geo->>'name';
+        geo := reverse_geocode_py_fn('nominatim', logbook_rec._to_lng::NUMERIC, logbook_rec._to_lat::NUMERIC);
+        to_name := geo->>'name';
         SELECT CONCAT(from_name, ' to ' , to_name) INTO log_name;
 
         -- Process `propulsion.*.runTime` and `navigation.log`
@@ -516,12 +519,12 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         SELECT json_build_object('logbook_name', log_name, 'logbook_link', logbook_rec.id) into log_settings;
         user_settings := get_user_settings_from_vesselid_fn(logbook_rec.vessel_id::TEXT);
         SELECT user_settings::JSONB || log_settings::JSONB into user_settings;
-        RAISE DEBUG '-> debug process_logbook_queue_fn get_user_settings_from_vesselid_fn [%]', user_settings;
-        RAISE DEBUG '-> debug process_logbook_queue_fn log_settings [%]', log_settings;
+        RAISE NOTICE '-> debug process_logbook_queue_fn get_user_settings_from_vesselid_fn [%]', user_settings;
+        RAISE NOTICE '-> debug process_logbook_queue_fn log_settings [%]', log_settings;
         -- Send notification
         PERFORM send_notification_fn('logbook'::TEXT, user_settings::JSONB);
         -- Process badges
-        RAISE DEBUG '-> debug process_logbook_queue_fn user_settings [%]', user_settings->>'email'::TEXT;
+        RAISE NOTICE '-> debug process_logbook_queue_fn user_settings [%]', user_settings->>'email'::TEXT;
         PERFORM set_config('user.email', user_settings->>'email'::TEXT, false);
         PERFORM badges_logbook_fn(logbook_rec.id);
         PERFORM badges_geom_fn(logbook_rec.id);
@@ -537,7 +540,7 @@ DROP FUNCTION IF EXISTS process_stay_queue_fn;
 CREATE OR REPLACE FUNCTION process_stay_queue_fn(IN _id integer) RETURNS void AS $process_stay_queue$
     DECLARE
         stay_rec record;
-        _name varchar;
+        geo jsonb;
     BEGIN
         RAISE NOTICE 'process_stay_queue_fn';
         -- If _id is valid, not NULL
@@ -559,12 +562,12 @@ CREATE OR REPLACE FUNCTION process_stay_queue_fn(IN _id integer) RETURNS void AS
 
         PERFORM set_config('vessel.id', stay_rec.vessel_id, false);
         -- geo reverse _lng _lat
-        _name := reverse_geocode_py_fn('nominatim', stay_rec.longitude::NUMERIC, stay_rec.latitude::NUMERIC);
+        geo := reverse_geocode_py_fn('nominatim', stay_rec.longitude::NUMERIC, stay_rec.latitude::NUMERIC);
 
         RAISE NOTICE 'Updating stay entry [%]', stay_rec.id;
         UPDATE api.stays
             SET
-                name = _name,
+                name = coalesce(geo->>'name', null),
                 geog = Geography(ST_MakePoint(stay_rec.longitude, stay_rec.latitude))
             WHERE id = stay_rec.id;
 
@@ -585,6 +588,7 @@ CREATE OR REPLACE FUNCTION process_moorage_queue_fn(IN _id integer) RETURNS void
        	stay_rec record;
         moorage_rec record;
         user_settings jsonb;
+        geo jsonb;
     BEGIN
         RAISE NOTICE 'process_moorage_queue_fn';
         -- If _id is not NULL
@@ -647,16 +651,19 @@ CREATE OR REPLACE FUNCTION process_moorage_queue_fn(IN _id integer) RETURNS void
 		 		WHERE id = moorage_rec.id;
 		ELSE
 			RAISE NOTICE 'Insert new moorage entry from stay %', stay_rec;
-            -- Ensure the stay as a name if lat,lon
-            IF stay_rec.name IS NULL AND stay_rec.longitude IS NOT NULL AND stay_rec.latitude IS NOT NULL THEN
-                stay_rec.name := reverse_geocode_py_fn('nominatim', stay_rec.longitude::NUMERIC, stay_rec.latitude::NUMERIC);
+            -- Set the moorage name and country if lat,lon
+            IF stay_rec.longitude IS NOT NULL AND stay_rec.latitude IS NOT NULL THEN
+                geo := reverse_geocode_py_fn('nominatim', stay_rec.longitude::NUMERIC, stay_rec.latitude::NUMERIC);
+                moorage_rec.name = geo->>'name';
+                moorage_rec.country = geo->>'country_code';
             END IF;
             -- Insert new moorage from stay
 	        INSERT INTO api.moorages
-	                (vessel_id, name, stay_id, stay_code, stay_duration, reference_count, latitude, longitude, geog)
+	                (vessel_id, name, country, stay_id, stay_code, stay_duration, reference_count, latitude, longitude, geog)
 	                VALUES (
                         stay_rec.vessel_id,
-	               		stay_rec.name,
+                        coalesce(moorage_rec.name, null),
+                        coalesce(moorage_rec.country, null),
 						stay_rec.id,
 						stay_rec.stay_code,
 						(stay_rec.departed::timestamp without time zone - stay_rec.arrived::timestamp without time zone),
@@ -1232,7 +1239,7 @@ CREATE OR REPLACE FUNCTION public.badges_geom_fn(IN logbook_id integer) RETURNS 
         user_settings jsonb;
         badge_tmp text;
     begin
-	    RAISE WARNING '--> user.email [%], vessel.id [%]', current_setting('user.email', false), current_setting('vessel.id', false);
+	    RAISE NOTICE '--> public.badges_geom_fn user.email [%], vessel.id [%]', current_setting('user.email', false), current_setting('vessel.id', false);
         -- Tropical & Alaska zone manually add into ne_10m_geography_marine_polys
         -- Check if each geographic marine zone exist as a badge
 	    FOR marine_rec IN
@@ -1411,3 +1418,19 @@ BEGIN
     RETURN True;
 END
 $delete_account$ language plpgsql security definer;
+
+-- Dump all data for a account by email and vessel_id
+CREATE OR REPLACE FUNCTION public.dump_account_fn(IN _email TEXT, IN _vessel_id TEXT) RETURNS BOOLEAN
+AS $dump_account$
+BEGIN
+    -- TODO use COPY but we can't all in one?
+    RETURN True;
+    select count(*) from api.metrics m where vessel_id = _vessel_id;
+    select * from api.metadata m where vessel_id = _vessel_id;
+    select * from api.logbook l where vessel_id = _vessel_id;
+    select * from api.moorages m where vessel_id = _vessel_id;
+    select * from api.stays s where vessel_id = _vessel_id;
+    select * from auth.vessels v where vessel_id = _vessel_id;
+    select * from auth.accounts a where email  = _email;
+END
+$dump_account$ language plpgsql security definer;
