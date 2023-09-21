@@ -592,8 +592,8 @@ qual       | true
 with_check | false
 
 Test nominatim reverse_geocode_py_fn
--[ RECORD 1 ]---------+-------
-reverse_geocode_py_fn | España
+-[ RECORD 1 ]---------+-----------------------------------------
+reverse_geocode_py_fn | {"name": "España", "country_code": "es"}
 
 Test geoip reverse_geoip_py_fn
 -[ RECORD 1 ]----------------------------------------------------------------------------------------------------------------------------------------------
