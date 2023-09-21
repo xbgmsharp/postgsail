@@ -17,7 +17,7 @@ CREATE SCHEMA IF NOT EXISTS public;
 --
 DROP FUNCTION IF EXISTS reverse_geocode_py_fn; 
 CREATE OR REPLACE FUNCTION reverse_geocode_py_fn(IN geocoder TEXT, IN lon NUMERIC, IN lat NUMERIC,
-    OUT geo_name TEXT)
+    OUT geo jsonb)
 AS $reverse_geocode_py$
     import requests
 
@@ -44,36 +44,41 @@ AS $reverse_geocode_py$
     payload = {"lon": lon, "lat": lat, "format": "jsonv2", "zoom": 18}
     r = requests.get(url, params=payload)
 
-    # Return the full address or nothing if not found
+    # Parse response
     # Option1: If name is null fallback to address field road,neighbourhood,suburb
     # Option2: Return the json for future reference like country
     if r.status_code == 200 and "name" in r.json():
       r_dict = r.json()
-      plpy.notice('reverse_geocode_py_fn Parameters [{}] [{}] Response [{}]'.format(lon, lat, r_dict))
+      #plpy.notice('reverse_geocode_py_fn Parameters [{}] [{}] Response'.format(lon, lat, r_dict))
+      output = None
+      country_code = None
+      if "country_code" in r_dict["address"] and r_dict["address"]["country_code"]:
+        country_code = r_dict["address"]["country_code"]
       if r_dict["name"]:
-        return r_dict["name"]
+        return { "name": r_dict["name"], "country_code": country_code }
       elif "address" in r_dict and r_dict["address"]:
         if "road" in r_dict["address"] and r_dict["address"]["road"]:
-            return r_dict["address"]["road"]
+            return { "name": r_dict["address"]["road"], "country_code": country_code }
         elif "neighbourhood" in r_dict["address"] and r_dict["address"]["neighbourhood"]:
-            return r_dict["address"]["neighbourhood"]
+            return { "name": r_dict["address"]["neighbourhood"], "country_code": country_code }
         elif "suburb" in r_dict["address"] and r_dict["address"]["suburb"]:
-            return r_dict["address"]["suburb"]
+            return { "name": r_dict["address"]["suburb"], "country_code": country_code }
         elif "residential" in r_dict["address"] and r_dict["address"]["residential"]:
-            return r_dict["address"]["residential"]
+            return { "name": r_dict["address"]["residential"], "country_code": country_code }
         elif "village" in r_dict["address"] and r_dict["address"]["village"]:
-            return r_dict["address"]["village"]
+            return { "name": r_dict["address"]["village"], "country_code": country_code }
         elif "town" in r_dict["address"] and r_dict["address"]["town"]:
-            return r_dict["address"]["town"]
+            return { "name": r_dict["address"]["town"], "country_code": country_code }
         else:
-            return 'n/a'
+            return { "name": "n/a", "country_code": country_code }
       else:
-        return 'n/a'
+        return { "name": "n/a", "country_code": country_code }
     else:
       plpy.warning('Failed to received a geo full address %s', r.json())
       #plpy.error('Failed to received a geo full address %s', r.json())
-      return 'unknown'
-$reverse_geocode_py$ LANGUAGE plpython3u;
+      return { "name": "unknown", "country_code": country_code }
+$reverse_geocode_py$ TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
+
 -- Description
 COMMENT ON FUNCTION 
     public.reverse_geocode_py_fn
