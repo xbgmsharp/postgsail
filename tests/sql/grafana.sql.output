@@ -125,18 +125,18 @@ time            | t
 active          | t
 
 api.logs_view
--[ RECORD 1 ]---------------
+-[ RECORD 1 ]--------------
 id       | 2
 Name     | Knipan to Ekenäs
 From     | Knipan
 To       | Ekenäs
 Distance | 8.6862
 Duration | PT18M
--[ RECORD 2 ]---------------
+-[ RECORD 2 ]--------------
 id       | 1
 Name     | patch log name 3
 From     | Bollsta
-To       | Norra Strandgatan
+To       | Långgatan
 Distance | 7.17
 Duration | PT25M
 
@@ -158,7 +158,7 @@ notes     | new stay note 3
 id        | 2
 vessel_id | t
 active    | f
-name      | Norra Strandgatan
+name      | Långgatan
 latitude  | 59.97688333333333
 longitude | 23.4321
 geog      | 0101000020E6100000029A081B9E6E37404A5658830AFD4D40
@@ -185,7 +185,7 @@ stays_view
 -[ RECORD 1 ]+------------------
 id           | 2
 name         | t
-moorage      | Norra Strandgatan
+moorage      | Långgatan
 moorage_id   | 2
 duration     | PT3M
 stayed_at    | Unknow
@@ -223,7 +223,7 @@ notes           | new moorage note 3
 -[ RECORD 2 ]---+---------------------------------------------------
 id              | 2
 vessel_id       | t
-name            | Norra Strandgatan
+name            | Långgatan
 country         | fi
 stay_id         | 2
 stay_code       | 1
@@ -245,8 +245,8 @@ total_stay          | 0
 arrivals_departures | 1
 -[ RECORD 2 ]-------+---------------------
 id                  | 2
-moorage             | Norra Strandgatan
-default_stay        | Unknow
+moorage             | Långgatan
+default_stay        | Unknown
 default_stay_id     | 1
 total_stay          | 0
 arrivals_departures | 1
