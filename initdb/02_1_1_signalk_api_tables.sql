@@ -179,7 +179,7 @@ CREATE TABLE IF NOT EXISTS api.moorages(
   --client_id VARCHAR(255) NULL,
   vessel_id TEXT NOT NULL REFERENCES api.metadata(vessel_id) ON DELETE RESTRICT,
   name TEXT,
-  country TEXT, -- todo need to update reverse_geocode_py_fn
+  country TEXT,
   stay_id INT NOT NULL, -- needed?
   stay_code INT DEFAULT 1, -- needed?  REFERENCES api.stays_at(stay_code)
   stay_duration INTERVAL NULL,
@@ -211,7 +211,7 @@ CREATE TABLE IF NOT EXISTS api.stays_at(
 COMMENT ON TABLE api.stays_at IS 'Stay Type';
 -- Insert default possible values
 INSERT INTO api.stays_at(stay_code, description) VALUES
-  (1, 'Unknow'),
+  (1, 'Unknown'),
   (2, 'Anchor'),
   (3, 'Mooring Buoy'),
   (4, 'Dock');
