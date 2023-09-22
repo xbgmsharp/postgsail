@@ -77,10 +77,10 @@ name         | "kapla"
 count        | 4
 max_speed    | 7.1
 max_distance | 8.6862
-max_duration | "PT1H11M1S"
+max_duration | "PT1H11M"
 ?column?     | 3
 ?column?     | 29.2865
-?column?     | "PT2H37M1S"
+?column?     | "PT2H37M"
 ?column?     | 44.2
 ?column?     | 2
 ?column?     | 4
