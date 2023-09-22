@@ -188,7 +188,7 @@ name         | t
 moorage      | Långgatan
 moorage_id   | 2
 duration     | PT3M
-stayed_at    | Unknow
+stayed_at    | Unknown
 stayed_at_id | 1
 arrived      | t
 departed     | t
