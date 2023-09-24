@@ -115,8 +115,9 @@ COMMENT ON FUNCTION
 DROP FUNCTION IF EXISTS api.reset;
 CREATE OR REPLACE FUNCTION api.reset(in pass text, in token text, in uuid text) returns BOOLEAN
 AS $reset_fn$
-	DECLARE
+    DECLARE
         _email TEXT := NULL;
+        _pass TEXT := pass;
     BEGIN
          -- Check parameters
         IF token IS NULL OR uuid IS NULL OR pass IS NULL THEN
@@ -124,25 +125,25 @@ AS $reset_fn$
         END IF;
         -- Verify token
         SELECT auth.verify_otp_fn(token) INTO _email;
-		IF _email IS NOT NULL THEN
+        IF _email IS NOT NULL THEN
             SELECT email INTO _email FROM auth.accounts WHERE user_id = uuid;
             IF _email IS NULL THEN
                 RETURN False;
             END IF;
             -- Set user new password
             UPDATE auth.accounts
-                SET pass = pass
+                SET pass = _pass
                 WHERE email = _email;
-	        -- Enable email_validation into user preferences
+            -- Enable email_validation into user preferences
             PERFORM api.update_user_preferences_fn('{email_valid}'::TEXT, True::TEXT);
             -- Enable email_notifications
             PERFORM api.update_user_preferences_fn('{email_notifications}'::TEXT, True::TEXT);
             -- Delete token when validated
             DELETE FROM auth.otp
                 WHERE user_email = _email;
-			RETURN True;
-		END IF;
-		RETURN False;
+            RETURN True;
+        END IF;
+        RETURN False;
     END;
 $reset_fn$ language plpgsql security definer;
 -- Description
