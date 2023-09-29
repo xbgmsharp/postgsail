@@ -38,7 +38,9 @@ CREATE OR REPLACE VIEW api.vessels_view AS
         v.name as name,
         v.mmsi as mmsi,
         v.created_at::timestamp(0) as created_at,
-        m.last_contact as last_contact
+        m.last_contact as last_contact,
+        ((NOW() AT TIME ZONE 'UTC' - m.last_contact::timestamp without time zone) > INTERVAL '70 MINUTES') as offline,
+        (NOW() AT TIME ZONE 'UTC' - m.last_contact::timestamp without time zone) as duration
     FROM auth.vessels v, metadata m
     WHERE v.owner_email = current_setting('user.email');
 -- Description
@@ -230,15 +232,16 @@ $vessel_details$
 DECLARE
 BEGIN
      RETURN ( WITH tbl AS (
-                SELECT mmsi,ship_type,length,beam,height FROM api.metadata WHERE vessel_id = current_setting('vessel.id', false)
+                SELECT mmsi,ship_type,length,beam,height,plugin_version FROM api.metadata WHERE vessel_id = current_setting('vessel.id', false)
                 )
                 SELECT json_build_object(
-                        'ship_type', (SELECT ais.description FROM aistypes ais, tbl WHERE t.ship_type = ais.id),
-                        'country', (SELECT mid.country FROM mid, tbl WHERE LEFT(cast(mmsi as text), 3)::NUMERIC = mid.id),
-                        'alpha_2', (SELECT o.alpha_2 FROM mid m, iso3166 o, tbl WHERE LEFT(cast(mmsi as text), 3)::NUMERIC = m.id AND m.country_id = o.id),
+                        'ship_type', (SELECT ais.description FROM aistypes ais, tbl t WHERE t.ship_type = ais.id),
+                        'country', (SELECT mid.country FROM mid, tbl t WHERE LEFT(cast(t.mmsi as text), 3)::NUMERIC = mid.id),
+                        'alpha_2', (SELECT o.alpha_2 FROM mid m, iso3166 o, tbl t WHERE LEFT(cast(t.mmsi as text), 3)::NUMERIC = m.id AND m.country_id = o.id),
                         'length', t.ship_type,
                         'beam', t.beam,
-                        'height', t.height)
+                        'height', t.height,
+                        'plugin_version', t.plugin_version)
                         FROM tbl t
             );
 END;
@@ -267,7 +270,7 @@ $update_logbook_observations$
 DECLARE
 	_value TEXT := NULL;
 BEGIN
-    RAISE WARNING '-> update_logbook_extra_fn id:[%] observations:[%]', _id, observations;
+    RAISE NOTICE '-> update_logbook_extra_fn id:[%] observations:[%]', _id, observations;
     _value := to_jsonb(observations)::jsonb;
     -- { 'observations': { 'seaState': -1, 'cloudCoverage': -1, 'visibility': -1 } }
     UPDATE api.logbook SET extra = public.jsonb_recursive_merge(extra, _value) WHERE id = _id;
