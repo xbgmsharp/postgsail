@@ -316,7 +316,7 @@ CREATE FUNCTION api.export_moorages_geojson_fn(OUT geojson JSONB) RETURNS JSONB 
                     json_agg(ST_AsGeoJSON(m.*)::JSON) as moorages_geojson
                     FROM
                     ( SELECT
-                        id,name,
+                        id,name,stay_code,
                         EXTRACT(DAY FROM justify_hours ( stay_duration )) AS Total_Stay,
                         geog
                         FROM api.moorages
