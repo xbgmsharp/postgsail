@@ -13,6 +13,23 @@ CREATE SCHEMA IF NOT EXISTS public;
 ---------------------------------------------------------------------------
 -- basic helpers to check type and more
 --
+CREATE OR REPLACE FUNCTION public.isdouble(text) RETURNS BOOLEAN AS
+$isdouble$
+DECLARE x DOUBLE PRECISION;
+BEGIN
+    x = $1::DOUBLE PRECISION;
+    RETURN TRUE;
+EXCEPTION WHEN others THEN
+    RETURN FALSE;
+END;
+$isdouble$
+STRICT
+LANGUAGE plpgsql IMMUTABLE;
+-- Description
+COMMENT ON FUNCTION
+    public.isdouble
+    IS 'Check typeof value is double';
+
 CREATE OR REPLACE FUNCTION public.isnumeric(text) RETURNS BOOLEAN AS
 $isnumeric$
 DECLARE x NUMERIC;
