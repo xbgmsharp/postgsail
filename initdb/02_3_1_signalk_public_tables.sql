@@ -112,7 +112,22 @@ INSERT INTO email_templates VALUES
     'Telegram bot',
     E'Hello __RECIPIENT__,\nCongratulations! You have just connect your account to your vessel, @postgsail_bot.\n\nThe PostgSail Team',
     'Telegram bot!',
-    E'Congratulations!\nYou have just connect your account to your vessel, @postgsail_bot.\n');
+    E'Congratulations!\nYou have just connect your account to your vessel, @postgsail_bot.\n'),
+('no_vessel',
+    'PostgSail add your boat',
+    E'Hello __RECIPIENT__,\nYou have created an account on PostgSail but you have not created your boat yet.\nIf you need any assistance we would be happy to help. It is free and an open-source.\nThe PostgSail Team',
+    'PostgSail next step',
+    E'Hello,\nYou should create your vessel. Check your email!\n'),
+('no_metadata',
+    'PostgSail connect your boat',
+    E'Hello __RECIPIENT__,\nYou have created an account on PostgSail but you have not connected your boat yet.\nIf you need any assistance we would be happy to help. It is free and an open-source.\nThe PostgSail Team',
+    'PostgSail next step',
+    E'Hello,\nYou should connect your vessel. Check your email!\n'),
+('no_activity',
+    'PostgSail boat inactivity',
+    E'Hello __RECIPIENT__,\nWe don\'t see any activity on your account, do you need any assistance?\nIf you need any assistance we would be happy to help. It is free and an open-source.\nThe PostgSail Team',
+    'PostgSail inactivity!',
+    E'Congratulations!\nWe detected inactivity. Check your email!\n');
 
 ---------------------------------------------------------------------------
 -- Queue handling
