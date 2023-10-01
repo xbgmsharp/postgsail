@@ -14,13 +14,13 @@ declare
     process_rec record;
 begin
     -- Check for new logbook pending update
-    RAISE NOTICE 'cron_process_new_logbook_fn';
+    RAISE NOTICE 'cron_process_new_logbook_fn init loop';
     FOR process_rec in 
         SELECT * FROM process_queue 
             WHERE channel = 'new_logbook' AND processed IS NULL
             ORDER BY stored ASC LIMIT 100
     LOOP
-        RAISE NOTICE '-> cron_process_new_logbook_fn [%]', process_rec.payload;
+        RAISE NOTICE 'cron_process_new_logbook_fn processing queue [%] for logbook id [%]', process_rec.id, process_rec.payload;
         -- update logbook
         PERFORM process_logbook_queue_fn(process_rec.payload::INTEGER);
         -- update process_queue table , processed
@@ -28,7 +28,7 @@ begin
             SET 
                 processed = NOW()
             WHERE id = process_rec.id;
-        RAISE NOTICE '-> cron_process_new_logbook_fn updated process_queue table [%]', process_rec.id;
+        RAISE NOTICE 'cron_process_new_logbook_fn processed queue [%] for logbook id [%]', process_rec.id, process_rec.payload;
     END LOOP;
 END;
 $$ language plpgsql;
@@ -43,13 +43,13 @@ declare
     process_rec record;
 begin
     -- Check for new stay pending update
-    RAISE NOTICE 'cron_process_new_stay_fn';
+    RAISE NOTICE 'cron_process_new_stay_fn init loop';
     FOR process_rec in 
         SELECT * FROM process_queue 
             WHERE channel = 'new_stay' AND processed IS NULL
             ORDER BY stored ASC LIMIT 100
     LOOP
-        RAISE NOTICE '-> cron_process_new_stay_fn [%]', process_rec.payload;
+        RAISE NOTICE 'cron_process_new_stay_fn processing queue [%] for stay id [%]', process_rec.id, process_rec.payload;
         -- update stay
         PERFORM process_stay_queue_fn(process_rec.payload::INTEGER);
         -- update process_queue table , processed
@@ -57,7 +57,7 @@ begin
             SET 
                 processed = NOW()
             WHERE id = process_rec.id;
-        RAISE NOTICE '-> cron_process_new_stay_fn updated process_queue table [%]', process_rec.id;
+        RAISE NOTICE 'cron_process_new_stay_fn processed queue [%] for stay id [%]', process_rec.id, process_rec.payload;
     END LOOP;
 END;
 $$ language plpgsql;
@@ -73,13 +73,13 @@ declare
     process_rec record;
 begin
     -- Check for new moorage pending update
-    RAISE NOTICE 'cron_process_new_moorage_fn';
+    RAISE NOTICE 'cron_process_new_moorage_fn init loop';
     FOR process_rec in 
         SELECT * FROM process_queue 
             WHERE channel = 'new_moorage' AND processed IS NULL
             ORDER BY stored ASC LIMIT 100
     LOOP
-        RAISE NOTICE '-> cron_process_new_moorage_fn [%]', process_rec.payload;
+        RAISE NOTICE 'cron_process_new_moorage_fn processing queue [%] for moorage id [%]', process_rec.id, process_rec.payload;
         -- update moorage
         PERFORM process_moorage_queue_fn(process_rec.payload::INTEGER);
         -- update process_queue table , processed
@@ -87,7 +87,7 @@ begin
             SET 
                 processed = NOW()
             WHERE id = process_rec.id;
-        RAISE NOTICE '-> cron_process_new_moorage_fn updated process_queue table [%]', process_rec.id;
+        RAISE NOTICE 'cron_process_new_moorage_fn processed queue [%] for moorage id [%]', process_rec.id, process_rec.payload;
     END LOOP;
 END;
 $$ language plpgsql;
@@ -127,12 +127,12 @@ begin
         IF metadata_rec.vessel_id IS NULL OR metadata_rec.vessel_id = '' THEN
             RAISE WARNING '-> cron_process_monitor_offline_fn invalid metadata record vessel_id %', vessel_id;
             RAISE EXCEPTION 'Invalid metadata'
-                USING HINT = 'Unknow vessel_id';
+                USING HINT = 'Unknown vessel_id';
             RETURN;
         END IF;
         PERFORM set_config('vessel.id', metadata_rec.vessel_id, false);
         RAISE DEBUG '-> DEBUG cron_process_monitor_offline_fn vessel.id %', current_setting('vessel.id', false);
-        RAISE NOTICE '-> cron_process_monitor_offline_fn updated api.metadata table to inactive for [%] [%]', metadata_rec.id, metadata_rec.vessel_id;
+        RAISE NOTICE 'cron_process_monitor_offline_fn updated api.metadata table to inactive for [%] [%]', metadata_rec.id, metadata_rec.vessel_id;
 
         -- Gather email and pushover app settings
         --app_settings = get_app_settings_fn();
@@ -182,7 +182,7 @@ begin
         IF metadata_rec.vessel_id IS NULL OR metadata_rec.vessel_id = '' THEN
             RAISE WARNING '-> cron_process_monitor_online_fn invalid metadata record vessel_id %', vessel_id;
             RAISE EXCEPTION 'Invalid metadata'
-                USING HINT = 'Unknow vessel_id';
+                USING HINT = 'Unknown vessel_id';
             RETURN;
         END IF;
         PERFORM set_config('vessel.id', metadata_rec.vessel_id, false);
@@ -385,4 +385,91 @@ $$ language plpgsql;
 -- Description
 COMMENT ON FUNCTION
     public.cron_process_alerts_fn
-    IS 'init by pg_cron to check for alerts, if so perform process_alerts_queue_fn';
+    IS 'init by pg_cron to check for alerts';
+
+-- CRON for no vessel notification
+CREATE FUNCTION cron_process_no_vessel_fn() RETURNS void AS $no_vessel$
+DECLARE
+    no_vessel record;
+    user_settings jsonb;
+BEGIN
+    -- Check for user with no vessel register
+    RAISE NOTICE 'cron_process_no_vessel_fn';
+    FOR no_vessel in
+        SELECT a.user_id,a.email,a.first
+            FROM auth.accounts a
+            WHERE NOT EXISTS (
+                SELECT *
+                FROM auth.vessels v
+                WHERE v.owner_email = a.email)
+    LOOP
+        RAISE NOTICE '-> cron_process_no_vessel_rec_fn for [%]', no_vessel;
+        SELECT json_build_object('email', no_vessel.email, 'recipient', a.first) into user_settings;
+        RAISE NOTICE '-> debug cron_process_no_vessel_rec_fn [%]', user_settings;
+        -- Send notification
+        PERFORM send_notification_fn('no_vessel'::TEXT, user_settings::JSONB);
+    END LOOP;
+END;
+$no_vessel$ language plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.cron_process_no_vessel_fn
+    IS 'init by pg_cron, check for user with no vessel register then send notification';
+
+-- CRON for no metadata notification
+CREATE FUNCTION cron_process_no_metadata_fn() RETURNS void AS $no_metadata$
+DECLARE
+    no_metadata_rec record;
+    user_settings jsonb;
+BEGIN
+    -- Check for vessel register but with no metadata
+    RAISE NOTICE 'cron_process_no_metadata_fn';
+    FOR no_metadata_rec in
+        SELECT
+            a.user_id,a.email,a.first
+            FROM auth.accounts a, auth.vessels v
+            WHERE NOT EXISTS (
+                SELECT *
+                FROM  api.metadata m
+                WHERE v.vessel_id = m.vessel_id) AND v.owner_email = a.email
+    LOOP
+        RAISE NOTICE '-> cron_process_no_activity_rec_fn for [%]', no_metadata_rec;
+        SELECT json_build_object('email', no_metadata_rec.email, 'recipient', a.first) into user_settings;
+        RAISE NOTICE '-> debug cron_process_no_metadata_rec_fn [%]', user_settings;
+        -- Send notification
+        PERFORM send_notification_fn('no_metadata'::TEXT, user_settings::JSONB);
+    END LOOP;
+END;
+$no_metadata$ language plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.cron_process_no_metadata_fn
+    IS 'init by pg_cron, check for vessel with no metadata then send notification';
+
+-- CRON for no activity notification
+CREATE FUNCTION cron_process_no_activity_fn() RETURNS void AS $no_activity$
+DECLARE
+    no_activity_rec record;
+    user_settings jsonb;
+BEGIN
+    -- Check for vessel with no activity for more than 200 days
+    RAISE NOTICE 'cron_process_no_activity_fn';
+    FOR no_activity_rec in
+        SELECT
+            v.owner_email,m.name,m.vessel_id,m.time
+            FROM api.metadata m
+            LEFT JOIN auth.vessels v ON v.vessel_id = m.vessel_id
+            WHERE m.time <= NOW() AT TIME ZONE 'UTC' - INTERVAL '200 DAYS'
+    LOOP
+        RAISE NOTICE '-> cron_process_no_activity_rec_fn for [%]', no_activity_rec;
+        SELECT json_build_object('email', no_activity_rec.owner_email, 'recipient', a.first) into user_settings;
+        RAISE NOTICE '-> debug cron_process_no_activity_rec_fn [%]', user_settings;
+        -- Send notification
+        PERFORM send_notification_fn('no_activity'::TEXT, user_settings::JSONB);
+    END LOOP;
+END;
+$no_activity$ language plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.cron_process_no_activity_fn
+    IS 'init by pg_cron, check for vessel with no activity for more than 200 days then send notification';
