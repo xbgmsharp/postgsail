@@ -106,14 +106,14 @@ laninline     | 13540
 lanvalidator  | 13541
 lanacl        | 
 -[ RECORD 5 ]-+-----------
-oid           | 18174
+oid           | 18283
 lanname       | plpython3u
 lanowner      | 10
 lanispl       | t
 lanpltrusted  | t
-lanplcallfoid | 18171
-laninline     | 18172
-lanvalidator  | 18173
+lanplcallfoid | 18280
+laninline     | 18281
+lanvalidator  | 18282
 lanacl        | 
 
 -[ RECORD 1 ]+-----------
