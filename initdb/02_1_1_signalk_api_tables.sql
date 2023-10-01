@@ -55,8 +55,8 @@ CREATE TABLE IF NOT EXISTS api.metrics (
   status status NULL,
   metrics jsonb NULL,
   --CONSTRAINT valid_client_id CHECK (length(client_id) > 10),
-  CONSTRAINT valid_latitude CHECK (latitude >= -90 and latitude <= 90),
-  CONSTRAINT valid_longitude CHECK (longitude >= -180 and longitude <= 180),
+  --CONSTRAINT valid_latitude CHECK (latitude >= -90 and latitude <= 90),
+  --CONSTRAINT valid_longitude CHECK (longitude >= -180 and longitude <= 180),
   PRIMARY KEY (time, vessel_id)
 );
 -- Description
@@ -360,10 +360,28 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
             RAISE WARNING 'Metrics Ignoring metric, vessel_id [%], new time is older than previous_time [%] > [%]', NEW.vessel_id, previous_time, NEW.time;
             RETURN NULL;
         END IF;
+        -- Check if latitude or longitude are type double
+        --IF public.isdouble(NEW.latitude::TEXT) IS False OR public.isdouble(NEW.longitude::TEXT) IS False THEN
+        --    -- Ignore entry if null latitude,longitude
+        --    RAISE WARNING 'Metrics Ignoring metric, vessel_id [%], not a double type for latitude or longitude [%] [%]', NEW.vessel_id, NEW.latitude, NEW.longitude;
+        --    RETURN NULL;
+        --END IF;
         -- Check if latitude or longitude are null
         IF NEW.latitude IS NULL OR NEW.longitude IS NULL THEN
             -- Ignore entry if null latitude,longitude
-            RAISE WARNING 'Metrics Ignoring metric, vessel_id [%], null latitude,longitude [%] [%]', NEW.vessel_id, NEW.latitude, NEW.longitude;
+            RAISE WARNING 'Metrics Ignoring metric, vessel_id [%], null latitude or longitude [%] [%]', NEW.vessel_id, NEW.latitude, NEW.longitude;
+            RETURN NULL;
+        END IF;
+        -- Check if valid latitude
+        IF NEW.latitude >= 90 OR NEW.latitude <= -90 THEN
+            -- Ignore entry if invalid latitude,longitude
+            RAISE WARNING 'Metrics Ignoring metric, vessel_id [%], invalid latitude >= 90 OR <= -90 [%] [%]', NEW.vessel_id, NEW.latitude, NEW.longitude;
+            RETURN NULL;
+        END IF;
+        -- Check if valid longitude
+        IF NEW.longitude >= 180 OR NEW.longitude <= -180 THEN
+            -- Ignore entry if invalid latitude,longitude
+            RAISE WARNING 'Metrics Ignoring metric, vessel_id [%], invalid longitude >= 180 OR <= -180 [%] [%]', NEW.vessel_id, NEW.latitude, NEW.longitude;
             RETURN NULL;
         END IF;
         -- Check if status is null
