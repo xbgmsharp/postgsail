@@ -136,7 +136,7 @@ Duration | PT18M
 id       | 1
 Name     | patch log name 3
 From     | Bollsta
-To       | Långgatan
+To       | Slottsbacken
 Distance | 7.17
 Duration | PT25M
 
@@ -158,7 +158,7 @@ notes     | new stay note 3
 id        | 2
 vessel_id | t
 active    | f
-name      | Långgatan
+name      | Slottsbacken
 latitude  | 59.97688333333333
 longitude | 23.4321
 geog      | 0101000020E6100000029A081B9E6E37404A5658830AFD4D40
@@ -185,7 +185,7 @@ stays_view
 -[ RECORD 1 ]+------------------
 id           | 2
 name         | t
-moorage      | Långgatan
+moorage      | Slottsbacken
 moorage_id   | 2
 duration     | PT3M
 stayed_at    | Unknown
@@ -223,7 +223,7 @@ notes           | new moorage note 3
 -[ RECORD 2 ]---+---------------------------------------------------
 id              | 2
 vessel_id       | t
-name            | Långgatan
+name            | Slottsbacken
 country         | fi
 stay_id         | 2
 stay_code       | 1
@@ -245,7 +245,7 @@ total_stay          | 0
 arrivals_departures | 1
 -[ RECORD 2 ]-------+---------------------
 id                  | 2
-moorage             | Långgatan
+moorage             | Slottsbacken
 default_stay        | Unknown
 default_stay_id     | 1
 total_stay          | 0
