@@ -42,7 +42,8 @@ AS $reverse_geocode_py$
     # Make the request to the geocoder API
     # https://operations.osmfoundation.org/policies/nominatim/
     payload = {"lon": lon, "lat": lat, "format": "jsonv2", "zoom": 18}
-    r = requests.get(url, params=payload)
+    # https://nominatim.org/release-docs/latest/api/Reverse/
+    r = requests.get(url, headers = {"Accept-Language": "en-US,en;q=0.5"}, params=payload)
 
     # Parse response
     # Option1: If name is null fallback to address field road,neighbourhood,suburb
@@ -57,10 +58,10 @@ AS $reverse_geocode_py$
       if r_dict["name"]:
         return { "name": r_dict["name"], "country_code": country_code }
       elif "address" in r_dict and r_dict["address"]:
-        if "road" in r_dict["address"] and r_dict["address"]["road"]:
-            return { "name": r_dict["address"]["road"], "country_code": country_code }
-        elif "neighbourhood" in r_dict["address"] and r_dict["address"]["neighbourhood"]:
+        if "neighbourhood" in r_dict["address"] and r_dict["address"]["neighbourhood"]:
             return { "name": r_dict["address"]["neighbourhood"], "country_code": country_code }
+        elif "road" in r_dict["address"] and r_dict["address"]["road"]:
+            return { "name": r_dict["address"]["road"], "country_code": country_code }
         elif "suburb" in r_dict["address"] and r_dict["address"]["suburb"]:
             return { "name": r_dict["address"]["suburb"], "country_code": country_code }
         elif "residential" in r_dict["address"] and r_dict["address"]["residential"]:
