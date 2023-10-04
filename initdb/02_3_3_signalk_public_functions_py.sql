@@ -77,7 +77,7 @@ AS $reverse_geocode_py$
     else:
       plpy.warning('Failed to received a geo full address %s', r.json())
       #plpy.error('Failed to received a geo full address %s', r.json())
-      return { "name": "unknown", "country_code": country_code }
+      return { "name": "unknown", "country_code": "unknown" }
 $reverse_geocode_py$ TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
 
 -- Description
