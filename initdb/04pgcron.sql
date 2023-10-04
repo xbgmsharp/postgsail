@@ -65,10 +65,10 @@ SELECT cron.schedule('cron_prune_otp', '*/15 * * * *', 'select public.cron_proce
 --SELECT cron.schedule('cron_alerts', '*/11 * * * *', 'select public.cron_process_alerts_fn()');
 
 -- Notifications/Reminders of no vessel & no metadata & no activity
--- At 08:01 on day-of-month 6 and on Sunday.
-SELECT cron.schedule('cron_no_vessel', '01 08 6 * 0', 'select public.cron_process_no_vessel_fn()');
-SELECT cron.schedule('cron_no_metadata', '03 08 6 * 0', 'select public.cron_process_no_metadata_fn()');
-SELECT cron.schedule('cron_no_activity', '05 08 6 * 0', 'select public.cron_process_no_activity_fn()');
+-- At 08:05 on Sunday.
+SELECT cron.schedule('cron_no_vessel', '05 08 * * 0', 'select public.cron_process_no_vessel_fn()');
+SELECT cron.schedule('cron_no_metadata', '05 08 * * 0', 'select public.cron_process_no_metadata_fn()');
+SELECT cron.schedule('cron_no_activity', '05 08 * * 0', 'select public.cron_process_no_activity_fn()');
 
 -- Cron job settings
 UPDATE cron.job SET database = 'signalk';
