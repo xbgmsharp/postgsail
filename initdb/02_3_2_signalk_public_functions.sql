@@ -1434,3 +1434,17 @@ BEGIN
     select * from auth.accounts a where email  = _email;
 END
 $dump_account$ language plpgsql security definer;
+
+CREATE OR REPLACE FUNCTION public.delete_vessel_fn(IN _vessel_id TEXT) RETURNS BOOLEAN
+AS $delete_account$
+BEGIN
+    select count(*) from api.metrics m where vessel_id = _vessel_id;
+    delete from api.metrics m where vessel_id = _vessel_id;
+    select * from api.metadata m where vessel_id = _vessel_id;
+    delete from api.logbook l where vessel_id = _vessel_id;
+    delete from api.moorages m where vessel_id = _vessel_id;
+    delete from api.stays s where vessel_id = _vessel_id;
+    delete from api.metadata m where vessel_id = _vessel_id;
+    RETURN True;
+END
+$delete_account$ language plpgsql security definer;
