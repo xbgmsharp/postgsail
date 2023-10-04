@@ -183,7 +183,10 @@ begin
   -- check email and password
   select auth.user_role(email, pass) into _role;
   if _role is null then
-    raise invalid_password using message = 'invalid user or password';
+    -- HTTP/403
+    --raise invalid_password using message = 'invalid user or password';
+    -- HTTP/401
+    raise insufficient_privilege using message = 'invalid user or password';
   end if;
 
   -- Get app_jwt_secret
