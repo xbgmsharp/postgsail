@@ -25,7 +25,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 2,
+  "id": 3,
   "links": [
     {
       "asDropdown": false,
@@ -92,7 +92,7 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "9.4.3",
+      "pluginVersion": "10.1.0",
       "targets": [
         {
           "datasource": {
@@ -198,7 +198,7 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "9.4.3",
+      "pluginVersion": "10.1.0",
       "targets": [
         {
           "datasource": {
@@ -279,6 +279,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
@@ -439,6 +440,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
@@ -573,6 +575,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
@@ -638,7 +641,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SET vessel.id = '${__user.login}';\nwith config as (select set_config('vessel.id', '${boat}', false) ) select * from api.monitoring_view",
+          "rawSql": "SET vessel.id = '${__user.login}';\nselect * from api.monitoring_humidity;\n",
           "refId": "A",
           "select": [
             [
@@ -679,11 +682,11 @@
           ]
         }
       ],
-      "title": "Title",
+      "title": "environment.%.humidity",
       "type": "timeseries"
     }
   ],
-  "refresh": "",
+  "refresh": "5m",
   "revision": 1,
   "schemaVersion": 38,
   "style": "dark",
