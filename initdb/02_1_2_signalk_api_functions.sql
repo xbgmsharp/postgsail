@@ -20,25 +20,44 @@ CREATE OR REPLACE FUNCTION api.timelapse_fn(
     DECLARE
         _geojson jsonb;
     BEGIN
+        -- Using sub query to force id order by
         -- TODO using jsonb pgsql function instead of python
         IF start_log IS NOT NULL AND public.isnumeric(start_log::text) AND public.isnumeric(end_log::text) THEN
+            WITH logbook as (
+                SELECT *
+                    FROM api.logbook
+                    WHERE id >= start_log
+                        AND id <= end_log
+                        AND track_geojson IS NOT NULL
+                    GROUP BY id
+                    ORDER BY id ASC
+                )
             SELECT jsonb_agg(track_geojson->'features') INTO _geojson
-                FROM api.logbook
-                WHERE id >= start_log
-                    AND id <= end_log
-                    AND track_geojson IS NOT NULL;
+                FROM logbook;
             --raise WARNING 'by log _geojson %' , _geojson;
         ELSIF start_date IS NOT NULL AND public.isdate(start_date::text) AND public.isdate(end_date::text) THEN
+            WITH logbook as (
+                SELECT *
+                    FROM api.logbook
+                    WHERE _from_time >= start_log::TIMESTAMP WITHOUT TIME ZONE
+                        AND _to_time <= end_date::TIMESTAMP WITHOUT TIME ZONE + interval '23 hours 59 minutes'
+                        AND track_geojson IS NOT NULL
+                    GROUP BY id
+                    ORDER BY id ASC
+                )
             SELECT jsonb_agg(track_geojson->'features') INTO _geojson
-                FROM api.logbook
-                WHERE _from_time >= start_log::TIMESTAMP WITHOUT TIME ZONE
-                    AND _to_time <= end_date::TIMESTAMP WITHOUT TIME ZONE + interval '23 hours 59 minutes'
-                    AND track_geojson IS NOT NULL;
+                FROM logbook;
             --raise WARNING 'by date _geojson %' , _geojson;
         ELSE
+            WITH logbook as (
+                SELECT *
+                    FROM api.logbook
+                    WHERE track_geojson IS NOT NULL
+                    GROUP BY id
+                    ORDER BY id ASC
+                )
             SELECT jsonb_agg(track_geojson->'features') INTO _geojson
-                FROM api.logbook
-                WHERE track_geojson IS NOT NULL;
+                FROM logbook;
             --raise WARNING 'all result _geojson %' , _geojson;
         END IF;
         -- Return a GeoJSON filter on Point
@@ -111,6 +130,49 @@ $export_logbook_gpx$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION
     api.export_logbook_gpx_fn
     IS 'Export a log entry to GPX XML format';
+
+-- Generate KLM XML file output
+-- https://opencpn.org/OpenCPN/info/gpxvalidation.html
+--
+DROP FUNCTION IF EXISTS api.export_logbook_klm_fn;
+CREATE OR REPLACE FUNCTION api.export_logbook_klm_fn(IN _id INTEGER, OUT klm XML) RETURNS pg_catalog.xml
+AS $export_logbook_klm$
+    DECLARE
+        logbook_rec record;
+    BEGIN
+        -- If _id is is not NULL and > 0
+        IF _id IS NULL OR _id < 1 THEN
+            RAISE WARNING '-> export_logbook_klm_fn invalid input %', _id;
+            RETURN;
+        END IF;
+        -- Gather log details
+        SELECT * INTO logbook_rec
+            FROM api.logbook WHERE id = _id;
+        -- Ensure the query is successful
+        IF logbook_rec.vessel_id IS NULL THEN
+            RAISE WARNING '-> export_logbook_klm_fn invalid logbook %', _id;
+            RETURN;
+        END IF;
+        -- Extract POINT from LINESTRING TO generate XML
+        SELECT xmlelement(name klm,
+                                xmlattributes(  '1.0' as version,
+                                                'PostgSAIL' as creator,
+                                                'http://www.w3.org/2005/Atom' as "xmlns:atom",
+                                                'http://www.opengis.net/kml/2.2' as "xmlns",
+                                                'http://www.google.com/kml/ext/2.2' as "xmlns:gx",
+                                                'http://www.opengis.net/kml/2.2' as "xmlns:kml"),
+                                xmlelement(name "Document",
+                                                xmlelement(name name, 'Document.name'),
+                                                xmlelement(name "Placemark",
+                                                    xmlelement(name name, 'Placemark.name'),
+                                                    xmlelement(name "gx:Track", 'gx:Track'))
+                            )) INTO klm;
+    END;
+$export_logbook_klm$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    api.export_logbook_klm_fn
+    IS 'Export a log entry to KLM XML format';
 
 -- Find all log from and to moorage geopoint within 100m
 DROP FUNCTION IF EXISTS api.find_log_from_moorage_fn;
