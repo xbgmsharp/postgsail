@@ -162,11 +162,11 @@ AS $export_logbook_kml$
                                                 'http://www.google.com/kml/ext/2.2' as "xmlns:gx",
                                                 'http://www.opengis.net/kml/2.2' as "xmlns:kml"),
                                 xmlelement(name "Document",
-                                                xmlelement(name name, 'Document.name'),
+                                                xmlelement(name name, l.name),
                                                 xmlelement(name "Placemark",
-                                                    xmlelement(name name, 'Placemark.name'),
-                                                    xmlelement(name "gx:Track", 'gx:Track'))
-                            )) INTO kml;
+                                                    xmlelement(name name, l.notes),
+                                                    ST_AsKML(l.track_geom)::pg_catalog.xml)
+                            )) from api.logbook l INTO kml;
     END;
 $export_logbook_kml$ LANGUAGE plpgsql;
 -- Description
