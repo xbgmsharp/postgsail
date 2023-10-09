@@ -15,7 +15,7 @@ CREATE SCHEMA IF NOT EXISTS public;
 -- process single cron event, process_[logbook|stay|moorage]_queue_fn()
 --
 
-CREATE OR REPLACE FUNCTION logbook_metrics_dwithin_fn(
+CREATE OR REPLACE FUNCTION public.logbook_metrics_dwithin_fn(
     IN _start text,
     IN _end text,
     IN lgn float,
@@ -44,7 +44,7 @@ COMMENT ON FUNCTION
 
 -- Update a logbook with avg data 
 -- TODO using timescale function
-CREATE OR REPLACE FUNCTION logbook_update_avg_fn(
+CREATE OR REPLACE FUNCTION public.logbook_update_avg_fn(
     IN _id integer, 
     IN _start TEXT, 
     IN _end TEXT,
@@ -74,8 +74,8 @@ COMMENT ON FUNCTION
 -- Create a LINESTRING for Geometry
 -- Todo validate st_length unit?
 -- https://postgis.net/docs/ST_Length.html
-DROP FUNCTION IF EXISTS logbook_update_geom_distance_fn;
-CREATE FUNCTION logbook_update_geom_distance_fn(IN _id integer, IN _start text, IN _end text,
+DROP FUNCTION IF EXISTS public.logbook_update_geom_distance_fn;
+CREATE FUNCTION public.logbook_update_geom_distance_fn(IN _id integer, IN _start text, IN _end text,
     OUT _track_geom Geometry(LINESTRING),
     OUT _track_distance double precision
  ) AS $logbook_geo_distance$
@@ -109,7 +109,7 @@ COMMENT ON FUNCTION
     IS 'Update logbook details with geometry data an distance, ST_Length in Nautical Mile (international)';
 
 -- Create GeoJSON for api consume.
-CREATE FUNCTION logbook_update_geojson_fn(IN _id integer, IN _start text, IN _end text,
+CREATE FUNCTION public.logbook_update_geojson_fn(IN _id integer, IN _start text, IN _end text,
     OUT _track_geojson JSON
  ) AS $logbook_geojson$
     declare
@@ -195,7 +195,7 @@ AS $logbook_update_gpx$
             RAISE WARNING '-> logbook_update_gpx_fn invalid logbook %', _id;
             RETURN;
         END IF;
-        -- Gathe url from app settings
+        -- Gather url from app settings
         app_settings := get_app_settings_fn();
         --RAISE DEBUG '-> logbook_update_gpx_fn app_settings %', app_settings;
         -- Generate XML
