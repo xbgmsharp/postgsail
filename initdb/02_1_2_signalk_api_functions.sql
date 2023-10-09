@@ -133,7 +133,7 @@ COMMENT ON FUNCTION
 
 -- Generate KML XML file output
 -- https://developers.google.com/kml/documentation/kml_tut
---
+-- TODO https://developers.google.com/kml/documentation/time#timespans
 DROP FUNCTION IF EXISTS api.export_logbook_kml_fn;
 CREATE OR REPLACE FUNCTION api.export_logbook_kml_fn(IN _id INTEGER, OUT kml XML) RETURNS pg_catalog.xml
 AS $export_logbook_kml$
@@ -162,11 +162,11 @@ AS $export_logbook_kml$
                                                 'http://www.google.com/kml/ext/2.2' as "xmlns:gx",
                                                 'http://www.opengis.net/kml/2.2' as "xmlns:kml"),
                                 xmlelement(name "Document",
-                                                xmlelement(name name, l.name),
+                                                xmlelement(name name, logbook_rec.name),
                                                 xmlelement(name "Placemark",
-                                                    xmlelement(name name, l.notes),
-                                                    ST_AsKML(l.track_geom)::pg_catalog.xml)
-                            )) from api.logbook l INTO kml;
+                                                    xmlelement(name name, logbook_rec.notes),
+                                                    ST_AsKML(logbook_rec.track_geom)::pg_catalog.xml)
+                            )) INTO kml;
     END;
 $export_logbook_kml$ LANGUAGE plpgsql;
 -- Description
