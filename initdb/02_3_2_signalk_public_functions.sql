@@ -138,20 +138,20 @@ CREATE FUNCTION logbook_update_geojson_fn(IN _id integer, IN _start text, IN _en
 		SELECT
 		  json_agg(ST_AsGeoJSON(t.*)::json) into metrics_geojson
 		FROM (
-		  ( select
-		  	time,
-		  	courseovergroundtrue,
-		    speedoverground,
-		    anglespeedapparent,
-		    longitude,latitude,
-		    st_makepoint(longitude,latitude) AS geo_point
-		    FROM api.metrics m
-		    WHERE m.latitude IS NOT NULL
-		        AND m.longitude IS NOT NULL
-                AND time >= _start::TIMESTAMP WITHOUT TIME ZONE
-                AND time <= _end::TIMESTAMP WITHOUT TIME ZONE
-                AND vessel_id = current_setting('vessel.id', false)
-		    ORDER BY m.time ASC
+		  ( SELECT
+                time,
+                courseovergroundtrue,
+                speedoverground,
+                anglespeedapparent,
+                longitude,latitude,
+                st_makepoint(longitude,latitude) AS geo_point
+                FROM api.metrics m
+                WHERE m.latitude IS NOT NULL
+                    AND m.longitude IS NOT NULL
+                    AND time >= _start::TIMESTAMP WITHOUT TIME ZONE
+                    AND time <= _end::TIMESTAMP WITHOUT TIME ZONE
+                    AND vessel_id = current_setting('vessel.id', false)
+                ORDER BY m.time ASC
 		   )  
 		) AS t;
 
@@ -230,9 +230,9 @@ AS $logbook_update_gpx$
                 AND m.longitude IS NOT NULL
                 AND m.time >= log_rec._from_time::TIMESTAMP WITHOUT TIME ZONE
                 AND m.time <= log_rec._to_time::TIMESTAMP WITHOUT TIME ZONE
-                AND vessel_id = log_rec.vessel_id;
-            -- ERROR:  column "m.time" must appear in the GROUP BY clause or be used in an aggregate function at character 2304
-            --ORDER BY m.time ASC;
+                AND vessel_id = log_rec.vessel_id
+            GROUP BY m.time
+            ORDER BY m.time ASC;
     END;
 $logbook_update_gpx$ LANGUAGE plpgsql;
 -- Description
@@ -1239,7 +1239,7 @@ CREATE OR REPLACE FUNCTION public.badges_geom_fn(IN logbook_id integer) RETURNS 
         user_settings jsonb;
         badge_tmp text;
     begin
-	    RAISE NOTICE '--> public.badges_geom_fn user.email [%], vessel.id [%]', current_setting('user.email', false), current_setting('vessel.id', false);
+	    --RAISE NOTICE '--> public.badges_geom_fn user.email [%], vessel.id [%]', current_setting('user.email', false), current_setting('vessel.id', false);
         -- Tropical & Alaska zone manually add into ne_10m_geography_marine_polys
         -- Check if each geographic marine zone exist as a badge
 	    FOR marine_rec IN
@@ -1445,6 +1445,7 @@ BEGIN
     delete from api.moorages m where vessel_id = _vessel_id;
     delete from api.stays s where vessel_id = _vessel_id;
     delete from api.metadata m where vessel_id = _vessel_id;
+    -- TODO remove the badges?
     RETURN True;
 END
 $delete_account$ language plpgsql security definer;
