@@ -131,12 +131,12 @@ COMMENT ON FUNCTION
     api.export_logbook_gpx_fn
     IS 'Export a log entry to GPX XML format';
 
--- Generate KLM XML file output
--- https://opencpn.org/OpenCPN/info/gpxvalidation.html
+-- Generate KML XML file output
+-- https://developers.google.com/kml/documentation/kml_tut
 --
-DROP FUNCTION IF EXISTS api.export_logbook_klm_fn;
-CREATE OR REPLACE FUNCTION api.export_logbook_klm_fn(IN _id INTEGER, OUT klm XML) RETURNS pg_catalog.xml
-AS $export_logbook_klm$
+DROP FUNCTION IF EXISTS api.export_logbook_kml_fn;
+CREATE OR REPLACE FUNCTION api.export_logbook_kml_fn(IN _id INTEGER, OUT kml XML) RETURNS pg_catalog.xml
+AS $export_logbook_kml$
     DECLARE
         logbook_rec record;
     BEGIN
@@ -154,7 +154,7 @@ AS $export_logbook_klm$
             RETURN;
         END IF;
         -- Extract POINT from LINESTRING TO generate XML
-        SELECT xmlelement(name klm,
+        SELECT xmlelement(name kml,
                                 xmlattributes(  '1.0' as version,
                                                 'PostgSAIL' as creator,
                                                 'http://www.w3.org/2005/Atom' as "xmlns:atom",
@@ -166,13 +166,13 @@ AS $export_logbook_klm$
                                                 xmlelement(name "Placemark",
                                                     xmlelement(name name, 'Placemark.name'),
                                                     xmlelement(name "gx:Track", 'gx:Track'))
-                            )) INTO klm;
+                            )) INTO kml;
     END;
-$export_logbook_klm$ LANGUAGE plpgsql;
+$export_logbook_kml$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
-    api.export_logbook_klm_fn
-    IS 'Export a log entry to KLM XML format';
+    api.export_logbook_kml_fn
+    IS 'Export a log entry to KML XML format';
 
 -- Find all log from and to moorage geopoint within 100m
 DROP FUNCTION IF EXISTS api.find_log_from_moorage_fn;
