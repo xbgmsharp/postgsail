@@ -25,7 +25,7 @@ COMMENT ON COLUMN api.metadata.vessel_id IS 'Link auth.vessels with api.metadata
 -- List vessel
 --TODO add geojson with position
 DROP VIEW IF EXISTS api.vessels_view;
-CREATE OR REPLACE VIEW api.vessels_view AS
+CREATE OR REPLACE VIEW api.vessels_view WITH (security_invoker=true,security_barrier=true) AS
     WITH metadata AS (
         SELECT COALESCE(
             (SELECT  m.time
@@ -117,7 +117,7 @@ AS $vessel$
                             latitude IS NOT NULL
                             AND longitude IS NOT NULL
                             AND vessel_id = current_setting('vessel.id', false)
-                        ORDER BY time DESC
+                        ORDER BY time DESC LIMIT 1
                 ) AS geojson_t
             WHERE
                 m.vessel_id = current_setting('vessel.id')
