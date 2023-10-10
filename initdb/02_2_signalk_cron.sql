@@ -404,7 +404,7 @@ BEGIN
                 WHERE v.owner_email = a.email)
     LOOP
         RAISE NOTICE '-> cron_process_no_vessel_rec_fn for [%]', no_vessel;
-        SELECT json_build_object('email', no_vessel.email, 'recipient', a.first) into user_settings;
+        SELECT json_build_object('email', no_vessel.email, 'recipient', no_vessel.first) into user_settings;
         RAISE NOTICE '-> debug cron_process_no_vessel_rec_fn [%]', user_settings;
         -- Send notification
         PERFORM send_notification_fn('no_vessel'::TEXT, user_settings::JSONB);
@@ -434,7 +434,7 @@ BEGIN
                 WHERE v.vessel_id = m.vessel_id) AND v.owner_email = a.email
     LOOP
         RAISE NOTICE '-> cron_process_no_activity_rec_fn for [%]', no_metadata_rec;
-        SELECT json_build_object('email', no_metadata_rec.email, 'recipient', a.first) into user_settings;
+        SELECT json_build_object('email', no_metadata_rec.email, 'recipient', no_metadata_rec.first) into user_settings;
         RAISE NOTICE '-> debug cron_process_no_metadata_rec_fn [%]', user_settings;
         -- Send notification
         PERFORM send_notification_fn('no_metadata'::TEXT, user_settings::JSONB);
@@ -456,13 +456,13 @@ BEGIN
     RAISE NOTICE 'cron_process_no_activity_fn';
     FOR no_activity_rec in
         SELECT
-            v.owner_email,m.name,m.vessel_id,m.time
+            v.owner_email,m.name,m.vessel_id,m.time,a.first
             FROM api.metadata m
             LEFT JOIN auth.vessels v ON v.vessel_id = m.vessel_id
             WHERE m.time <= NOW() AT TIME ZONE 'UTC' - INTERVAL '200 DAYS'
     LOOP
         RAISE NOTICE '-> cron_process_no_activity_rec_fn for [%]', no_activity_rec;
-        SELECT json_build_object('email', no_activity_rec.owner_email, 'recipient', a.first) into user_settings;
+        SELECT json_build_object('email', no_activity_rec.owner_email, 'recipient', no_activity_rec.first) into user_settings;
         RAISE NOTICE '-> debug cron_process_no_activity_rec_fn [%]', user_settings;
         -- Send notification
         PERFORM send_notification_fn('no_activity'::TEXT, user_settings::JSONB);
