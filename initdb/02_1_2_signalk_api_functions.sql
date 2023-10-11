@@ -142,7 +142,7 @@ AS $export_logbook_kml$
     BEGIN
         -- If _id is is not NULL and > 0
         IF _id IS NULL OR _id < 1 THEN
-            RAISE WARNING '-> export_logbook_klm_fn invalid input %', _id;
+            RAISE WARNING '-> export_logbook_kml_fn invalid input %', _id;
             RETURN;
         END IF;
         -- Gather log details
@@ -150,7 +150,7 @@ AS $export_logbook_kml$
             FROM api.logbook WHERE id = _id;
         -- Ensure the query is successful
         IF logbook_rec.vessel_id IS NULL THEN
-            RAISE WARNING '-> export_logbook_klm_fn invalid logbook %', _id;
+            RAISE WARNING '-> export_logbook_kml_fn invalid logbook %', _id;
             RETURN;
         END IF;
         -- Extract POINT from LINESTRING TO generate XML
@@ -166,7 +166,7 @@ AS $export_logbook_kml$
                                                 xmlelement(name "Placemark",
                                                     xmlelement(name name, logbook_rec.notes),
                                                     ST_AsKML(logbook_rec.track_geom)::pg_catalog.xml)
-                            )) INTO kml;
+                            ))::pg_catalog.xml INTO kml;
     END;
 $export_logbook_kml$ LANGUAGE plpgsql;
 -- Description
