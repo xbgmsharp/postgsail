@@ -66,7 +66,7 @@ GRANT SELECT ON TABLE auth.vessels TO grafana;
 GRANT EXECUTE ON FUNCTION public.citext_eq(citext, citext) TO grafana;
 
 -- Grafana_auth authenticator user and role with login, read-only on auth.accounts, limit 15 connections
-CREATE ROLE grafana_auth WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 15 LOGIN PASSWORD 'mysecretpassword';
+CREATE ROLE grafana_auth WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 20 LOGIN PASSWORD 'mysecretpassword';
 comment on role grafana_auth is
     'Role that grafana auth proxy authenticator via apache.';
 -- Allow read on VIEWS on API schema
