@@ -268,20 +268,18 @@ DROP FUNCTION IF EXISTS api.update_logbook_observations_fn;
 CREATE OR REPLACE FUNCTION api.update_logbook_observations_fn(IN _id INT, IN observations TEXT) RETURNS BOOLEAN AS
 $update_logbook_observations$
 DECLARE
-	_value TEXT := NULL;
 BEGIN
+    -- Merge existing observations with the new observations objects
     RAISE NOTICE '-> update_logbook_extra_fn id:[%] observations:[%]', _id, observations;
-    _value := to_jsonb(observations)::jsonb;
     -- { 'observations': { 'seaState': -1, 'cloudCoverage': -1, 'visibility': -1 } }
-    UPDATE api.logbook SET extra = public.jsonb_recursive_merge(extra, _value) WHERE id = _id;
+    UPDATE api.logbook SET extra = public.jsonb_recursive_merge(extra, observations::jsonb) WHERE id = _id;
     IF FOUND IS True THEN
         RETURN True;
     END IF;
     RETURN False;
 END;
 $update_logbook_observations$ language plpgsql security definer;
-
 -- Description
 COMMENT ON FUNCTION
     api.update_logbook_observations_fn
-    IS 'Update logbook observations jsonb key pair value';
+    IS 'Update/Add logbook observations jsonb key pair value';
