@@ -354,7 +354,7 @@ DECLARE
 BEGIN
     -- Remove job run log older than 3 months
     RAISE NOTICE 'job_run_details_cleanup_fn';
-    DELETE FROM postgres.cron.job_run_details
+    DELETE FROM cron.job_run_details
         WHERE start_time <= NOW() AT TIME ZONE 'UTC' - INTERVAL '91 DAYS';
 END;
 $$ language plpgsql;
