@@ -92,3 +92,13 @@ DROP TABLE
 -[ RECORD 1 ]-+-
 stats_logs_fn | 
 
+update_logbook_observations_fn
+-[ RECORD 1 ]----------------------------------------------------------------------------------------------------------------
+extra | {"metrics": {"propulsion.main.runTime": 10}, "observations": {"seaState": -1, "visibility": -1, "cloudCoverage": -1}}
+
+-[ RECORD 1 ]------------------+--
+update_logbook_observations_fn | t
+
+-[ RECORD 1 ]---------------------------------------------------------------------------------------------------------------
+extra | {"metrics": {"propulsion.main.runTime": 10}, "observations": {"seaState": -1, "visibility": -1, "cloudCoverage": 1}}
+

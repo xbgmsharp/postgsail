@@ -57,3 +57,9 @@ SELECT stats_logs_fn->'name' AS name,
         FROM stats_jsonb;
 DROP TABLE stats_jsonb;
 SELECT api.stats_logs_fn('2022-01-01'::text,'2022-06-12'::text);
+
+-- Update logbook observations
+\echo 'update_logbook_observations_fn'
+SELECT extra FROM api.logbook l WHERE id = 1 AND vessel_id = current_setting('vessel.id', false);
+SELECT api.update_logbook_observations_fn(1, '{"observations":{"cloudCoverage":1}}'::TEXT);
+SELECT extra FROM api.logbook l WHERE id = 1 AND vessel_id = current_setting('vessel.id', false);
