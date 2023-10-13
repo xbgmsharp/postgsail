@@ -47,17 +47,16 @@ comment on role authenticator is
 grant api_anonymous to authenticator;
 
 -- Grafana user and role with login, read-only, limit 15 connections
-CREATE ROLE grafana WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 15 LOGIN PASSWORD 'mysecretpassword';
+CREATE ROLE grafana WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 20 LOGIN PASSWORD 'mysecretpassword';
 comment on role grafana is
     'Role that grafana will use for authenticated web users.';
 -- Allow API schema and Tables
 GRANT USAGE ON SCHEMA api TO grafana;
 GRANT USAGE, SELECT ON SEQUENCE api.logbook_id_seq,api.metadata_id_seq,api.moorages_id_seq,api.stays_id_seq TO grafana;
-GRANT SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata TO grafana;
+GRANT SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata,api.stays_at TO grafana;
 -- Allow read on VIEWS on API schema
 GRANT SELECT ON TABLE api.logs_view,api.moorages_view,api.stays_view TO grafana;
 GRANT SELECT ON TABLE api.log_view,api.moorage_view,api.stay_view,api.vessels_view TO grafana;
-GRANT SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata,api.stays_at TO grafana;
 GRANT SELECT ON TABLE api.monitoring_view,api.monitoring_view2,api.monitoring_view3 TO grafana;
 GRANT SELECT ON TABLE api.monitoring_humidity,api.monitoring_voltage,api.monitoring_temperatures TO grafana;
 -- Allow Auth schema and Tables
@@ -65,7 +64,7 @@ GRANT USAGE ON SCHEMA auth TO grafana;
 GRANT SELECT ON TABLE auth.vessels TO grafana;
 GRANT EXECUTE ON FUNCTION public.citext_eq(citext, citext) TO grafana;
 
--- Grafana_auth authenticator user and role with login, read-only on auth.accounts, limit 15 connections
+-- Grafana_auth authenticator user and role with login, read-only on auth.accounts, limit 20 connections
 CREATE ROLE grafana_auth WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 20 LOGIN PASSWORD 'mysecretpassword';
 comment on role grafana_auth is
     'Role that grafana auth proxy authenticator via apache.';
@@ -88,8 +87,8 @@ comment on role user_role is
 GRANT user_role to authenticator;
 GRANT USAGE ON SCHEMA api TO user_role;
 GRANT USAGE, SELECT ON SEQUENCE api.logbook_id_seq,api.metadata_id_seq,api.moorages_id_seq,api.stays_id_seq TO user_role;
-GRANT SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata,api.stays_at TO user_role;
-GRANT SELECT ON TABLE public.process_queue TO user_role;
+GRANT SELECT, UPDATE ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata TO user_role;
+GRANT SELECT ON TABLE api.stays_at,public.process_queue TO user_role;
 -- To check?
 GRANT SELECT ON TABLE auth.vessels TO user_role;
 -- Allow users to update certain columns
@@ -125,8 +124,8 @@ comment on role vessel_role is
     'Role that PostgREST will switch to for authenticated web vessels.';
 GRANT vessel_role to authenticator;
 GRANT USAGE ON SCHEMA api TO vessel_role;
-GRANT INSERT, UPDATE, SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata TO vessel_role;
 GRANT USAGE, SELECT ON SEQUENCE api.logbook_id_seq,api.metadata_id_seq,api.moorages_id_seq,api.stays_id_seq TO vessel_role;
+GRANT INSERT, UPDATE, SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata TO vessel_role;
 GRANT INSERT ON TABLE public.process_queue TO vessel_role;
 GRANT USAGE, SELECT ON SEQUENCE public.process_queue_id_seq TO vessel_role;
 -- explicitly limit EXECUTE privileges to pgrest db-pre-request function
