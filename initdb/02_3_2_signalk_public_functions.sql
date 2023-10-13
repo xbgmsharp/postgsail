@@ -117,9 +117,9 @@ CREATE FUNCTION public.logbook_update_geojson_fn(IN _id integer, IN _start text,
      metrics_geojson jsonb;
      _map jsonb;
     begin
-		-- GeoJson Feature Logbook linestring
-	    SELECT
-		  ST_AsGeoJSON(log.*) into log_geojson
+        -- GeoJson Feature Logbook linestring
+        SELECT
+            ST_AsGeoJSON(log.*) into log_geojson
         FROM
            ( select
             id,name,
@@ -134,11 +134,11 @@ CREATE FUNCTION public.logbook_update_geojson_fn(IN _id integer, IN _start text,
             FROM api.logbook
             WHERE id = _id
            ) AS log;
-		-- GeoJson Feature Metrics point
-		SELECT
-		  json_agg(ST_AsGeoJSON(t.*)::json) into metrics_geojson
-		FROM (
-		  ( SELECT
+        -- GeoJson Feature Metrics point
+        SELECT
+            json_agg(ST_AsGeoJSON(t.*)::json) into metrics_geojson
+        FROM (
+            ( SELECT
                 time,
                 courseovergroundtrue,
                 speedoverground,
@@ -152,17 +152,17 @@ CREATE FUNCTION public.logbook_update_geojson_fn(IN _id integer, IN _start text,
                     AND time <= _end::TIMESTAMP WITHOUT TIME ZONE
                     AND vessel_id = current_setting('vessel.id', false)
                 ORDER BY m.time ASC
-		   )  
-		) AS t;
+            )
+        ) AS t;
 
-		-- Merge jsonb
-		select log_geojson::jsonb || metrics_geojson::jsonb into _map;
+        -- Merge jsonb
+        SELECT log_geojson::jsonb || metrics_geojson::jsonb into _map;
         -- output
-	    SELECT
-        json_build_object(
-            'type', 'FeatureCollection',
-            'features', _map
-        ) into _track_geojson;
+        SELECT
+            json_build_object(
+                'type', 'FeatureCollection',
+                'features', _map
+            ) into _track_geojson;
     END;
 $logbook_geojson$ LANGUAGE plpgsql;
 -- Description
