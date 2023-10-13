@@ -23,7 +23,7 @@ SELECT cron.schedule('cron_new_moorage', '*/7 * * * *', 'select public.cron_proc
 --UPDATE cron.job SET database = 'signalk' where jobname = 'cron_new_moorage';
 
 -- Create a every 10 minute job cron_process_monitor_offline_fn
-SELECT cron.schedule('cron_monitor_offline', '*/10 * * * *', 'select public.cron_process_monitor_offline_fn()');
+SELECT cron.schedule('cron_monitor_offline', '*/11 * * * *', 'select public.cron_process_monitor_offline_fn()');
 --UPDATE cron.job SET database = 'signalk' where jobname = 'cron_monitor_offline';
 
 -- Create a every 10 minute job cron_process_monitor_online_fn
@@ -66,15 +66,17 @@ SELECT cron.schedule('cron_prune_otp', '*/15 * * * *', 'select public.cron_proce
 
 -- Notifications/Reminders of no vessel & no metadata & no activity
 -- At 08:05 on Sunday.
-SELECT cron.schedule('cron_no_vessel', '05 08 * * 0', 'select public.cron_process_no_vessel_fn()');
-SELECT cron.schedule('cron_no_metadata', '05 08 * * 0', 'select public.cron_process_no_metadata_fn()');
-SELECT cron.schedule('cron_no_activity', '05 08 * * 0', 'select public.cron_process_no_activity_fn()');
+-- At 08:05 on every 4th day-of-month if it's on Sunday.
+SELECT cron.schedule('cron_no_vessel', '5 8 */4 * 0', 'select public.cron_process_no_vessel_fn()');
+SELECT cron.schedule('cron_no_metadata', '5 8 */4 * 0', 'select public.cron_process_no_metadata_fn()');
+SELECT cron.schedule('cron_no_activity', '5 8 */4 * 0', 'select public.cron_process_no_activity_fn()');
 
 -- Cron job settings
 UPDATE cron.job SET database = 'signalk';
 UPDATE cron.job SET username = 'username'; -- TODO update to scheduler, pending process_queue update
 --UPDATE cron.job SET username = 'username' where jobname = 'cron_vacuum'; -- TODO Update to superuser for vaccuum permissions
 UPDATE cron.job SET nodename = '/var/run/postgresql/'; -- VS default localhost ??
+UPDATE cron.job	SET database = 'postgresql' WHERE jobid=8; -- job_run_details_cleanup_fn
 -- check job lists
 SELECT * FROM cron.job;
 -- unschedule by job id
