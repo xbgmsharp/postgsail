@@ -237,6 +237,10 @@
   "templating": {
     "list": [
       {
+        "datasource": {
+          "type": "postgres",
+          "uid": "PCC52D03280B7034C"
+        },
         "definition": "SET \"user.email\" = '${__user.email}';\nSET vessel.id = '${__user.login}';\nSELECT\n        v.name AS __text,\n        m.vessel_id AS __value\n   FROM auth.vessels v\n   JOIN api.metadata m ON v.owner_email = '${__user.email}' and m.vessel_id = v.vessel_id;",
         "description": "Vessel Name",
         "hide": 0,
