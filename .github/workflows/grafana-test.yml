@@ -42,7 +42,7 @@ jobs:
           source .env
           docker-compose stop || true
           docker-compose rm || true
-          docker-compose up -d db && sleep 15
+          docker-compose up -d db && sleep 30
           docker-compose ps -a
           echo "Test PostgSail Grafana Unit Test"
           docker-compose up -d app && sleep 5
