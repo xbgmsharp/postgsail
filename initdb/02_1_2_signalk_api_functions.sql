@@ -135,7 +135,7 @@ COMMENT ON FUNCTION
 -- https://developers.google.com/kml/documentation/kml_tut
 -- TODO https://developers.google.com/kml/documentation/time#timespans
 DROP FUNCTION IF EXISTS api.export_logbook_kml_fn;
-CREATE OR REPLACE FUNCTION api.export_logbook_kml_fn(IN _id INTEGER, OUT kml XML) RETURNS pg_catalog.xml
+CREATE OR REPLACE FUNCTION api.export_logbook_kml_fn(IN _id INTEGER) RETURNS pg_catalog.xml
 AS $export_logbook_kml$
     DECLARE
         logbook_rec record;
@@ -143,7 +143,7 @@ AS $export_logbook_kml$
         -- If _id is is not NULL and > 0
         IF _id IS NULL OR _id < 1 THEN
             RAISE WARNING '-> export_logbook_kml_fn invalid input %', _id;
-            RETURN;
+            return '';
         END IF;
         -- Gather log details
         SELECT * INTO logbook_rec
@@ -151,10 +151,10 @@ AS $export_logbook_kml$
         -- Ensure the query is successful
         IF logbook_rec.vessel_id IS NULL THEN
             RAISE WARNING '-> export_logbook_kml_fn invalid logbook %', _id;
-            RETURN;
+            return '';
         END IF;
-        -- Extract POINT from LINESTRING TO generate XML
-        SELECT xmlelement(name kml,
+        -- Extract POINT from LINESTRING to generate XML
+        RETURN xmlelement(name kml,
                                 xmlattributes(  '1.0' as version,
                                                 'PostgSAIL' as creator,
                                                 'http://www.w3.org/2005/Atom' as "xmlns:atom",
@@ -165,14 +165,79 @@ AS $export_logbook_kml$
                                                 xmlelement(name name, logbook_rec.name),
                                                 xmlelement(name "Placemark",
                                                     xmlelement(name name, logbook_rec.notes),
-                                                    ST_AsKML(logbook_rec.track_geom)::pg_catalog.xml)
-                            ))::pg_catalog.xml INTO kml;
+                                                    ST_AsKML(logbook_rec.track_geom))
+                            ))::pg_catalog.xml
+               FROM api.logbook WHERE id = _id;
     END;
 $export_logbook_kml$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
     api.export_logbook_kml_fn
     IS 'Export a log entry to KML XML format';
+
+DROP FUNCTION IF EXISTS api.export_logbook_gpx_fn2;
+CREATE OR REPLACE FUNCTION api.export_logbook_gpx_fn2(IN _id INTEGER) RETURNS pg_catalog.xml
+AS $export_logbook_gpx2$
+    DECLARE
+        log_rec record;
+    BEGIN
+        -- If _id is is not NULL and > 0
+        IF _id IS NULL OR _id < 1 THEN
+            RAISE WARNING '-> export_logbook_geojson_fn invalid input %', _id;
+            RETURN '';
+        END IF;
+        -- Gather log details _from_time and _to_time
+        SELECT * INTO log_rec
+            FROM
+            api.logbook l
+            WHERE l.id = _id;
+        -- Ensure the query is successful
+        IF log_rec.vessel_id IS NULL THEN
+            RAISE WARNING '-> export_logbook_gpx_fn invalid logbook %', _id;
+            RETURN '';
+        END IF;
+        -- Generate XML
+        RETURN xmlelement(name gpx,
+                            xmlattributes(  '1.1' as version,
+                                            'PostgSAIL' as creator,
+                                            'http://www.topografix.com/GPX/1/1' as xmlns,
+                                            'http://www.opencpn.org' as "xmlns:opencpn",
+                                            'https://iot.openplotter.cloud' as "xmlns:postgsail",
+                                            'http://www.w3.org/2001/XMLSchema-instance' as "xmlns:xsi",
+                                            'http://www.garmin.com/xmlschemas/GpxExtensions/v3' as "xmlns:gpxx",
+                                            'http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd' as "xsi:schemaLocation"),
+                xmlelement(name metadata,
+                    xmlelement(name link, xmlattributes('https://iot.openplotter.cloud/' as href), 
+                        xmlelement(name text, 'PostgSail'))),
+                xmlelement(name trk,
+                    xmlelement(name name, log_rec.name),
+                    xmlelement(name desc, log_rec.notes),
+                    xmlelement(name link, xmlattributes(concat('https://iot.openplotter.cloud/log/', log_rec.id) as href),
+                                                xmlelement(name text, log_rec.name)),
+                    xmlelement(name extensions, xmlelement(name "postgsail:log_id", 1),
+                                                xmlelement(name "postgsail:link", concat('https://iot.openplotter.cloud/log/', log_rec.id)),
+                                                xmlelement(name "opencpn:guid", uuid_generate_v4()),
+                                                xmlelement(name "opencpn:viz", '1'),
+                                                xmlelement(name "opencpn:start", log_rec._from_time),
+                                                xmlelement(name "opencpn:end", log_rec._to_time)
+                                                ),
+                    xmlelement(name trkseg, xmlagg(
+                                                xmlelement(name trkpt,
+                                                    xmlattributes(latitude as lat, longitude as lon),
+                                                        xmlelement(name time, time)
+                                                )))))::pg_catalog.xml
+            FROM api.metrics m
+            WHERE m.latitude IS NOT NULL
+                AND m.longitude IS NOT NULL
+                AND m.time >= log_rec._from_time::TIMESTAMP WITHOUT TIME ZONE
+                AND m.time <= log_rec._to_time::TIMESTAMP WITHOUT TIME ZONE
+                AND vessel_id = log_rec.vessel_id;
+          END;
+$export_logbook_gpx2$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    api.export_logbook_gpx2_fn
+    IS 'Export a log entry to GPX XML format';
 
 -- Find all log from and to moorage geopoint within 100m
 DROP FUNCTION IF EXISTS api.find_log_from_moorage_fn;
