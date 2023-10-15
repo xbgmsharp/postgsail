@@ -15,13 +15,13 @@ select current_database();
 --
 -- api_anonymous
 -- nologin
--- api_anonymous role in the database with which to execute anonymous web requests, limit 10 connections
+-- api_anonymous role in the database with which to execute anonymous web requests, limit 20 connections
 -- api_anonymous allows JWT token generation with an expiration time via function api.login() from auth.accounts table
-create role api_anonymous WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOLOGIN NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 10;
+create role api_anonymous WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOLOGIN NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 20;
 comment on role api_anonymous is
     'The role that PostgREST will switch to when a user is not authenticated.';
--- Limit to 10 connections
---alter user api_anonymous connection limit 10;
+-- Limit to 20 connections
+--alter user api_anonymous connection limit 20;
 grant usage on schema api to api_anonymous;
 -- explicitly limit EXECUTE privileges to only signup and login and reset functions
 grant execute on function api.login(text,text) to api_anonymous;
@@ -46,7 +46,7 @@ comment on role authenticator is
     'Role that serves as an entry-point for API servers such as PostgREST.';
 grant api_anonymous to authenticator;
 
--- Grafana user and role with login, read-only, limit 15 connections
+-- Grafana user and role with login, read-only, limit 20 connections
 CREATE ROLE grafana WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 20 LOGIN PASSWORD 'mysecretpassword';
 comment on role grafana is
     'Role that grafana will use for authenticated web users.';
