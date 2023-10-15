@@ -207,7 +207,7 @@ AS $export_logbook_gpx2$
                                             'http://www.garmin.com/xmlschemas/GpxExtensions/v3' as "xmlns:gpxx",
                                             'http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd' as "xsi:schemaLocation"),
                 xmlelement(name metadata,
-                    xmlelement(name link, xmlattributes('https://iot.openplotter.cloud/' as href), 
+                    xmlelement(name link, xmlattributes('https://iot.openplotter.cloud/' as href),
                         xmlelement(name text, 'PostgSail'))),
                 xmlelement(name trk,
                     xmlelement(name name, log_rec.name),
@@ -236,7 +236,7 @@ AS $export_logbook_gpx2$
 $export_logbook_gpx2$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
-    api.export_logbook_gpx2_fn
+    api.export_logbook_gpx_fn2
     IS 'Export a log entry to GPX XML format';
 
 -- Find all log from and to moorage geopoint within 100m
