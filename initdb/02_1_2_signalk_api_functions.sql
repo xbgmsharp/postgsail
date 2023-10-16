@@ -183,7 +183,7 @@ AS $export_logbook_gpx2$
     BEGIN
         -- If _id is is not NULL and > 0
         IF _id IS NULL OR _id < 1 THEN
-            RAISE WARNING '-> export_logbook_geojson_fn invalid input %', _id;
+            RAISE WARNING '-> export_logbook_gpx_fn invalid input %', _id;
             RETURN '';
         END IF;
         -- Gather log details _from_time and _to_time
