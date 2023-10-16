@@ -348,21 +348,6 @@ COMMENT ON FUNCTION
     public.cron_vacuum_fn
     IS 'init by pg_cron to full vacuum tables on schema api';
 
--- CRON for clean up job details logs
-CREATE FUNCTION job_run_details_cleanup_fn() RETURNS void AS $$
-DECLARE
-BEGIN
-    -- Remove job run log older than 3 months
-    RAISE NOTICE 'job_run_details_cleanup_fn';
-    DELETE FROM cron.job_run_details
-        WHERE start_time <= NOW() AT TIME ZONE 'UTC' - INTERVAL '91 DAYS';
-END;
-$$ language plpgsql;
--- Description
-COMMENT ON FUNCTION
-    public.job_run_details_cleanup_fn
-    IS 'init by pg_cron to cleanup job_run_details table on schema public postgres db';
-
 -- CRON for alerts notification
 CREATE FUNCTION cron_process_alerts_fn() RETURNS void AS $$
 DECLARE
@@ -473,3 +458,20 @@ $no_activity$ language plpgsql;
 COMMENT ON FUNCTION
     public.cron_process_no_activity_fn
     IS 'init by pg_cron, check for vessel with no activity for more than 200 days then send notification';
+
+-- Need to be in the postgres database.
+\c postgres
+-- CRON for clean up job details logs
+CREATE FUNCTION job_run_details_cleanup_fn() RETURNS void AS $$
+DECLARE
+BEGIN
+    -- Remove job run log older than 3 months
+    RAISE NOTICE 'job_run_details_cleanup_fn';
+    DELETE FROM cron.job_run_details
+        WHERE start_time <= NOW() AT TIME ZONE 'UTC' - INTERVAL '91 DAYS';
+END;
+$$ language plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.job_run_details_cleanup_fn
+    IS 'init by pg_cron to cleanup job_run_details table on schema public postgres db';

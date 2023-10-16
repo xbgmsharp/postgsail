@@ -76,7 +76,7 @@ UPDATE cron.job SET database = 'signalk';
 UPDATE cron.job SET username = 'username'; -- TODO update to scheduler, pending process_queue update
 --UPDATE cron.job SET username = 'username' where jobname = 'cron_vacuum'; -- TODO Update to superuser for vaccuum permissions
 UPDATE cron.job SET nodename = '/var/run/postgresql/'; -- VS default localhost ??
-UPDATE cron.job	SET database = 'postgresql' WHERE jobid=8; -- job_run_details_cleanup_fn
+UPDATE cron.job	SET database = 'postgresql' WHERE jobname = 'job_run_details_cleanup_fn';
 -- check job lists
 SELECT * FROM cron.job;
 -- unschedule by job id
