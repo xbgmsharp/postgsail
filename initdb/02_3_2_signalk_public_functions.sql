@@ -968,7 +968,7 @@ AS $get_user_settings_from_vesselid$
             FROM auth.accounts a, auth.vessels v, api.metadata m
             WHERE m.vessel_id = v.vessel_id
                 AND m.vessel_id = vesselid
-                AND lower(a.email) = lower(v.owner_email);
+                AND a.email = v.owner_email;
         PERFORM set_config('user.email', user_settings->>'email'::TEXT, false);
         PERFORM set_config('user.recipient', user_settings->>'recipient'::TEXT, false);
     END;
@@ -1319,7 +1319,7 @@ BEGIN
         WHERE auth.accounts.email = _email;
     IF account_rec.email IS NULL THEN
         RAISE EXCEPTION 'Invalid user'
-            USING HINT = 'Unknow user or password';
+            USING HINT = 'Unknown user or password';
     END IF;
     -- Set session variables
     PERFORM set_config('user.id', account_rec.user_id, false);
