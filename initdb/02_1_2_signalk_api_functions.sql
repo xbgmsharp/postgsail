@@ -165,7 +165,7 @@ AS $export_logbook_kml$
                                                 xmlelement(name name, logbook_rec.name),
                                                 xmlelement(name "Placemark",
                                                     xmlelement(name name, logbook_rec.notes),
-                                                    ST_AsKML(logbook_rec.track_geom))
+                                                    ST_AsKML(logbook_rec.track_geom)::pg_catalog.xml)
                             ))::pg_catalog.xml
                FROM api.logbook WHERE id = _id;
     END;
