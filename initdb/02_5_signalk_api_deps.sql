@@ -96,10 +96,11 @@ AS $vessel$
     BEGIN
         SELECT
             jsonb_build_object(
-                'name', v.name,
-                'mmsi', coalesce(v.mmsi, null),
+                'name', m.name,
+                'mmsi', coalesce(m.mmsi, null),
                 'created_at', v.created_at::timestamp(0),
-                'last_contact', coalesce(m.time, null),
+                'first_contact', coalesce(m.created_at::timestamp(0), null),
+                'last_contact', coalesce(m.time::timestamp(0), null),
                 'geojson', coalesce(ST_AsGeoJSON(geojson_t.*)::json, null)
             )::jsonb || api.vessel_details_fn()::jsonb
             INTO vessel
@@ -136,11 +137,12 @@ CREATE OR REPLACE FUNCTION api.settings_fn(out settings json) RETURNS JSON
 AS $user_settings$
     BEGIN
        select row_to_json(row)::json INTO settings
-		from (
-		    select a.email, a.first, a.last, a.preferences, a.created_at,
+        from (
+            select a.email, a.first, a.last, a.preferences, a.created_at,
                 INITCAP(CONCAT (LEFT(first, 1), ' ', last)) AS username,
-                public.has_vessel_fn() as has_vessel
+                public.has_vessel_fn() as has_vessel,
                 --public.has_vessel_metadata_fn() as has_vessel_metadata,
+                a.public_id
             from auth.accounts a
             where email = current_setting('user.email')
 		) row;
@@ -254,10 +256,10 @@ COMMENT ON FUNCTION
 DROP VIEW IF EXISTS api.eventlogs_view;
 CREATE VIEW api.eventlogs_view WITH (security_invoker=true,security_barrier=true) AS
     SELECT pq.*
-            from public.process_queue pq
-            where ref_id = current_setting('user.id', true)
-                or ref_id = current_setting('vessel.id', true)
-            order by id asc;
+        FROM public.process_queue pq
+        WHERE ref_id = current_setting('user.id', true)
+            OR ref_id = current_setting('vessel.id', true)
+        ORDER BY id ASC;
 -- Description
 COMMENT ON VIEW
     api.eventlogs_view
@@ -283,3 +285,56 @@ $update_logbook_observations$ language plpgsql security definer;
 COMMENT ON FUNCTION
     api.update_logbook_observations_fn
     IS 'Update/Add logbook observations jsonb key pair value';
+
+CREATE TYPE public_type AS ENUM ('public_logs', 'public_logs_list', 'public_timelapse', 'public_stats');
+CREATE FUNCTION api.ispublic_fn(IN id INTEGER, IN _type public_type) RETURNS BOOLEAN AS $ispublic$
+DECLARE
+    _id INTEGER := id;
+    rec record;
+    valid_public_type BOOLEAN := False;
+BEGIN
+    -- If _id is is not NULL and > 0
+    IF _id IS NULL OR _id < 1 THEN
+        RAISE WARNING '-> ispublic_fn invalid input %', _id;
+        RETURN False;
+    END IF;
+    -- Check if public_type is valid enum
+    SELECT _type::name = any(enum_range(null::public_type)::name[]) INTO valid_public_type;
+    IF valid_public_type IS False THEN
+        -- Ignore entry if type is invalid
+        RAISE WARNING '-> ispublic_fn invalid input type %', _type;
+        RETURN False;
+    END IF;
+
+    IF _type = 'public_logs' THEN
+        WITH log as (
+            select vessel_id from api.logbook l where l.id = _id
+        )
+        SELECT (l.vessel_id) is not null into rec
+        --SELECT l.vessel_id, 'email', 'settings', a.preferences
+            FROM auth.accounts a, auth.vessels v, jsonb_each_text(a.preferences), log l
+            WHERE v.vessel_id = l.vessel_id
+                    AND a.email = v.owner_email
+                    AND key = 'public_logs'::TEXT
+                    AND value::BOOLEAN = true;
+        IF FOUND THEN
+            RETURN True;
+        END IF;
+    ELSE
+        SELECT (a.email) is not null into rec
+        --SELECT a.email, a.preferences
+            FROM auth.accounts a, jsonb_each_text(a.preferences)
+            WHERE a.public_id = _id
+                    AND key = _type::TEXT
+                    AND value::BOOLEAN = true;
+        IF FOUND THEN
+            RETURN True;
+        END IF;
+    END IF;
+    RETURN False;
+END
+$ispublic$ language plpgsql security definer;
+-- Description
+COMMENT ON FUNCTION
+    api.ispublic_fn
+    IS 'Is web page publicly accessible?';
