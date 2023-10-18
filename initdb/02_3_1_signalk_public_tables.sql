@@ -52,7 +52,7 @@ COMMENT ON TABLE
 -- with escape value, eg: E'A\nB\r\nC'
 -- https://stackoverflow.com/questions/26638615/insert-line-break-in-postgresql-when-updating-text-field
 -- TODO Update notification subject for log entry to 'logbook #NB ...'
-INSERT INTO email_templates VALUES
+INSERT INTO public.email_templates VALUES
 ('logbook',
     'New Logbook Entry',
     E'Hello __RECIPIENT__,\n\nWe just wanted to let you know that you have a new entry on openplotter.cloud: "__LOGBOOK_NAME__"\r\n\r\nSee more details at __APP_URL__/log/__LOGBOOK_LINK__\n\nHappy sailing!\nThe PostgSail Team',
@@ -127,7 +127,12 @@ INSERT INTO email_templates VALUES
     'PostgSail boat inactivity',
     E'Hello __RECIPIENT__,\nWe don\'t see any activity on your account, do you need any assistance?\nIf you need any assistance I would be happy to help. It is free and an open-source.\nThe PostgSail Team',
     'PostgSail inactivity!',
-    E'Congratulations!\nWe detected inactivity. Check your email!\n');
+    E'We detected inactivity. Check your email!\n'),
+('deactivated',
+    'PostgSail account deactivated',
+    E'Hello __RECIPIENT__,\nYour account has been deactivated and all your data has been removed from PostgSail system.',
+    'PostgSail deactivated!',
+    E'We removed your account. Check your email!\n');
 
 ---------------------------------------------------------------------------
 -- Queue handling
