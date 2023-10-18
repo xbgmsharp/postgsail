@@ -418,7 +418,7 @@ BEGIN
                 FROM  api.metadata m
                 WHERE v.vessel_id = m.vessel_id) AND v.owner_email = a.email
     LOOP
-        RAISE NOTICE '-> cron_process_no_activity_rec_fn for [%]', no_metadata_rec;
+        RAISE NOTICE '-> cron_process_no_metadata_rec_fn for [%]', no_metadata_rec;
         SELECT json_build_object('email', no_metadata_rec.email, 'recipient', no_metadata_rec.first) into user_settings;
         RAISE NOTICE '-> debug cron_process_no_metadata_rec_fn [%]', user_settings;
         -- Send notification
@@ -442,9 +442,10 @@ BEGIN
     FOR no_activity_rec in
         SELECT
             v.owner_email,m.name,m.vessel_id,m.time,a.first
-            FROM api.metadata m
-            LEFT JOIN auth.vessels v ON v.vessel_id = m.vessel_id
-            WHERE m.time <= NOW() AT TIME ZONE 'UTC' - INTERVAL '200 DAYS'
+            FROM auth.accounts a
+            LEFT JOIN auth.vessels v ON v.owner_email = a.email
+            LEFT JOIN api.metadata m ON v.vessel_id = m.vessel_id
+            WHERE m.time < NOW() AT TIME ZONE 'UTC' - INTERVAL '200 DAYS'
     LOOP
         RAISE NOTICE '-> cron_process_no_activity_rec_fn for [%]', no_activity_rec;
         SELECT json_build_object('email', no_activity_rec.owner_email, 'recipient', no_activity_rec.first) into user_settings;
@@ -458,6 +459,74 @@ $no_activity$ language plpgsql;
 COMMENT ON FUNCTION
     public.cron_process_no_activity_fn
     IS 'init by pg_cron, check for vessel with no activity for more than 200 days then send notification';
+
+-- CRON for deactivated/deletion
+CREATE FUNCTION cron_process_deactivated_fn() RETURNS void AS $deactivated$
+DECLARE
+    no_activity_rec record;
+    user_settings jsonb;
+BEGIN
+    RAISE NOTICE 'cron_process_deactivated_fn';
+
+    -- List accounts with vessel inactivity for more than 1 YEAR
+    FOR no_activity_rec in
+        SELECT
+            v.owner_email,m.name,m.vessel_id,m.time,a.first
+            FROM auth.accounts a
+            LEFT JOIN auth.vessels v ON v.owner_email = a.email
+            LEFT JOIN api.metadata m ON v.vessel_id = m.vessel_id
+            WHERE m.time < NOW() AT TIME ZONE 'UTC' - INTERVAL '1 YEAR'
+    LOOP
+        RAISE NOTICE '-> cron_process_deactivated_rec_fn for inactivity [%]', no_activity_rec;
+        SELECT json_build_object('email', no_activity_rec.owner_email, 'recipient', no_activity_rec.first) into user_settings;
+        RAISE NOTICE '-> debug cron_process_deactivated_rec_fn inactivity [%]', user_settings;
+        -- Send notification
+        PERFORM send_notification_fn('deactivated'::TEXT, user_settings::JSONB);
+        --PERFORM public.delete_account_fn(no_activity_rec.owner_email::TEXT, no_activity_rec.vessel_id::TEXT);
+    END LOOP;
+
+    -- List accounts with no vessel metadata for more than 1 YEAR
+    FOR no_activity_rec in
+        SELECT
+            a.user_id,a.email,a.first,a.created_at
+            FROM auth.accounts a, auth.vessels v
+            WHERE NOT EXISTS (
+                SELECT *
+                FROM  api.metadata m
+                WHERE v.vessel_id = m.vessel_id) AND v.owner_email = a.email
+            AND v.created_at < NOW() AT TIME ZONE 'UTC' - INTERVAL '1 YEAR'
+    LOOP
+        RAISE NOTICE '-> cron_process_deactivated_rec_fn for no metadata [%]', no_activity_rec;
+        SELECT json_build_object('email', no_activity_rec.owner_email, 'recipient', no_activity_rec.first) into user_settings;
+        RAISE NOTICE '-> debug cron_process_deactivated_rec_fn no metadata [%]', user_settings;
+        -- Send notification
+        PERFORM send_notification_fn('deactivated'::TEXT, user_settings::JSONB);
+        --PERFORM public.delete_account_fn(no_activity_rec.owner_email::TEXT, no_activity_rec.vessel_id::TEXT);
+    END LOOP;
+
+    -- List accounts with no vessel created for more than 1 YEAR
+    FOR no_activity_rec in
+        SELECT a.user_id,a.email,a.first,a.created_at
+            FROM auth.accounts a
+            WHERE NOT EXISTS (
+                SELECT *
+                FROM auth.vessels v
+                WHERE v.owner_email = a.email)
+            AND a.created_at < NOW() AT TIME ZONE 'UTC' - INTERVAL '1 YEAR'
+    LOOP
+        RAISE NOTICE '-> cron_process_deactivated_rec_fn for no vessel [%]', no_activity_rec;
+        SELECT json_build_object('email', no_activity_rec.owner_email, 'recipient', no_activity_rec.first) into user_settings;
+        RAISE NOTICE '-> debug cron_process_deactivated_rec_fn no vessel [%]', user_settings;
+        -- Send notification
+        PERFORM send_notification_fn('deactivated'::TEXT, user_settings::JSONB);
+        --PERFORM public.delete_account_fn(no_activity_rec.owner_email::TEXT, no_activity_rec.vessel_id::TEXT);
+    END LOOP;
+END;
+$deactivated$ language plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.cron_process_deactivated_fn
+    IS 'init by pg_cron, check for vessel with no activity for more than 1 year then send notification and delete data';
 
 -- Need to be in the postgres database.
 \c postgres
