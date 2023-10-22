@@ -52,7 +52,9 @@ comment on role grafana is
     'Role that grafana will use for authenticated web users.';
 -- Allow API schema and Tables
 GRANT USAGE ON SCHEMA api TO grafana;
+-- Allow read on SEQUENCE on API schema
 GRANT USAGE, SELECT ON SEQUENCE api.logbook_id_seq,api.metadata_id_seq,api.moorages_id_seq,api.stays_id_seq TO grafana;
+-- Allow read on TABLES on API schema
 GRANT SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata,api.stays_at TO grafana;
 -- Allow read on VIEWS on API schema
 GRANT SELECT ON TABLE api.logs_view,api.moorages_view,api.stays_view TO grafana;
@@ -80,29 +82,25 @@ GRANT EXECUTE ON FUNCTION public.citext_eq(citext, citext) TO grafana_auth;
 
 -- User:
 -- nologin, web api only
--- read-only for all and Read-Write on logbook, stays and moorage except for specific (name, notes) COLUMNS
+-- read-only for all and Read on logbook, stays and moorage and Write only for specific (name, notes) COLUMNS
 CREATE ROLE user_role WITH NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION;
 comment on role user_role is
     'Role that PostgREST will switch to for authenticated web users.';
 GRANT user_role to authenticator;
 GRANT USAGE ON SCHEMA api TO user_role;
+-- Allow read on SEQUENCE on API schema
 GRANT USAGE, SELECT ON SEQUENCE api.logbook_id_seq,api.metadata_id_seq,api.moorages_id_seq,api.stays_id_seq TO user_role;
-GRANT SELECT, UPDATE ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata TO user_role;
-GRANT SELECT ON TABLE api.stays_at,public.process_queue TO user_role;
+-- Allow read on TABLES on API schema
+GRANT SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata,api.stays_at TO user_role;
+GRANT SELECT ON TABLE public.process_queue TO user_role;
 -- To check?
 GRANT SELECT ON TABLE auth.vessels TO user_role;
--- Allow users to update certain columns
+-- Allow users to update certain columns on specific TABLES on API schema
 GRANT UPDATE (name, notes) ON api.logbook TO user_role;
 GRANT UPDATE (name, notes, stay_code) ON api.stays TO user_role;
 GRANT UPDATE (name, notes, stay_code, home_flag) ON api.moorages TO user_role;
+-- Allow EXECUTE on all FUNCTIONS on API and public schema
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA api TO user_role;
--- explicitly limit EXECUTE privileges to pgrest db-pre-request function
---GRANT EXECUTE ON FUNCTION public.check_jwt() TO user_role;
--- Allow others functions or allow all in public !! ??
---GRANT EXECUTE ON FUNCTION api.export_logbook_geojson_linestring_fn(int4) TO user_role;
---GRANT EXECUTE ON FUNCTION public.st_asgeojson(text) TO user_role;
---GRANT EXECUTE ON FUNCTION public.geography_eq(geography, geography) TO user_role;
--- TODO should not be need !! ??
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO user_role;
 
 -- pg15 feature security_invoker=true,security_barrier=true
@@ -110,6 +108,7 @@ GRANT SELECT ON TABLE api.logs_view,api.moorages_view,api.stays_view TO user_rol
 GRANT SELECT ON TABLE api.log_view,api.moorage_view,api.stay_view,api.vessels_view TO user_role;
 GRANT SELECT ON TABLE api.monitoring_view,api.monitoring_view2,api.monitoring_view3 TO user_role;
 GRANT SELECT ON TABLE api.monitoring_humidity,api.monitoring_voltage,api.monitoring_temperatures TO user_role;
+GRANT SELECT ON TABLE api.stats_moorages_away_view,api.versions_view TO user_role;
 GRANT SELECT ON TABLE api.total_info_view TO user_role;
 GRANT SELECT ON TABLE api.stats_logs_view TO user_role;
 GRANT SELECT ON TABLE api.stats_moorages_view TO user_role;
@@ -124,7 +123,9 @@ comment on role vessel_role is
     'Role that PostgREST will switch to for authenticated web vessels.';
 GRANT vessel_role to authenticator;
 GRANT USAGE ON SCHEMA api TO vessel_role;
+-- Allow read on SEQUENCE on API schema
 GRANT USAGE, SELECT ON SEQUENCE api.logbook_id_seq,api.metadata_id_seq,api.moorages_id_seq,api.stays_id_seq TO vessel_role;
+-- Allow read/write on TABLES on API schema
 GRANT INSERT, UPDATE, SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata TO vessel_role;
 GRANT INSERT ON TABLE public.process_queue TO vessel_role;
 GRANT USAGE, SELECT ON SEQUENCE public.process_queue_id_seq TO vessel_role;
