@@ -149,6 +149,5 @@ if [ $? -eq 0 ]; then
     echo openapi.json OK
 else
     echo openapi.json FAILED
-    diff -u sql/monitoring.sql.output output/monitoring.sql.output
     exit 1
 fi
