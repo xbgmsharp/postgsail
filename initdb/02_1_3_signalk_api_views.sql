@@ -38,13 +38,13 @@ CREATE VIEW stay_in_progress AS
 DROP VIEW IF EXISTS api.logs_view;
 CREATE OR REPLACE VIEW api.logs_view WITH (security_invoker=true,security_barrier=true) AS
     SELECT id,
-            name as "Name",
-            _from as "From",
-            _from_time as "Started",
-            _to as "To",
-            _to_time as "Ended",
-            distance as "Distance",
-            duration as "Duration"
+            name as "name",
+            _from as "from",
+            _from_time as "started",
+            _to as "to",
+            _to_time as "ended",
+            distance as "distance",
+            duration as "duration"
         FROM api.logbook l
         WHERE _to_time IS NOT NULL
         ORDER BY _from_time DESC;
@@ -56,13 +56,13 @@ COMMENT ON VIEW
 -- Initial try of MATERIALIZED VIEW
 CREATE MATERIALIZED VIEW api.logs_mat_view AS
     SELECT id,
-            name as "Name",
-            _from as "From",
-            _from_time as "Started",
-            _to as "To",
-            _to_time as "Ended",
-            distance as "Distance",
-            duration as "Duration"
+            name as "name",
+            _from as "from",
+            _from_time as "started",
+            _to as "to",
+            _to_time as "ended",
+            distance as "distance",
+            duration as "duration"
         FROM api.logbook l
         WHERE _to_time IS NOT NULL
         ORDER BY _from_time DESC;
@@ -74,14 +74,14 @@ COMMENT ON MATERIALIZED VIEW
 DROP VIEW IF EXISTS api.log_view;
 CREATE OR REPLACE VIEW api.log_view WITH (security_invoker=true,security_barrier=true) AS
     SELECT id,
-            name as "Name",
-            _from as "From",
-            _from_time as "Started",
-            _to as "To",
-            _to_time as "Ended",
-            distance as "Distance",
-            duration as "Duration",
-            notes as "Notes",
+            name as "name",
+            _from as "from",
+            _from_time as "started",
+            _to as "to",
+            _to_time as "ended",
+            distance as "distance",
+            duration as "duration",
+            notes as "notes",
             track_geojson as geojson,
             avg_speed as avg_speed,
             max_speed as max_speed,
@@ -257,12 +257,12 @@ CREATE OR REPLACE VIEW api.stats_logs_view WITH (security_invoker=true,security_
             SELECT m.time FROM api.metrics m ORDER BY m.time ASC limit 1),
         logbook AS (
             SELECT
-                count(*) AS "Number of Log Entries",
-                max(l.max_speed) AS "Max Speed",
-                max(l.max_wind_speed) AS "Max Wind Speed",
-                sum(l.distance) AS "Total Distance",
-                sum(l.duration) AS "Total Time Underway",
-                concat( max(l.distance), ' NM, ', max(l.duration), ' hours') AS "Longest Nonstop Sail"
+                count(*) AS "number_of_log_entries",
+                max(l.max_speed) AS "max_speed",
+                max(l.max_wind_speed) AS "max_wind_speed",
+                sum(l.distance) AS "total_distance",
+                sum(l.duration) AS "total_time_underway",
+                concat( max(l.distance), ' NM, ', max(l.duration), ' hours') AS "longest_nonstop_sail"
             FROM api.logbook l)
     SELECT
         m.name as Name,
@@ -301,10 +301,10 @@ CREATE OR REPLACE VIEW api.stats_moorages_view WITH (security_invoker=true,secur
             select sum(m.stay_duration) as time_spent_away from api.moorages m where home_flag is false
         )
     SELECT
-        home_ports.home_ports as "Home Ports",
-        unique_moorage.unique_moorage as "Unique Moorages",
-        time_at_home_ports.time_at_home_ports "Time Spent at Home Port(s)",
-        time_spent_away.time_spent_away as "Time Spent Away"
+        home_ports.home_ports as "home_ports",
+        unique_moorage.unique_moorage as "unique_moorages",
+        time_at_home_ports.time_at_home_ports "time_spent_at_home_port(s)",
+        time_spent_away.time_spent_away as "time_spent_away"
     FROM home_ports, unique_moorage, time_at_home_ports, time_spent_away;
 COMMENT ON VIEW
     api.stats_moorages_view
@@ -346,8 +346,8 @@ CREATE VIEW api.monitoring_view WITH (security_invoker=true,security_barrier=tru
         metrics-> 'environment.outside.temperature' AS outsideTemperature,
         metrics-> 'environment.wind.speedOverGround' AS windSpeedOverGround,
         metrics-> 'environment.wind.directionGround' AS windDirectionGround,
-        metrics-> 'environment.inside.humidity' AS insideHumidity,
-        metrics-> 'environment.outside.humidity' AS outsideHumidity,
+        metrics-> 'environment.inside.relativeHumidity' AS insideHumidity,
+        metrics-> 'environment.outside.relativeHumidity' AS outsideHumidity,
         metrics-> 'environment.outside.pressure' AS outsidePressure,
         metrics-> 'environment.inside.pressure' AS insidePressure,
         metrics-> 'electrical.batteries.House.capacity.stateOfCharge' AS batteryCharge,
@@ -361,7 +361,7 @@ CREATE VIEW api.monitoring_view WITH (security_invoker=true,security_barrier=tru
                 'longitude', m.longitude
                 )::jsonb ) AS geojson,
         current_setting('vessel.name', false) AS name
-    FROM api.metrics m 
+    FROM api.metrics m
     ORDER BY time DESC LIMIT 1;
 COMMENT ON VIEW
     api.monitoring_view
@@ -372,7 +372,7 @@ CREATE VIEW api.monitoring_humidity WITH (security_invoker=true,security_barrier
     SELECT m.time, key, value
         FROM api.metrics m,
             jsonb_each_text(m.metrics)
-        WHERE key ILIKE 'environment.%.humidity'
+        WHERE key ILIKE 'environment.%.humidity' OR key ILIKE 'environment.%.relativeHumidity'
         ORDER BY m.time DESC;
 COMMENT ON VIEW
     api.monitoring_humidity
