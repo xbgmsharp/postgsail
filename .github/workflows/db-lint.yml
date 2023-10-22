@@ -1,0 +1,55 @@
+name: Linting rules on database schema.
+
+on:
+  pull_request:
+    paths:
+      - 'initdb/**'
+    branches:
+      - 'main'
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'initdb/**'
+    tags:
+        - "*"
+  workflow_dispatch:
+
+jobs:
+  schemalint:
+    name: schemalint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the source
+        uses: actions/checkout@v3
+
+      - name: Set env
+        run: cp .env.example .env
+
+      - name: Pull Docker images
+        run: docker-compose pull db api
+
+      - name: Run PostgSail Database & schemalint
+        # Environment variables
+        env:
+          # The hostname used to communicate with the PostgreSQL service container
+          PGHOST: localhost
+          PGPORT: 5432
+          PGDATABASE: signalk
+          PGUSER: username
+          PGPASSWORD: password
+        run: |
+          set -eu
+          source .env
+          docker-compose stop || true
+          docker-compose rm || true
+          docker-compose up -d db && sleep 30 && docker-compose up -d api && sleep 5
+          docker-compose ps -a
+          echo ${PGSAIL_API_URL}
+          curl ${PGSAIL_API_URL}
+          npm i -D schemalint
+          npx schemalint
+      - name: Show the logs
+        if: always()
+        run: |
+          docker-compose logs
