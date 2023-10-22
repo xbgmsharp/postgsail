@@ -21,7 +21,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto"; -- provides cryptographic functions
 
 DROP TABLE IF EXISTS auth.accounts CASCADE;
 CREATE TABLE IF NOT EXISTS auth.accounts (
-  userid        UUID NOT NULL UNIQUE DEFAULT uuid_generate_v4(),
+  public_id     SERIAL UNIQUE NOT NULL,
   user_id       TEXT NOT NULL UNIQUE DEFAULT RIGHT(gen_random_uuid()::text, 12),
   email         CITEXT primary key check ( email ~* '^.+@.+\..+$' ),
   first         text not null check (length(pass) < 512),
@@ -45,8 +45,10 @@ COMMENT ON TABLE
 -- is unused index?
 --CREATE INDEX accounts_role_idx ON auth.accounts (role);
 CREATE INDEX accounts_preferences_idx ON auth.accounts using GIN (preferences);
--- is unused index?
---CREATE INDEX accounts_userid_idx ON auth.accounts (userid);
+CREATE INDEX accounts_public_id_idx ON auth.accounts (public_id);
+COMMENT ON COLUMN auth.accounts.public_id IS 'User public_id to allow anonymous access, could be use as well for as Grafana orgId';
+COMMENT ON COLUMN auth.accounts.first IS 'User first name with CONSTRAINT';
+COMMENT ON COLUMN auth.accounts.last IS 'User last name with CONSTRAINT';
 
 CREATE TRIGGER accounts_moddatetime
 	BEFORE UPDATE ON auth.accounts
