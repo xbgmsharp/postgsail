@@ -1,2 +1,10 @@
 .DS_Store
 .env
+initdb/*.csv
+initdb/*.no
+initdb/*.jwk
+tests/node_modules/
+tests/output/
+assets/*
+.pnpm-store/
+db-data/
