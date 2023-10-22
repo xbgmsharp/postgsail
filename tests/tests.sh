@@ -135,9 +135,20 @@ diff sql/monitoring.sql.output output/monitoring.sql.output > /dev/null
 #diff -u sql/monitoring.sql.output output/monitoring.sql.output | wc -l
 #echo 0
 if [ $? -eq 0 ]; then
-    echo OK
+    echo SQL monitoring.sql OK
 else
     echo SQL monitoring.sql FAILED
+    diff -u sql/monitoring.sql.output output/monitoring.sql.output
+    exit 1
+fi
+
+# Download and update openapi documentation
+wget ${PGSAIL_API_URI} -O ../openapi.json
+#echo 0
+if [ $? -eq 0 ]; then
+    echo openapi.json OK
+else
+    echo openapi.json FAILED
     diff -u sql/monitoring.sql.output output/monitoring.sql.output
     exit 1
 fi
