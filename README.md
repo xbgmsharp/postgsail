@@ -209,10 +209,6 @@ Out of the box iot platform using docker with the following software:
 - [PostGIS, a spatial database extender for PostgreSQL object-relational database.](https://postgis.net/)
 - [Grafana, open observability platform | Grafana Labs](https://grafana.com)
 
-### Releases & updates
-
-PostgSail Release Notes & Future Plans: see planned and in-progress updates and detailed information about current and past releases. [PostgSail project](https://github.com/xbgmsharp?tab=projects)
-
 ### Support
 
 To get support, please create new [issue](https://github.com/xbgmsharp/postgsail/issues).
