@@ -23,18 +23,18 @@ postgsail-telegram-bot:
 
 - Automatically log your voyages without manually starting or stopping a trip.
 - Automatically capture the details of your voyages (boat speed, heading, wind speed, etc).
-- Timelapse video your trips!
+- Timelapse video your trips, with or without time control.
 - Add custom notes to your logs.
-- Export to CSV or GPX and download your logs.
+- Export to CSV or GPX or KLM and download your logs.
 - Aggregate your trip statistics: Longest voyage, time spent at anchorages, home ports etc.
 - See your moorages on a global map, with incoming and outgoing voyages from each trip.
 - Monitor your boat (position, depth, wind, temperature, battery charge status, etc.) remotely.
 - History: view trends.
 - Alert monitoring: get notification on low voltage or low fuel remotely.
-- Notification via email or PushOver, Telegram
-- Offline mode
-- Low Bandwidth mode
-- Awesome statistics and graphs
+- Notification via email or PushOver, Telegram.
+- Offline mode.
+- Low Bandwidth mode.
+- Awesome statistics and graphs.
 - Anything missing? just ask!
 
 ## Context
