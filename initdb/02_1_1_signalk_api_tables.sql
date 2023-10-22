@@ -43,7 +43,6 @@ CREATE TYPE status AS ENUM ('sailing', 'motoring', 'moored', 'anchored');
 -- Table api.metrics
 CREATE TABLE IF NOT EXISTS api.metrics (
   time TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-  --client_id VARCHAR(255) NOT NULL REFERENCES api.metadata(client_id) ON DELETE RESTRICT,
   client_id TEXT NULL,
   vessel_id TEXT NOT NULL REFERENCES api.metadata(vessel_id) ON DELETE RESTRICT,
   latitude DOUBLE PRECISION NULL,
@@ -97,15 +96,13 @@ SELECT create_hypertable('api.metrics', 'time', chunk_time_interval => INTERVAL 
 
 CREATE TABLE IF NOT EXISTS api.logbook(
   id SERIAL PRIMARY KEY,
-  --client_id VARCHAR(255) NOT NULL REFERENCES api.metadata(client_id) ON DELETE RESTRICT,
-  --client_id VARCHAR(255) NULL,
   vessel_id TEXT NOT NULL REFERENCES api.metadata(vessel_id) ON DELETE RESTRICT,
   active BOOLEAN DEFAULT false,
-  name VARCHAR(255),
-  _from VARCHAR(255),
+  name TEXT,
+  _from TEXT,
   _from_lat DOUBLE PRECISION NULL,
   _from_lng DOUBLE PRECISION NULL,
-  _to VARCHAR(255),
+  _to TEXT,
   _to_lat DOUBLE PRECISION NULL,
   _to_lng DOUBLE PRECISION NULL,
   --track_geom Geometry(LINESTRING)
@@ -145,11 +142,9 @@ COMMENT ON COLUMN api.logbook.track_gpx IS 'store the gpx track metrics data, ca
 -- virtual logbook by boat? 
 CREATE TABLE IF NOT EXISTS api.stays(
   id SERIAL PRIMARY KEY,
-  --client_id VARCHAR(255) NOT NULL REFERENCES api.metadata(client_id) ON DELETE RESTRICT,
-  --client_id VARCHAR(255) NULL,
   vessel_id TEXT NOT NULL REFERENCES api.metadata(vessel_id) ON DELETE RESTRICT,
   active BOOLEAN DEFAULT false,
-  name VARCHAR(255),
+  name TEXT,
   latitude DOUBLE PRECISION NULL,
   longitude DOUBLE PRECISION NULL,
   geog GEOGRAPHY(POINT) NULL,
@@ -382,6 +377,12 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
         IF NEW.longitude >= 180 OR NEW.longitude <= -180 THEN
             -- Ignore entry if invalid latitude,longitude
             RAISE WARNING 'Metrics Ignoring metric, vessel_id [%], invalid longitude >= 180 OR <= -180 [%] [%]', NEW.vessel_id, NEW.latitude, NEW.longitude;
+            RETURN NULL;
+        END IF;
+        -- Check if valid longitude and latitude not close to -0.0000001 from Victron Cerbo
+        IF NEW.latitude = NEW.longitude THEN
+            -- Ignore entry if latitude,longitude are equal
+            RAISE WARNING 'Metrics Ignoring metric, vessel_id [%], latitude and longitude are equal [%] [%]', NEW.vessel_id, NEW.latitude, NEW.longitude;
             RETURN NULL;
         END IF;
         -- Check if status is null
