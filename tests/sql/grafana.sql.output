@@ -23,7 +23,7 @@ client_id | vessels.urn:mrn:imo:mmsi:787654321
 
 auth.accounts details
 -[ RECORD 1 ]-----+-----------------------------
-userid            | t
+public_id         | t
 user_id           | t
 email             | demo+kapla@openplotter.cloud
 first             | First_kapla
@@ -33,7 +33,7 @@ role              | user_role
 telegram          | 
 pushover_user_key | 
 -[ RECORD 2 ]-----+-----------------------------
-userid            | t
+public_id         | t
 user_id           | t
 email             | demo+aava@openplotter.cloud
 first             | first_aava
@@ -127,18 +127,18 @@ active          | t
 api.logs_view
 -[ RECORD 1 ]--------------
 id       | 2
-Name     | Knipan to Ekenäs
-From     | Knipan
-To       | Ekenäs
-Distance | 8.6862
-Duration | PT18M
+name     | Knipan to Ekenäs
+from     | Knipan
+to       | Ekenäs
+distance | 8.6862
+duration | PT18M
 -[ RECORD 2 ]--------------
 id       | 1
-Name     | patch log name 3
-From     | Bollsta
-To       | Slottsbacken
-Distance | 7.17
-Duration | PT25M
+name     | patch log name 3
+from     | Bollsta
+to       | Slottsbacken
+distance | 7.17
+duration | PT25M
 
 api.stays
 -[ RECORD 1 ]-------------------------------------------------
