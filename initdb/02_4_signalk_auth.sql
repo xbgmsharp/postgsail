@@ -23,15 +23,15 @@ DROP TABLE IF EXISTS auth.accounts CASCADE;
 CREATE TABLE IF NOT EXISTS auth.accounts (
   public_id     SERIAL UNIQUE NOT NULL,
   user_id       TEXT NOT NULL UNIQUE DEFAULT RIGHT(gen_random_uuid()::text, 12),
-  email         CITEXT primary key check ( email ~* '^.+@.+\..+$' ),
-  first         text not null check (length(pass) < 512),
-  last          text not null check (length(pass) < 512),
-  pass          text not null check (length(pass) < 512),
-  role          name not null check (length(role) < 512),
+  email         CITEXT PRIMARY KEY CHECK ( email ~* '^.+@.+\..+$' ),
+  first         TEXT NOT NULL CHECK (length(pass) < 512),
+  last          TEXT NOT NULL CHECK (length(pass) < 512),
+  pass          TEXT NOT NULL CHECK (length(pass) < 512),
+  role          name NOT NULL CHECK (length(role) < 512),
   preferences   JSONB NULL DEFAULT '{"email_notifications":true}',
   created_at    TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
-  connected_at    TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+  connected_at  TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
   CONSTRAINT valid_email CHECK (length(email) > 5), -- Enforce at least 5 char, eg: a@b.io
   CONSTRAINT valid_first CHECK (length(first) > 1),
   CONSTRAINT valid_last CHECK (length(last) > 1),
@@ -44,11 +44,11 @@ COMMENT ON TABLE
 -- Indexes
 -- is unused index?
 --CREATE INDEX accounts_role_idx ON auth.accounts (role);
-CREATE INDEX accounts_preferences_idx ON auth.accounts using GIN (preferences);
+CREATE INDEX accounts_preferences_idx ON auth.accounts USING GIN (preferences);
 CREATE INDEX accounts_public_id_idx ON auth.accounts (public_id);
-COMMENT ON COLUMN auth.accounts.public_id IS 'User public_id to allow anonymous access, could be use as well for as Grafana orgId';
-COMMENT ON COLUMN auth.accounts.first IS 'User first name with CONSTRAINT';
-COMMENT ON COLUMN auth.accounts.last IS 'User last name with CONSTRAINT';
+COMMENT ON COLUMN auth.accounts.public_id IS 'User public_id to allow mapping for anonymous access, could be use as well for as Grafana orgId';
+COMMENT ON COLUMN auth.accounts.first IS 'User first name with CONSTRAINT CHECK';
+COMMENT ON COLUMN auth.accounts.last IS 'User last name with CONSTRAINT CHECK';
 
 CREATE TRIGGER accounts_moddatetime
 	BEFORE UPDATE ON auth.accounts
