@@ -96,7 +96,7 @@ AS $vessel$
     BEGIN
         SELECT
             jsonb_build_object(
-                'name', m.name,
+                'name', coalesce(m.name, null),
                 'mmsi', coalesce(m.mmsi, null),
                 'created_at', v.created_at::timestamp(0),
                 'first_contact', coalesce(m.created_at::timestamp(0), null),
