@@ -33,14 +33,14 @@ CREATE OR REPLACE FUNCTION public.logbook_metrics_dwithin_fn(
                 AND ST_DWithin(
                     Geography(ST_MakePoint(m.longitude, m.latitude)),
                     Geography(ST_MakePoint(lgn, lat)),
-                    10
+                    15
                 );
     END;
 $logbook_metrics_dwithin$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
     public.logbook_metrics_dwithin_fn
-    IS 'Check if all entries for a logbook are in stationary movement with 10 meters';
+    IS 'Check if all entries for a logbook are in stationary movement with 15 meters';
 
 -- Update a logbook with avg data 
 -- TODO using timescale function
@@ -121,18 +121,18 @@ CREATE FUNCTION public.logbook_update_geojson_fn(IN _id integer, IN _start text,
         SELECT
             ST_AsGeoJSON(log.*) into log_geojson
         FROM
-           ( select
-            id,name,
-            distance,
-            duration,
-            avg_speed,
-            avg_speed,
-            max_wind_speed,
-            _from_time,
-            notes,
-            track_geom
-            FROM api.logbook
-            WHERE id = _id
+           ( SELECT
+                id,name,
+                distance,
+                duration,
+                avg_speed,
+                max_speed,
+                max_wind_speed,
+                _from_time,
+                notes,
+                track_geom
+                FROM api.logbook
+                WHERE id = _id
            ) AS log;
         -- GeoJson Feature Metrics point
         SELECT
@@ -213,7 +213,7 @@ AS $logbook_update_gpx$
                     xmlelement(name desc, log_rec.notes),
                     xmlelement(name link, xmlattributes(concat(app_settings->>'app.url', '/log/', log_rec.id) as href),
                                                 xmlelement(name text, log_rec.name)),
-                    xmlelement(name extensions, xmlelement(name "postgsail:log_id", 1),
+                    xmlelement(name extensions, xmlelement(name "postgsail:log_id", log_rec.id),
                                                 xmlelement(name "postgsail:link", concat(app_settings->>'app.url','/log/', log_rec.id)),
                                                 xmlelement(name "opencpn:guid", uuid_generate_v4()),
                                                 xmlelement(name "opencpn:viz", '1'),
@@ -509,11 +509,11 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
             WHERE id = logbook_rec.id;
 
         -- GPX field
-        gpx := logbook_update_gpx_fn(logbook_rec.id, logbook_rec._from_time::TEXT, logbook_rec._to_time::TEXT);
-        UPDATE api.logbook
-            SET
-                track_gpx = gpx
-            WHERE id = logbook_rec.id;
+        --gpx := logbook_update_gpx_fn(logbook_rec.id, logbook_rec._from_time::TEXT, logbook_rec._to_time::TEXT);
+        --UPDATE api.logbook
+        --    SET
+        --        track_gpx = gpx
+        --    WHERE id = logbook_rec.id;
 
         -- Prepare notification, gather user settings
         SELECT json_build_object('logbook_name', log_name, 'logbook_link', logbook_rec.id) into log_settings;
@@ -853,9 +853,9 @@ COMMENT ON FUNCTION
     public.process_vessel_queue_fn
     IS 'process new vessel notification';
 
--- Get user settings details from a log entry
+-- Get application settings details from a log entry
 DROP FUNCTION IF EXISTS get_app_settings_fn;
-CREATE OR REPLACE FUNCTION get_app_settings_fn (OUT app_settings jsonb)
+CREATE OR REPLACE FUNCTION get_app_settings_fn(OUT app_settings jsonb)
     RETURNS jsonb
     AS $get_app_settings$
 DECLARE
@@ -865,17 +865,37 @@ BEGIN
     FROM
         public.app_settings
     WHERE
-        name LIKE '%app.email%'
-        OR name LIKE '%app.pushover%'
-        OR name LIKE '%app.url'
-        OR name LIKE '%app.telegram%';
+        name LIKE 'app.email%'
+        OR name LIKE 'app.pushover%'
+        OR name LIKE 'app.url'
+        OR name LIKE 'app.telegram%';
 END;
 $get_app_settings$
 LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
     public.get_app_settings_fn
-    IS 'get app settings details, email, pushover, telegram';
+    IS 'get application settings details, email, pushover, telegram';
+
+DROP FUNCTION IF EXISTS get_app_url_fn;
+CREATE OR REPLACE FUNCTION get_app_url_fn(OUT app_settings jsonb)
+    RETURNS jsonb
+    AS $get_app_url$
+DECLARE
+BEGIN
+    SELECT
+        jsonb_object_agg(name, value) INTO app_settings
+    FROM
+        public.app_settings
+    WHERE
+        name = 'app.url';
+END;
+$get_app_url$
+LANGUAGE plpgsql security definer;
+-- Description
+COMMENT ON FUNCTION
+    public.get_app_url_fn
+    IS 'get application url security definer';
 
 -- Send notifications
 DROP FUNCTION IF EXISTS send_notification_fn;
@@ -1397,7 +1417,7 @@ BEGIN
     perform public.cron_process_new_moorage_fn();
     perform public.cron_process_monitor_offline_fn();
 END
-$$ language plpgsql security definer;
+$$ language plpgsql;
 
 ---------------------------------------------------------------------------
 -- Delete all data for a account by email and vessel_id
@@ -1417,14 +1437,14 @@ BEGIN
     delete from auth.accounts a where email  = _email;
     RETURN True;
 END
-$delete_account$ language plpgsql security definer;
+$delete_account$ language plpgsql;
 
 -- Dump all data for a account by email and vessel_id
 CREATE OR REPLACE FUNCTION public.dump_account_fn(IN _email TEXT, IN _vessel_id TEXT) RETURNS BOOLEAN
 AS $dump_account$
 BEGIN
-    -- TODO use COPY but we can't all in one?
     RETURN True;
+    -- TODO use COPY but we can't all in one?
     select count(*) from api.metrics m where vessel_id = _vessel_id;
     select * from api.metadata m where vessel_id = _vessel_id;
     select * from api.logbook l where vessel_id = _vessel_id;
@@ -1433,19 +1453,18 @@ BEGIN
     select * from auth.vessels v where vessel_id = _vessel_id;
     select * from auth.accounts a where email  = _email;
 END
-$dump_account$ language plpgsql security definer;
+$dump_account$ language plpgsql;
 
 CREATE OR REPLACE FUNCTION public.delete_vessel_fn(IN _vessel_id TEXT) RETURNS BOOLEAN
-AS $delete_account$
+AS $delete_vessel$
 BEGIN
+    RETURN True;
     select count(*) from api.metrics m where vessel_id = _vessel_id;
     delete from api.metrics m where vessel_id = _vessel_id;
     select * from api.metadata m where vessel_id = _vessel_id;
+    delete from api.metadata m where vessel_id = _vessel_id;
     delete from api.logbook l where vessel_id = _vessel_id;
     delete from api.moorages m where vessel_id = _vessel_id;
     delete from api.stays s where vessel_id = _vessel_id;
-    delete from api.metadata m where vessel_id = _vessel_id;
-    -- TODO remove the badges?
-    RETURN True;
 END
-$delete_account$ language plpgsql security definer;
+$delete_vessel$ language plpgsql;
