@@ -25,7 +25,7 @@ SELECT set_config('vessel.id', :'vessel_id', false) IS NOT NULL as vessel_id;
 \echo 'logbook'
 SELECT count(*) FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
 \echo 'logbook'
-SELECT name,_from_time IS NOT NULL AS _from_time,_to_time IS NOT NULL AS _to_time, track_geojson IS NOT NULL AS track_geojson, track_gpx IS NOT NULL AS track_gpx, track_geom, distance,duration,avg_speed,max_speed,max_wind_speed,notes,extra FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
+SELECT name,_from_time IS NOT NULL AS _from_time,_to_time IS NOT NULL AS _to_time, track_geojson IS NOT NULL AS track_geojson, track_geom, distance,duration,avg_speed,max_speed,max_wind_speed,notes,extra FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
 
 -- Test stays for user
 \echo 'stays'
@@ -63,3 +63,9 @@ SELECT api.stats_logs_fn('2022-01-01'::text,'2022-06-12'::text);
 SELECT extra FROM api.logbook l WHERE id = 1 AND vessel_id = current_setting('vessel.id', false);
 SELECT api.update_logbook_observations_fn(1, '{"observations":{"cloudCoverage":1}}'::TEXT);
 SELECT extra FROM api.logbook l WHERE id = 1 AND vessel_id = current_setting('vessel.id', false);
+
+-- Check export
+--\echo 'check logbook export fn'
+--SELECT api.export_logbook_geojson_fn(1);
+--SELECT api.export_logbook_gpx_fn(1);
+--SELECT api.export_logbook_kml_fn(1);
