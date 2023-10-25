@@ -108,8 +108,7 @@ CREATE TABLE IF NOT EXISTS api.logbook(
   --track_geom Geometry(LINESTRING)
   track_geom geometry(LINESTRING,4326) NULL,
   track_geog geography(LINESTRING) NULL,
-  track_geojson JSON NULL,
-  track_gpx XML NULL,
+  track_geojson JSONB NULL,
   _from_time TIMESTAMP WITHOUT TIME ZONE NOT NULL,
   _to_time TIMESTAMP WITHOUT TIME ZONE NULL,
   distance NUMERIC, -- meters?
@@ -134,8 +133,7 @@ COMMENT ON COLUMN api.logbook.track_geom IS 'postgis geometry type EPSG:4326 Uni
 CREATE INDEX ON api.logbook USING GIST ( track_geog );
 COMMENT ON COLUMN api.logbook.track_geog IS 'postgis geography type default SRID 4326 Unit: degres';
 -- Otherwise -- ERROR:  Only lon/lat coordinate systems are supported in geography.
-COMMENT ON COLUMN api.logbook.track_geojson IS 'store the geojson track metrics data, can not depend api.metrics table, should be generate from linetring to save disk space?';
-COMMENT ON COLUMN api.logbook.track_gpx IS 'store the gpx track metrics data, can not depend api.metrics table, should be generate from linetring to save disk space?';
+COMMENT ON COLUMN api.logbook.track_geojson IS 'store generated geojson with track metrics data using with LineString and Point features, we can not depend api.metrics table';
 
 ---------------------------------------------------------------------------
 -- Stays
