@@ -16,66 +16,75 @@ CREATE OR REPLACE FUNCTION api.timelapse_fn(
     IN end_log INTEGER DEFAULT NULL,
     IN start_date TEXT DEFAULT NULL,
     IN end_date TEXT DEFAULT NULL,
-    OUT geojson JSON) RETURNS JSON AS $timelapse$
+    OUT geojson JSONB) RETURNS JSONB AS $timelapse$
     DECLARE
         _geojson jsonb;
     BEGIN
         -- Using sub query to force id order by
-        -- TODO using jsonb pgsql function instead of python
+        -- Merge GIS track_geom into a GeoJSON MultiLineString
         IF start_log IS NOT NULL AND public.isnumeric(start_log::text) AND public.isnumeric(end_log::text) THEN
             WITH logbook as (
-                SELECT *
+                SELECT track_geom
                     FROM api.logbook
                     WHERE id >= start_log
                         AND id <= end_log
-                        AND track_geojson IS NOT NULL
+                        AND track_geom IS NOT NULL
                     GROUP BY id
                     ORDER BY id ASC
                 )
-            SELECT jsonb_agg(track_geojson->'features') INTO _geojson
-                FROM logbook;
-            --raise WARNING 'by log _geojson %' , _geojson;
+            SELECT ST_AsGeoJSON(geo.*) INTO _geojson FROM (
+                    SELECT ST_Collect(
+                        ARRAY(
+                            SELECT track_geom FROM logbook))
+                ) as geo;
+            --raise WARNING 'by log id _geojson %' , _geojson;
         ELSIF start_date IS NOT NULL AND public.isdate(start_date::text) AND public.isdate(end_date::text) THEN
             WITH logbook as (
-                SELECT *
+                SELECT track_geom
                     FROM api.logbook
                     WHERE _from_time >= start_log::TIMESTAMP WITHOUT TIME ZONE
                         AND _to_time <= end_date::TIMESTAMP WITHOUT TIME ZONE + interval '23 hours 59 minutes'
-                        AND track_geojson IS NOT NULL
+                        AND track_geom IS NOT NULL
                     GROUP BY id
                     ORDER BY id ASC
                 )
-            SELECT jsonb_agg(track_geojson->'features') INTO _geojson
-                FROM logbook;
+            SELECT ST_AsGeoJSON(geo.*) INTO _geojson FROM (
+                    SELECT ST_Collect(
+                        ARRAY(
+                            SELECT track_geom FROM logbook))
+                ) as geo;
             --raise WARNING 'by date _geojson %' , _geojson;
         ELSE
             WITH logbook as (
-                SELECT *
+                SELECT track_geom
                     FROM api.logbook
-                    WHERE track_geojson IS NOT NULL
+                    WHERE track_geom IS NOT NULL
                     GROUP BY id
                     ORDER BY id ASC
                 )
-            SELECT jsonb_agg(track_geojson->'features') INTO _geojson
-                FROM logbook;
+            SELECT ST_AsGeoJSON(geo.*) INTO _geojson FROM (
+                    SELECT ST_Collect(
+                        ARRAY(
+                            SELECT track_geom FROM logbook))
+                ) as geo;
             --raise WARNING 'all result _geojson %' , _geojson;
         END IF;
-        -- Return a GeoJSON filter on Point
+        -- Return a GeoJSON MultiLineString
         -- result _geojson [null, null]
         --raise WARNING 'result _geojson %' , _geojson;
         SELECT json_build_object(
             'type', 'FeatureCollection',
-            'features', public.geojson_py_fn(_geojson, 'LineString'::TEXT) ) INTO geojson;
+            'features', ARRAY[_geojson] ) INTO geojson;
     END;
 $timelapse$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
     api.timelapse_fn
-    IS 'Export to geojson feature point with Time and courseOverGroundTrue properties';
+    IS 'Export all selected logs geometry `track_geom` to a geojson as MultiLineString with empty properties';
 
 -- export_logbook_geojson_fn
 DROP FUNCTION IF EXISTS api.export_logbook_geojson_fn;
-CREATE FUNCTION api.export_logbook_geojson_fn(IN _id integer, OUT geojson JSON) RETURNS JSON AS $export_logbook_geojson$
+CREATE FUNCTION api.export_logbook_geojson_fn(IN _id integer, OUT geojson JSONB) RETURNS JSONB AS $export_logbook_geojson$
 -- validate with geojson.io
     DECLARE
         logbook_rec record;
@@ -99,33 +108,61 @@ $export_logbook_geojson$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
     api.export_logbook_geojson_fn
-    IS 'Export a log entry to geojson feature linestring and multipoint';
+    IS 'Export a log entry to geojson with features LineString and Point';
 
 -- Generate GPX XML file output
 -- https://opencpn.org/OpenCPN/info/gpxvalidation.html
 --
 DROP FUNCTION IF EXISTS api.export_logbook_gpx_fn;
-CREATE OR REPLACE FUNCTION api.export_logbook_gpx_fn(IN _id INTEGER, OUT gpx XML) RETURNS pg_catalog.xml
-AS $export_logbook_gpx$
+CREATE OR REPLACE FUNCTION api.export_logbook_gpx_fn(IN _id INTEGER) RETURNS pg_catalog.xml
+AS $export_logbook_gpx2$
     DECLARE
-        logbook_rec record;
+        app_settings jsonb;
     BEGIN
         -- If _id is is not NULL and > 0
         IF _id IS NULL OR _id < 1 THEN
             RAISE WARNING '-> export_logbook_gpx_fn invalid input %', _id;
-            RETURN;
+            RETURN '';
         END IF;
-        -- Gather log details
-        SELECT * INTO logbook_rec
-            FROM api.logbook WHERE id = _id;
-        -- Ensure the query is successful
-        IF logbook_rec.vessel_id IS NULL THEN
-            RAISE WARNING '-> export_logbook_gpx_fn invalid logbook %', _id;
-            RETURN;
-        END IF;
-        gpx := logbook_rec.track_gpx;
-    END;
-$export_logbook_gpx$ LANGUAGE plpgsql;
+        -- Gather url from app settings
+        app_settings := get_app_url_fn();
+        --RAISE DEBUG '-> logbook_update_gpx_fn app_settings %', app_settings;
+        -- Generate GPX XML, extract Point features from geojson.
+        RETURN xmlelement(name gpx,
+                            xmlattributes(  '1.1' as version,
+                                            'PostgSAIL' as creator,
+                                            'http://www.topografix.com/GPX/1/1' as xmlns,
+                                            'http://www.opencpn.org' as "xmlns:opencpn",
+                                            app_settings->>'app.url' as "xmlns:postgsail",
+                                            'http://www.w3.org/2001/XMLSchema-instance' as "xmlns:xsi",
+                                            'http://www.garmin.com/xmlschemas/GpxExtensions/v3' as "xmlns:gpxx",
+                                            'http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd' as "xsi:schemaLocation"),
+                xmlelement(name metadata,
+                    xmlelement(name link, xmlattributes(app_settings->>'app.url' as href),
+                        xmlelement(name text, 'PostgSail'))),
+                xmlelement(name trk,
+                    xmlelement(name name, l.name),
+                    xmlelement(name desc, l.notes),
+                    xmlelement(name link, xmlattributes(concat(app_settings->>'app.url', '/log/', l.id) as href),
+                                                xmlelement(name text, l.name)),
+                    xmlelement(name extensions, xmlelement(name "postgsail:log_id", l.id),
+                                                xmlelement(name "postgsail:link", concat(app_settings->>'app.url', '/log/', l.id)),
+                                                xmlelement(name "opencpn:guid", uuid_generate_v4()),
+                                                xmlelement(name "opencpn:viz", '1'),
+                                                xmlelement(name "opencpn:start", l._from_time),
+                                                xmlelement(name "opencpn:end", l._to_time)
+                                                ),
+                    xmlelement(name trkseg, xmlagg(
+                                                xmlelement(name trkpt,
+                                                    xmlattributes(features->'geometry'->'coordinates'->1 as lat, features->'geometry'->'coordinates'->0 as lon),
+                                                        xmlelement(name time, features->'properties'->>'time')
+                                                )))))::pg_catalog.xml
+            FROM api.logbook l, jsonb_array_elements(track_geojson->'features') AS features
+            WHERE features->'geometry'->>'type' = 'Point'
+                AND l.id = _id
+            GROUP BY l.name,l.notes,l.id;
+          END;
+$export_logbook_gpx2$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
     api.export_logbook_gpx_fn
@@ -153,7 +190,7 @@ AS $export_logbook_kml$
             RAISE WARNING '-> export_logbook_kml_fn invalid logbook %', _id;
             return '';
         END IF;
-        -- Extract POINT from LINESTRING to generate XML
+        -- Extract POINT from LINESTRING to generate KML XML
         RETURN xmlelement(name kml,
                                 xmlattributes(  '1.0' as version,
                                                 'PostgSAIL' as creator,
@@ -175,69 +212,132 @@ COMMENT ON FUNCTION
     api.export_logbook_kml_fn
     IS 'Export a log entry to KML XML format';
 
-DROP FUNCTION IF EXISTS api.export_logbook_gpx_fn2;
-CREATE OR REPLACE FUNCTION api.export_logbook_gpx_fn2(IN _id INTEGER) RETURNS pg_catalog.xml
-AS $export_logbook_gpx2$
-    DECLARE
-        log_rec record;
+DROP FUNCTION IF EXISTS api.export_logbooks_gpx_fn;
+CREATE OR REPLACE FUNCTION api.export_logbooks_gpx_fn(
+    IN start_log INTEGER DEFAULT NULL,
+    IN end_log INTEGER DEFAULT NULL) RETURNS pg_catalog.xml
+AS $export_logbooks_gpx$
+    declare
+        merged_jsonb jsonb;
+        app_settings jsonb;
     BEGIN
-        -- If _id is is not NULL and > 0
-        IF _id IS NULL OR _id < 1 THEN
-            RAISE WARNING '-> export_logbook_gpx_fn invalid input %', _id;
-            RETURN '';
+        -- Merge GIS track_geom of geometry type Point into a jsonb array format
+        IF start_log IS NOT NULL AND public.isnumeric(start_log::text) AND public.isnumeric(end_log::text) THEN
+            SELECT jsonb_agg(
+                        jsonb_build_object('coordinates', f->'geometry'->'coordinates', 'time', f->'properties'->>'time')
+                    ) INTO merged_jsonb
+            FROM (
+                SELECT jsonb_array_elements(track_geojson->'features') AS f
+                    FROM api.logbook
+                    WHERE id >= start_log
+                        AND id <= end_log
+                        AND track_geojson IS NOT NULL
+                    GROUP BY id
+                    ORDER BY id ASC
+            ) AS sub
+            WHERE (f->'geometry'->>'type') = 'Point';
+        ELSE
+            SELECT jsonb_agg(
+                        jsonb_build_object('coordinates', f->'geometry'->'coordinates', 'time', f->'properties'->>'time')
+                    ) INTO merged_jsonb
+            FROM (
+                SELECT jsonb_array_elements(track_geojson->'features') AS f
+                    FROM api.logbook
+                    WHERE track_geojson IS NOT NULL
+                    GROUP BY id
+                    ORDER BY id ASC
+            ) AS sub
+            WHERE (f->'geometry'->>'type') = 'Point';
         END IF;
-        -- Gather log details _from_time and _to_time
-        SELECT * INTO log_rec
-            FROM
-            api.logbook l
-            WHERE l.id = _id;
-        -- Ensure the query is successful
-        IF log_rec.vessel_id IS NULL THEN
-            RAISE WARNING '-> export_logbook_gpx_fn invalid logbook %', _id;
-            RETURN '';
-        END IF;
-        -- Generate XML
+        --RAISE WARNING '-> export_logbooks_gpx_fn _jsonb %' , _jsonb;
+        -- Gather url from app settings
+        app_settings := get_app_url_fn();
+        --RAISE WARNING '-> export_logbooks_gpx_fn app_settings %', app_settings;
+        -- Generate GPX XML, extract Point features from geojson.
         RETURN xmlelement(name gpx,
                             xmlattributes(  '1.1' as version,
                                             'PostgSAIL' as creator,
                                             'http://www.topografix.com/GPX/1/1' as xmlns,
                                             'http://www.opencpn.org' as "xmlns:opencpn",
-                                            'https://iot.openplotter.cloud' as "xmlns:postgsail",
-                                            'http://www.w3.org/2001/XMLSchema-instance' as "xmlns:xsi",
-                                            'http://www.garmin.com/xmlschemas/GpxExtensions/v3' as "xmlns:gpxx",
-                                            'http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd' as "xsi:schemaLocation"),
+                                            app_settings->>'app.url' as "xmlns:postgsail"),
                 xmlelement(name metadata,
-                    xmlelement(name link, xmlattributes('https://iot.openplotter.cloud/' as href),
+                    xmlelement(name link, xmlattributes(app_settings->>'app.url' as href),
                         xmlelement(name text, 'PostgSail'))),
                 xmlelement(name trk,
-                    xmlelement(name name, log_rec.name),
-                    xmlelement(name desc, log_rec.notes),
-                    xmlelement(name link, xmlattributes(concat('https://iot.openplotter.cloud/log/', log_rec.id) as href),
-                                                xmlelement(name text, log_rec.name)),
-                    xmlelement(name extensions, xmlelement(name "postgsail:log_id", 1),
-                                                xmlelement(name "postgsail:link", concat('https://iot.openplotter.cloud/log/', log_rec.id)),
-                                                xmlelement(name "opencpn:guid", uuid_generate_v4()),
-                                                xmlelement(name "opencpn:viz", '1'),
-                                                xmlelement(name "opencpn:start", log_rec._from_time),
-                                                xmlelement(name "opencpn:end", log_rec._to_time)
-                                                ),
+                    xmlelement(name name, 'logbook name'),
                     xmlelement(name trkseg, xmlagg(
                                                 xmlelement(name trkpt,
-                                                    xmlattributes(latitude as lat, longitude as lon),
-                                                        xmlelement(name time, time)
+                                                    xmlattributes(features->'coordinates'->1 as lat, features->'coordinates'->0 as lon),
+                                                        xmlelement(name time, features->'properties'->>'time')
                                                 )))))::pg_catalog.xml
-            FROM api.metrics m
-            WHERE m.latitude IS NOT NULL
-                AND m.longitude IS NOT NULL
-                AND m.time >= log_rec._from_time::TIMESTAMP WITHOUT TIME ZONE
-                AND m.time <= log_rec._to_time::TIMESTAMP WITHOUT TIME ZONE
-                AND vessel_id = log_rec.vessel_id;
-          END;
-$export_logbook_gpx2$ LANGUAGE plpgsql;
+            FROM jsonb_array_elements(merged_jsonb) AS features;
+    END;
+$export_logbooks_gpx$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
-    api.export_logbook_gpx_fn2
-    IS 'Export a log entry to GPX XML format';
+    api.export_logbooks_gpx_fn
+    IS 'Export a logs entries to GPX XML format';
+
+DROP FUNCTION IF EXISTS api.export_logbooks_kml_fn;
+CREATE OR REPLACE FUNCTION api.export_logbooks_kml_fn(
+    IN start_log INTEGER DEFAULT NULL,
+    IN end_log INTEGER DEFAULT NULL) RETURNS pg_catalog.xml
+AS $export_logbooks_kml$
+DECLARE
+    _geom geometry;
+    app_settings jsonb;
+BEGIN
+    -- Merge GIS track_geom into a GeoJSON MultiLineString
+    IF start_log IS NOT NULL AND public.isnumeric(start_log::text) AND public.isnumeric(end_log::text) THEN
+        WITH logbook as (
+            SELECT track_geom
+            FROM api.logbook
+            WHERE id >= start_log
+                AND id <= end_log
+                AND track_geom IS NOT NULL
+            GROUP BY id
+            ORDER BY id ASC
+        )
+        SELECT ST_Collect(
+                    ARRAY(
+                        SELECT track_geom FROM logbook))
+         into _geom;
+    ELSE
+        WITH logbook as (
+            SELECT track_geom
+            FROM api.logbook
+            WHERE track_geom IS NOT NULL
+            GROUP BY id
+            ORDER BY id ASC
+        )
+        SELECT ST_Collect(
+                    ARRAY(
+                        SELECT track_geom FROM logbook))
+         into _geom;
+        --raise WARNING 'all result _geojson %' , _geojson;
+    END IF;
+
+    -- Extract POINT from LINESTRING to generate KML XML
+    RETURN xmlelement(name kml,
+            xmlattributes(  '1.0' as version,
+                            'PostgSAIL' as creator,
+                            'http://www.w3.org/2005/Atom' as "xmlns:atom",
+                            'http://www.opengis.net/kml/2.2' as "xmlns",
+                            'http://www.google.com/kml/ext/2.2' as "xmlns:gx",
+                            'http://www.opengis.net/kml/2.2' as "xmlns:kml"),
+            xmlelement(name "Document",
+                xmlelement(name name, 'logbook name'),
+                xmlelement(name "Placemark",
+                    ST_AsKML(_geom)::pg_catalog.xml
+                )
+            )
+        )::pg_catalog.xml;
+END;
+$export_logbooks_kml$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    api.export_logbooks_kml_fn
+    IS 'Export a logs entries to KML XML format';
 
 -- Find all log from and to moorage geopoint within 100m
 DROP FUNCTION IF EXISTS api.find_log_from_moorage_fn;
