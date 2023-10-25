@@ -309,6 +309,24 @@ var moment = require('moment');
           obj_name: null
         }
       },
+      { url: '/rpc/export_logbooks_gpx_fn',
+        payload: {
+            start_log: 3,
+            end_log: 4
+            },
+        res: {
+          obj_name: null
+        }
+      },
+      { url: '/rpc/export_logbooks_kml_fn',
+        payload: {
+            start_log: 3,
+            end_log: 4
+            },
+        res: {
+          obj_name: null
+        }
+      },
       { url: '/rpc/export_moorages_geojson_fn',
         payload: {},
         res: {
