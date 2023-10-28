@@ -15,8 +15,7 @@ CREATE SCHEMA IF NOT EXISTS public;
 --
 -- https://github.com/CartoDB/labs-postgresql/blob/master/workshop/plpython.md
 --
-DROP FUNCTION IF EXISTS reverse_geocode_py_fn; 
-DROP FUNCTION public.reverse_geocode_py_fn;
+DROP FUNCTION IF EXISTS reverse_geocode_py_fn;
 CREATE OR REPLACE FUNCTION reverse_geocode_py_fn(IN geocoder TEXT, IN lon NUMERIC, IN lat numeric,
     OUT geo jsonb)
 AS $reverse_geocode_py$
