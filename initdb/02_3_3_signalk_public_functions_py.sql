@@ -16,7 +16,8 @@ CREATE SCHEMA IF NOT EXISTS public;
 -- https://github.com/CartoDB/labs-postgresql/blob/master/workshop/plpython.md
 --
 DROP FUNCTION IF EXISTS reverse_geocode_py_fn; 
-CREATE OR REPLACE FUNCTION reverse_geocode_py_fn(IN geocoder TEXT, IN lon NUMERIC, IN lat NUMERIC,
+DROP FUNCTION public.reverse_geocode_py_fn;
+CREATE OR REPLACE FUNCTION reverse_geocode_py_fn(IN geocoder TEXT, IN lon NUMERIC, IN lat numeric,
     OUT geo jsonb)
 AS $reverse_geocode_py$
     import requests
@@ -39,47 +40,56 @@ AS $reverse_geocode_py$
         plpy.error('Error missing parameters')
         return None
 
-    # Make the request to the geocoder API
-    # https://operations.osmfoundation.org/policies/nominatim/
-    payload = {"lon": lon, "lat": lat, "format": "jsonv2", "zoom": 18}
-    # https://nominatim.org/release-docs/latest/api/Reverse/
-    r = requests.get(url, headers = {"Accept-Language": "en-US,en;q=0.5"}, params=payload)
+    def georeverse(geocoder, lon, lat, zoom="18"):
+	    # Make the request to the geocoder API
+	    # https://operations.osmfoundation.org/policies/nominatim/
+	    payload = {"lon": lon, "lat": lat, "format": "jsonv2", "zoom": zoom, "accept-language": "en"}
+	    # https://nominatim.org/release-docs/latest/api/Reverse/
+	    r = requests.get(url, headers = {"Accept-Language": "en-US,en;q=0.5"}, params=payload)
 
-    # Parse response
-    # Option1: If name is null fallback to address field road,neighbourhood,suburb
-    # Option2: Return the json for future reference like country
-    if r.status_code == 200 and "name" in r.json():
-      r_dict = r.json()
-      #plpy.notice('reverse_geocode_py_fn Parameters [{}] [{}] Response'.format(lon, lat, r_dict))
-      output = None
-      country_code = None
-      if "country_code" in r_dict["address"] and r_dict["address"]["country_code"]:
-        country_code = r_dict["address"]["country_code"]
-      if r_dict["name"]:
-        return { "name": r_dict["name"], "country_code": country_code }
-      elif "address" in r_dict and r_dict["address"]:
-        if "neighbourhood" in r_dict["address"] and r_dict["address"]["neighbourhood"]:
-            return { "name": r_dict["address"]["neighbourhood"], "country_code": country_code }
-        elif "road" in r_dict["address"] and r_dict["address"]["road"]:
-            return { "name": r_dict["address"]["road"], "country_code": country_code }
-        elif "suburb" in r_dict["address"] and r_dict["address"]["suburb"]:
-            return { "name": r_dict["address"]["suburb"], "country_code": country_code }
-        elif "residential" in r_dict["address"] and r_dict["address"]["residential"]:
-            return { "name": r_dict["address"]["residential"], "country_code": country_code }
-        elif "village" in r_dict["address"] and r_dict["address"]["village"]:
-            return { "name": r_dict["address"]["village"], "country_code": country_code }
-        elif "town" in r_dict["address"] and r_dict["address"]["town"]:
-            return { "name": r_dict["address"]["town"], "country_code": country_code }
-        else:
-            return { "name": "n/a", "country_code": country_code }
-      else:
-        return { "name": "n/a", "country_code": country_code }
-    else:
-      plpy.warning('Failed to received a geo full address %s', r.json())
-      #plpy.error('Failed to received a geo full address %s', r.json())
-      return { "name": "unknown", "country_code": "unknown" }
+	    # Parse response
+	    # If name is null fallback to address field tags: neighbourhood,suburb
+	    # if none repeat with lower zoom level
+	    if r.status_code == 200 and "name" in r.json():
+	      r_dict = r.json()
+	      #plpy.notice('reverse_geocode_py_fn Parameters [{}] [{}] Response'.format(lon, lat, r_dict))
+	      output = None
+	      country_code = None
+	      if "country_code" in r_dict["address"] and r_dict["address"]["country_code"]:
+	        country_code = r_dict["address"]["country_code"]
+	      if r_dict["name"]:
+	        return { "name": r_dict["name"], "country_code": country_code }
+	      elif "address" in r_dict and r_dict["address"]:
+	        if "neighbourhood" in r_dict["address"] and r_dict["address"]["neighbourhood"]:
+	            return { "name": r_dict["address"]["neighbourhood"], "country_code": country_code }
+	        elif "hamlet" in r_dict["address"] and r_dict["address"]["hamlet"]:
+	            return { "name": r_dict["address"]["hamlet"], "country_code": country_code }
+	        elif "suburb" in r_dict["address"] and r_dict["address"]["suburb"]:
+	            return { "name": r_dict["address"]["suburb"], "country_code": country_code }
+	        elif "residential" in r_dict["address"] and r_dict["address"]["residential"]:
+	            return { "name": r_dict["address"]["residential"], "country_code": country_code }
+	        elif "village" in r_dict["address"] and r_dict["address"]["village"]:
+	            return { "name": r_dict["address"]["village"], "country_code": country_code }
+	        elif "town" in r_dict["address"] and r_dict["address"]["town"]:
+	            return { "name": r_dict["address"]["town"], "country_code": country_code }
+	        elif "amenity" in r_dict["address"] and r_dict["address"]["amenity"]:
+	            return { "name": r_dict["address"]["amenity"], "country_code": country_code }
+	        else:
+	            if (zoom == 15):
+	                plpy.notice('georeverse recursive retry with lower zoom than:[{}], Response [{}]'.format(zoom , r.json()))
+	                return georeverse(geocoder, lon, lat, 14)
+	            else:
+	                plpy.notice('georeverse recursive retry with lower zoom than:[{}], Response [{}]'.format(zoom , r.json()))
+	                return georeverse(geocoder, lon, lat, 15)
+	      else:
+	        return { "name": "n/a", "country_code": country_code }
+	    else:
+	      plpy.warning('Failed to received a geo full address %s', r.json())
+	      #plpy.error('Failed to received a geo full address %s', r.json())
+	      return { "name": "unknown", "country_code": "unknown" }
+
+    return georeverse(geocoder, lon, lat)
 $reverse_geocode_py$ TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
-
 -- Description
 COMMENT ON FUNCTION 
     public.reverse_geocode_py_fn
