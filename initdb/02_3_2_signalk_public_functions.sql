@@ -479,7 +479,7 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         from_name := geo->>'name';
         geo := reverse_geocode_py_fn('nominatim', logbook_rec._to_lng::NUMERIC, logbook_rec._to_lat::NUMERIC);
         to_name := geo->>'name';
-        SELECT CONCAT('From ', from_name, ' to ' , to_name) INTO log_name;
+        SELECT CONCAT(from_name, ' to ' , to_name) INTO log_name;
 
         -- Process `propulsion.*.runTime` and `navigation.log`
         -- Calculate extra json
