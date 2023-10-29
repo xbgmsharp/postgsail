@@ -33,7 +33,7 @@ CREATE OR REPLACE FUNCTION public.logbook_metrics_dwithin_fn(
                 AND ST_DWithin(
                     Geography(ST_MakePoint(m.longitude, m.latitude)),
                     Geography(ST_MakePoint(lgn, lat)),
-                    15
+                    50
                 );
     END;
 $logbook_metrics_dwithin$ LANGUAGE plpgsql;
@@ -238,7 +238,7 @@ $logbook_update_gpx$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
     public.logbook_update_gpx_fn
-    IS 'Update log details with gpx xml';
+    IS 'Update log details with gpx xml, deprecated';
 
 CREATE FUNCTION logbook_get_extra_json_fn(IN search TEXT, OUT output_json JSON)
 AS $logbook_get_extra_json$
@@ -375,7 +375,6 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         log_settings jsonb;
         user_settings jsonb;
         geojson jsonb;
-        gpx xml;
         _invalid_time boolean;
         _invalid_interval boolean;
         _invalid_distance boolean;
@@ -410,7 +409,7 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         PERFORM set_config('vessel.id', logbook_rec.vessel_id, false);
         --RAISE WARNING 'public.process_logbook_queue_fn() scheduler vessel.id %, user.id', current_setting('vessel.id', false), current_setting('user.id', false);
 
-        -- Check if all metrics are within 10meters base on geo loc
+        -- Check if all metrics are within 50meters base on geo loc
         count_metric := logbook_metrics_dwithin_fn(logbook_rec._from_time::TEXT, logbook_rec._to_time::TEXT, logbook_rec._from_lng::NUMERIC, logbook_rec._from_lat::NUMERIC);
         RAISE NOTICE '-> process_logbook_queue_fn logbook_metrics_dwithin_fn count:[%]', count_metric;
 
@@ -480,7 +479,7 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         from_name := geo->>'name';
         geo := reverse_geocode_py_fn('nominatim', logbook_rec._to_lng::NUMERIC, logbook_rec._to_lat::NUMERIC);
         to_name := geo->>'name';
-        SELECT CONCAT(from_name, ' to ' , to_name) INTO log_name;
+        SELECT CONCAT('From ', from_name, ' to ' , to_name) INTO log_name;
 
         -- Process `propulsion.*.runTime` and `navigation.log`
         -- Calculate extra json
@@ -507,13 +506,6 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
             SET
                 track_geojson = geojson
             WHERE id = logbook_rec.id;
-
-        -- GPX field
-        --gpx := logbook_update_gpx_fn(logbook_rec.id, logbook_rec._from_time::TEXT, logbook_rec._to_time::TEXT);
-        --UPDATE api.logbook
-        --    SET
-        --        track_gpx = gpx
-        --    WHERE id = logbook_rec.id;
 
         -- Prepare notification, gather user settings
         SELECT json_build_object('logbook_name', log_name, 'logbook_link', logbook_rec.id) into log_settings;
@@ -1301,6 +1293,115 @@ $badges_geom$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION
     public.badges_geom_fn
     IS 'check geometry logbook for new badges, eg: Tropic, Alaska, Geographic zone';
+
+DROP FUNCTION IF EXISTS public.process_logbook_valid_fn;
+CREATE OR REPLACE FUNCTION public.process_logbook_valid_fn(IN _id integer) RETURNS void AS $process_logbook_valid$
+    DECLARE
+        logbook_rec record;
+        avg_rec record;
+        geo_rec record;
+        _invalid_time boolean;
+        _invalid_interval boolean;
+        _invalid_distance boolean;
+        count_metric numeric;
+        previous_stays_id numeric;
+        current_stays_departed text;
+        current_stays_id numeric;
+        current_stays_active boolean;
+    BEGIN
+        -- If _id is not NULL
+        IF _id IS NULL OR _id < 1 THEN
+            RAISE WARNING '-> process_logbook_valid_fn invalid input %', _id;
+            RETURN;
+        END IF;
+        -- Get the logbook record with all necessary fields exist
+        SELECT * INTO logbook_rec
+            FROM api.logbook
+            WHERE active IS false
+                AND id = _id
+                AND _from_lng IS NOT NULL
+                AND _from_lat IS NOT NULL
+                AND _to_lng IS NOT NULL
+                AND _to_lat IS NOT NULL;
+        -- Ensure the query is successful
+        IF logbook_rec.vessel_id IS NULL THEN
+            RAISE WARNING '-> process_logbook_valid_fn invalid logbook %', _id;
+            RETURN;
+        END IF;
+
+        PERFORM set_config('vessel.id', logbook_rec.vessel_id, false);
+        --RAISE WARNING 'public.process_logbook_queue_fn() scheduler vessel.id %, user.id', current_setting('vessel.id', false), current_setting('user.id', false);
+
+        -- Check if all metrics are within 10meters base on geo loc
+        count_metric := logbook_metrics_dwithin_fn(logbook_rec._from_time::TEXT, logbook_rec._to_time::TEXT, logbook_rec._from_lng::NUMERIC, logbook_rec._from_lat::NUMERIC);
+        RAISE NOTICE '-> process_logbook_valid_fn logbook_metrics_dwithin_fn count:[%]', count_metric;
+
+        -- Calculate logbook data average and geo
+        -- Update logbook entry with the latest metric data and calculate data
+        avg_rec := logbook_update_avg_fn(logbook_rec.id, logbook_rec._from_time::TEXT, logbook_rec._to_time::TEXT);
+        geo_rec := logbook_update_geom_distance_fn(logbook_rec.id, logbook_rec._from_time::TEXT, logbook_rec._to_time::TEXT);
+
+        -- Avoid/ignore/delete logbook stationary movement or time sync issue
+        -- Check time start vs end
+        SELECT logbook_rec._to_time::timestamp without time zone < logbook_rec._from_time::timestamp without time zone INTO _invalid_time;
+        -- Is distance is less than 0.010
+        SELECT geo_rec._track_distance < 0.010 INTO _invalid_distance;
+        -- Is duration is less than 100sec
+        SELECT (logbook_rec._to_time::timestamp without time zone - logbook_rec._from_time::timestamp without time zone) < (100::text||' secs')::interval INTO _invalid_interval;
+        -- if stationary fix data metrics,logbook,stays,moorage
+        IF _invalid_time IS True OR _invalid_distance IS True
+            OR _invalid_interval IS True OR count_metric = avg_rec.count_metric THEN
+            RAISE NOTICE '-> process_logbook_queue_fn invalid logbook data id [%], _invalid_time [%], _invalid_distance [%], _invalid_interval [%], within count_metric == total count_metric [%]',
+                logbook_rec.id, _invalid_time, _invalid_distance, _invalid_interval, count_metric;
+            -- Update metrics status to moored
+            UPDATE api.metrics
+                SET status = 'moored'
+                WHERE time >= logbook_rec._from_time::TIMESTAMP WITHOUT TIME ZONE
+                    AND time <= logbook_rec._to_time::TIMESTAMP WITHOUT TIME ZONE
+                    AND vessel_id = current_setting('vessel.id', false);
+            -- Update logbook
+            UPDATE api.logbook
+                SET notes = 'invalid logbook data, stationary need to fix metrics?'
+                WHERE vessel_id = current_setting('vessel.id', false)
+                    AND id = logbook_rec.id;
+            -- Get related stays
+            SELECT id,departed,active INTO current_stays_id,current_stays_departed,current_stays_active
+                FROM api.stays s
+                WHERE s.vessel_id = current_setting('vessel.id', false)
+                    AND s.arrived = logbook_rec._to_time;
+            -- Update related stays
+            UPDATE api.stays s
+                SET notes = 'invalid stays data, stationary need to fix metrics?'
+                WHERE vessel_id = current_setting('vessel.id', false)
+                    AND arrived = logbook_rec._to_time;
+            -- Find previous stays
+            SELECT id INTO previous_stays_id
+				FROM api.stays s
+                WHERE s.vessel_id = current_setting('vessel.id', false)
+                    AND s.arrived < logbook_rec._to_time
+                    ORDER BY s.arrived DESC LIMIT 1;
+            -- Update previous stays with the departed time from current stays
+            --  and set the active state from current stays
+            UPDATE api.stays
+                SET departed = current_stays_departed::timestamp without time zone,
+                    active = current_stays_active
+                WHERE vessel_id = current_setting('vessel.id', false)
+                    AND id = previous_stays_id;
+            -- Clean up, remove invalid logbook and stay entry
+            DELETE FROM api.logbook WHERE id = logbook_rec.id;
+            RAISE WARNING '-> process_logbook_queue_fn delete invalid logbook [%]', logbook_rec.id;
+            DELETE FROM api.stays WHERE id = current_stays_id;
+            RAISE WARNING '-> process_logbook_queue_fn delete invalid stays [%]', current_stays_id;
+            -- TODO should we subtract (-1) moorages ref count or reprocess it?!?
+            RETURN;
+        END IF;
+
+    END;
+$process_logbook_valid$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.process_logbook_queue_fn
+    IS 'Avoid/ignore/delete logbook stationary movement or time sync issue';
 
 ---------------------------------------------------------------------------
 -- TODO add alert monitoring for Battery
