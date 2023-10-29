@@ -729,3 +729,59 @@ $stats_stays$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION
     api.stats_stays_fn
     IS 'Stays/Moorages stats by date';
+
+DROP FUNCTION IF EXISTS api.delete_logbook_fn;
+CREATE OR REPLACE FUNCTION api.delete_logbook_fn(IN _id integer) RETURNS void AS $delete_logbook$
+    DECLARE
+        logbook_rec record;
+        previous_stays_id numeric;
+        current_stays_departed text;
+        current_stays_id numeric;
+        current_stays_active boolean;
+       BEGIN
+        -- If _id is not NULL
+        IF _id IS NULL OR _id < 1 THEN
+            RAISE WARNING '-> delete_logbook_fn invalid input %', _id;
+            RETURN;
+        END IF;
+        -- Update logbook
+        UPDATE api.logbook l
+            SET notes = 'mark for deletion'
+            WHERE l.vessel_id = current_setting('vessel.id', false)
+                AND id = logbook_rec.id;
+        -- Get related stays
+        SELECT id,departed,active INTO current_stays_id,current_stays_departed,current_stays_active
+            FROM api.stays s
+            WHERE s.vessel_id = current_setting('vessel.id', false)
+                AND s.arrived = logbook_rec._to_time;
+        -- Update related stays
+        UPDATE api.stays s
+            SET notes = 'mark for deletion'
+            WHERE s.vessel_id = current_setting('vessel.id', false)
+                AND s.arrived = logbook_rec._to_time;
+        -- Find previous stays
+        SELECT id INTO previous_stays_id
+			FROM api.stays s
+            WHERE s.vessel_id = current_setting('vessel.id', false)
+                AND s.arrived < logbook_rec._to_time
+                ORDER BY s.arrived DESC LIMIT 1;
+        -- Update previous stays with the departed time from current stays
+        --  and set the active state from current stays
+        UPDATE api.stays
+            SET departed = current_stays_departed::timestamp without time zone,
+                active = current_stays_active
+            WHERE vessel_id = current_setting('vessel.id', false)
+                AND id = previous_stays_id;
+        -- Clean up, remove invalid logbook and stay entry
+        DELETE FROM api.logbook WHERE id = logbook_rec.id;
+        RAISE WARNING '-> delete_logbook_fn delete logbook [%]', logbook_rec.id;
+        DELETE FROM api.stays WHERE id = current_stays_id;
+        RAISE WARNING '-> delete_logbook_fn delete stays [%]', current_stays_id;
+        -- TODO should we subtract (-1) moorages ref count or reprocess it?!?
+        return;
+    END;
+$delete_logbook$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    api.delete_logbook_fn
+    IS 'Delete a logbook and dependency stay';
