@@ -29,8 +29,7 @@ CREATE OR REPLACE FUNCTION api.timelapse_fn(
                     WHERE id >= start_log
                         AND id <= end_log
                         AND track_geom IS NOT NULL
-                    GROUP BY id
-                    ORDER BY id ASC
+                    ORDER BY _from_time ASC
                 )
             SELECT ST_AsGeoJSON(geo.*) INTO _geojson FROM (
                     SELECT ST_Collect(
@@ -45,8 +44,7 @@ CREATE OR REPLACE FUNCTION api.timelapse_fn(
                     WHERE _from_time >= start_log::TIMESTAMP WITHOUT TIME ZONE
                         AND _to_time <= end_date::TIMESTAMP WITHOUT TIME ZONE + interval '23 hours 59 minutes'
                         AND track_geom IS NOT NULL
-                    GROUP BY id
-                    ORDER BY id ASC
+                    ORDER BY _from_time ASC
                 )
             SELECT ST_AsGeoJSON(geo.*) INTO _geojson FROM (
                     SELECT ST_Collect(
@@ -59,8 +57,7 @@ CREATE OR REPLACE FUNCTION api.timelapse_fn(
                 SELECT track_geom
                     FROM api.logbook
                     WHERE track_geom IS NOT NULL
-                    GROUP BY id
-                    ORDER BY id ASC
+                    ORDER BY _from_time ASC
                 )
             SELECT ST_AsGeoJSON(geo.*) INTO _geojson FROM (
                     SELECT ST_Collect(
@@ -232,8 +229,7 @@ AS $export_logbooks_gpx$
                     WHERE id >= start_log
                         AND id <= end_log
                         AND track_geojson IS NOT NULL
-                    GROUP BY id
-                    ORDER BY id ASC
+                    ORDER BY _from_time ASC
             ) AS sub
             WHERE (f->'geometry'->>'type') = 'Point';
         ELSE
@@ -244,8 +240,7 @@ AS $export_logbooks_gpx$
                 SELECT jsonb_array_elements(track_geojson->'features') AS f
                     FROM api.logbook
                     WHERE track_geojson IS NOT NULL
-                    GROUP BY id
-                    ORDER BY id ASC
+                    ORDER BY _from_time ASC
             ) AS sub
             WHERE (f->'geometry'->>'type') = 'Point';
         END IF;
@@ -295,8 +290,7 @@ BEGIN
             WHERE id >= start_log
                 AND id <= end_log
                 AND track_geom IS NOT NULL
-            GROUP BY id
-            ORDER BY id ASC
+            ORDER BY _from_time ASC
         )
         SELECT ST_Collect(
                     ARRAY(
@@ -307,8 +301,7 @@ BEGIN
             SELECT track_geom
             FROM api.logbook
             WHERE track_geom IS NOT NULL
-            GROUP BY id
-            ORDER BY id ASC
+            ORDER BY _from_time ASC
         )
         SELECT ST_Collect(
                     ARRAY(
@@ -731,7 +724,7 @@ COMMENT ON FUNCTION
     IS 'Stays/Moorages stats by date';
 
 DROP FUNCTION IF EXISTS api.delete_logbook_fn;
-CREATE OR REPLACE FUNCTION api.delete_logbook_fn(IN _id integer) RETURNS void AS $delete_logbook$
+CREATE OR REPLACE FUNCTION api.delete_logbook_fn(IN _id integer) RETURNS BOOLEAN AS $delete_logbook$
     DECLARE
         logbook_rec record;
         previous_stays_id numeric;
@@ -742,7 +735,7 @@ CREATE OR REPLACE FUNCTION api.delete_logbook_fn(IN _id integer) RETURNS void AS
         -- If _id is not NULL
         IF _id IS NULL OR _id < 1 THEN
             RAISE WARNING '-> delete_logbook_fn invalid input %', _id;
-            RETURN;
+            RETURN FALSE;
         END IF;
         -- Update logbook
         UPDATE api.logbook l
@@ -778,7 +771,7 @@ CREATE OR REPLACE FUNCTION api.delete_logbook_fn(IN _id integer) RETURNS void AS
         DELETE FROM api.stays WHERE id = current_stays_id;
         RAISE WARNING '-> delete_logbook_fn delete stays [%]', current_stays_id;
         -- TODO should we subtract (-1) moorages ref count or reprocess it?!?
-        return;
+        RETURN TRUE;
     END;
 $delete_logbook$ LANGUAGE plpgsql;
 -- Description
