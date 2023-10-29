@@ -469,7 +469,8 @@ CREATE VIEW api.explore_view WITH (security_invoker=true,security_barrier=true) 
         )
     SELECT raw_metrics.time, key, value
         FROM raw_metrics,
-            jsonb_each_text(raw_metrics.metrics);
+            jsonb_each_text(raw_metrics.metrics)
+        ORDER BY key ASC;
 COMMENT ON VIEW
     api.explore_view
     IS 'explore_view web view';
