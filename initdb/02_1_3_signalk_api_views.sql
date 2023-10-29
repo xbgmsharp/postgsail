@@ -11,6 +11,8 @@
 -- Views
 -- Views are invoked with the privileges of the view owner,
 -- make the user_role the view’s owner.
+-- to bypass this limit you need pg15+ with specific settings
+-- security_invoker=true,security_barrier=true
 ---------------------------------------------------------------------------
 
 CREATE VIEW first_metric AS
@@ -23,12 +25,14 @@ CREATE VIEW last_metric AS
         FROM api.metrics
         ORDER BY time DESC LIMIT 1;
 
-CREATE VIEW trip_in_progress AS
+DROP VIEW IF EXISTS public.trip_in_progress;
+CREATE VIEW public.trip_in_progress AS
     SELECT * 
         FROM api.logbook 
         WHERE active IS true;
 
-CREATE VIEW stay_in_progress AS
+DROP VIEW IF EXISTS public.stay_in_progress;
+CREATE VIEW public.stay_in_progress AS
     SELECT * 
         FROM api.stays 
         WHERE active IS true;
@@ -454,3 +458,18 @@ CREATE VIEW api.total_info_view WITH (security_invoker=true,security_barrier=tru
 COMMENT ON VIEW
     api.total_info_view
     IS 'total_info_view web view';
+
+DROP VIEW IF EXISTS api.explore_view;
+CREATE VIEW api.explore_view WITH (security_invoker=true,security_barrier=true) AS
+-- Expose last metrics
+    WITH raw_metrics AS (
+        SELECT m.time, m.metrics
+            FROM api.metrics m
+            ORDER BY m.time desc limit 1
+        )
+    SELECT raw_metrics.time, key, value
+        FROM raw_metrics,
+            jsonb_each_text(raw_metrics.metrics);
+COMMENT ON VIEW
+    api.explore_view
+    IS 'explore_view web view';
