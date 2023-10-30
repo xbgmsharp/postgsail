@@ -38,6 +38,7 @@ grant execute on function api.pushover_fn(text,text) to api_anonymous;
 grant execute on function api.telegram_fn(text,text) to api_anonymous;
 grant execute on function api.telegram_otp_fn(text) to api_anonymous;
 --grant execute on function api.generate_otp_fn(text) to api_anonymous;
+grant execute on function api.ispublic_fn(integer,public_type) to api_anonymous;
 
 -- authenticator
 -- login role
@@ -106,7 +107,7 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO user_role;
 -- pg15 feature security_invoker=true,security_barrier=true
 GRANT SELECT ON TABLE api.logs_view,api.moorages_view,api.stays_view TO user_role;
 GRANT SELECT ON TABLE api.log_view,api.moorage_view,api.stay_view,api.vessels_view TO user_role;
-GRANT SELECT ON TABLE api.monitoring_view,api.monitoring_view2,api.monitoring_view3 TO user_role;
+GRANT SELECT ON TABLE api.monitoring_view,api.monitoring_view2,api.monitoring_view3,api.explore_view TO user_role;
 GRANT SELECT ON TABLE api.monitoring_humidity,api.monitoring_voltage,api.monitoring_temperatures TO user_role;
 GRANT SELECT ON TABLE api.stats_moorages_away_view,api.versions_view TO user_role;
 GRANT SELECT ON TABLE api.total_info_view TO user_role;
