@@ -112,7 +112,7 @@ COMMENT ON FUNCTION
 --
 DROP FUNCTION IF EXISTS api.export_logbook_gpx_fn;
 CREATE OR REPLACE FUNCTION api.export_logbook_gpx_fn(IN _id INTEGER) RETURNS pg_catalog.xml
-AS $export_logbook_gpx2$
+AS $export_logbook_gpx$
     DECLARE
         app_settings jsonb;
     BEGIN
@@ -159,7 +159,7 @@ AS $export_logbook_gpx2$
                 AND l.id = _id
             GROUP BY l.name,l.notes,l.id;
           END;
-$export_logbook_gpx2$ LANGUAGE plpgsql;
+$export_logbook_gpx$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
     api.export_logbook_gpx_fn
