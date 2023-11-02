@@ -286,7 +286,7 @@ COMMENT ON FUNCTION
     api.update_logbook_observations_fn
     IS 'Update/Add logbook observations jsonb key pair value';
 
-CREATE TYPE public_type AS ENUM ('public_logs', 'public_logs_list', 'public_timelapse', 'public_stats');
+CREATE TYPE public_type AS ENUM ('public_logs', 'public_logs_list', 'public_timelapse', 'public_monitoring', 'public_stats');
 CREATE FUNCTION api.ispublic_fn(IN id INTEGER, IN _type public_type) RETURNS BOOLEAN AS $ispublic$
 DECLARE
     _id INTEGER := id;
@@ -308,25 +308,27 @@ BEGIN
 
     IF _type = 'public_logs' THEN
         WITH log as (
-            select vessel_id from api.logbook l where l.id = _id
+            select vessel_id from api.logbook l where l.id = _id::INTEGER
         )
-        SELECT (l.vessel_id) is not null into rec
-        --SELECT l.vessel_id, 'email', 'settings', a.preferences
-            FROM auth.accounts a, auth.vessels v, jsonb_each_text(a.preferences), log l
+        SELECT EXISTS (
+            SELECT l.vessel_id
+            FROM auth.accounts a, auth.vessels v, jsonb_each_text(a.preferences) as prefs, log l
             WHERE v.vessel_id = l.vessel_id
                     AND a.email = v.owner_email
-                    AND key = 'public_logs'::TEXT
-                    AND value::BOOLEAN = true;
+                    AND prefs.key = 'public_logs'::TEXT
+                    AND prefs.value::BOOLEAN = true
+            ) into rec;
         IF FOUND THEN
             RETURN True;
         END IF;
     ELSE
-        SELECT (a.email) is not null into rec
-        --SELECT a.email, a.preferences
-            FROM auth.accounts a, jsonb_each_text(a.preferences)
-            WHERE a.public_id = _id
-                    AND key = _type::TEXT
-                    AND value::BOOLEAN = true;
+        SELECT EXISTS (
+            SELECT a.email, a.preferences
+                FROM auth.accounts a, jsonb_each_text(a.preferences) as prefs
+                WHERE a.public_id = _id
+                        AND prefs.key = '|| _type ||'::TEXT
+                        AND prefs.value::BOOLEAN = true
+            ) into rec;
         IF FOUND THEN
             RETURN True;
         END IF;
