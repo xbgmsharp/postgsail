@@ -3,7 +3,7 @@
  * Unit test #4
  * OTP for email, Pushover, Telegram
  *
- * process.env.PGSAIL_API_URI = from inside the docker 
+ * process.env.PGSAIL_API_URI = from inside the docker
  *
  * npm install supertest should mocha mochawesome moment
  * alias mocha="./node_modules/mocha/bin/_mocha"
@@ -154,6 +154,16 @@ var moment = require("moment");
       payload: null,
       res: {},
     },
+    public: [
+      {
+        url: "/rpc/update_user_preferences_fn",
+        payload: { key: "{public_logs}", value: true },
+      },
+      {
+        url: "/rpc/update_user_preferences_fn",
+        payload: { key: "{public_monitoring}", value: true },
+      },
+    ],
   },
   {
     cname: process.env.PGSAIL_API_URI,
@@ -285,6 +295,16 @@ var moment = require("moment");
       payload: null,
       res: {},
     },
+    public: [
+      {
+        url: "/rpc/update_user_preferences_fn",
+        payload: { key: "{public_logs}", value: true },
+      },
+      {
+        url: "/rpc/update_user_preferences_fn",
+        payload: { key: "{public_monitoring}", value: true },
+      },
+    ],
   },
 ].forEach(function (test) {
   //console.log(`${test.cname}`);
@@ -581,91 +601,127 @@ var moment = require("moment");
   }); // Function endpoint
 */
 
-describe("Badges, user jwt", function () {
-  it("/rpc/settings_fn return user settings", function (done) {
-    // Reset agent so we do not save cookies
-    request = supertest.agent(test.cname);
-    request
-      .post("/rpc/settings_fn")
-      .set("Authorization", `Bearer ${user_jwt}`)
-      .set("Accept", "application/json")
-      .end(function (err, res) {
-        res.status.should.equal(200);
-        should.exist(res.header["content-type"]);
-        should.exist(res.header["server"]);
-        res.header["content-type"].should.match(new RegExp("json", "g"));
-        res.header["server"].should.match(new RegExp("postgrest", "g"));
-        console.log(res.body);
-        should.exist(res.body.settings);
-        should.exist(res.body.settings.preferences.badges)
-        let badges = res.body.settings.preferences.badges;
-        //console.log(Object.keys(badges));
-        Object.keys(badges).length.should.be.aboveOrEqual(3);
-        (badges).should.have.properties('Helmsman', 'Wake Maker', 'Stormtrooper');
-        done(err);
-      });
-  });
-}); // user JWT
-
-describe("Function monitoring endpoint, JWT user_role", function () {
-  let otp = null;
-  test.monitoring.forEach(function (subtest) {
-    it(`${subtest.url}`, function (done) {
-      try {
+    describe("Badges, user jwt", function () {
+      it("/rpc/settings_fn return user settings", function (done) {
         // Reset agent so we do not save cookies
         request = supertest.agent(test.cname);
         request
-          .get(subtest.url)
+          .post("/rpc/settings_fn")
           .set("Authorization", `Bearer ${user_jwt}`)
           .set("Accept", "application/json")
           .end(function (err, res) {
             res.status.should.equal(200);
             should.exist(res.header["content-type"]);
             should.exist(res.header["server"]);
-            res.header["content-type"].should.match(
-              new RegExp("json", "g")
+            res.header["content-type"].should.match(new RegExp("json", "g"));
+            res.header["server"].should.match(new RegExp("postgrest", "g"));
+            console.log(res.body);
+            should.exist(res.body.settings);
+            should.exist(res.body.settings.preferences.badges);
+            let badges = res.body.settings.preferences.badges;
+            //console.log(Object.keys(badges));
+            Object.keys(badges).length.should.be.aboveOrEqual(3);
+            badges.should.have.properties(
+              "Helmsman",
+              "Wake Maker",
+              "Stormtrooper"
             );
+            done(err);
+          });
+      });
+    }); // user JWT
+
+    describe("Function monitoring endpoint, JWT user_role", function () {
+      let otp = null;
+      test.monitoring.forEach(function (subtest) {
+        it(`${subtest.url}`, function (done) {
+          try {
+            // Reset agent so we do not save cookies
+            request = supertest.agent(test.cname);
+            request
+              .get(subtest.url)
+              .set("Authorization", `Bearer ${user_jwt}`)
+              .set("Accept", "application/json")
+              .end(function (err, res) {
+                res.status.should.equal(200);
+                should.exist(res.header["content-type"]);
+                should.exist(res.header["server"]);
+                res.header["content-type"].should.match(
+                  new RegExp("json", "g")
+                );
+                res.header["server"].should.match(new RegExp("postgrest", "g"));
+                //console.log(res.body);
+                should.exist(res.body);
+                //let monitoring = res.body;
+                //console.log(monitoring);
+                // minimum set for static monitoring page
+                // no value for humidity monitoring
+                //monitoring.length.should.be.aboveOrEqual(21);
+                done(err);
+              });
+          } catch (error) {
+            done();
+          }
+        });
+      });
+    }); // Monitoring endpoint
+
+    describe("Event Logs, user jwt", function () {
+      it("/eventlogs_view endpoint, list process_queue, JWT user_role", function (done) {
+        // Reset agent so we do not save cookies
+        request = supertest.agent(test.cname);
+        request
+          .get("/eventlogs_view")
+          .set("Authorization", `Bearer ${user_jwt}`)
+          .set("Accept", "application/json")
+          .end(function (err, res) {
+            res.status.should.equal(200);
+            should.exist(res.header["content-type"]);
+            should.exist(res.header["server"]);
+            res.header["content-type"].should.match(new RegExp("json", "g"));
             res.header["server"].should.match(new RegExp("postgrest", "g"));
             //console.log(res.body);
             should.exist(res.body);
-            //let monitoring = res.body;
-            //console.log(monitoring);
-            // minimum set for static monitoring page
-            // no value for humidity monitoring
-            //monitoring.length.should.be.aboveOrEqual(21);
+            let event = res.body;
+            //console.log(event);
+            // minimum events log for kapla & aava 13 + 4 email_otp = 17
+            event.length.should.be.aboveOrEqual(13);
             done(err);
           });
-      } catch (error) {
-        done();
-      }
-    });
-  });
-}); // Monitoring endpoint
-
-describe("Event Logs, user jwt", function () {
-  it("/eventlogs_view endpoint, list process_queue, JWT user_role", function (done) {
-    // Reset agent so we do not save cookies
-    request = supertest.agent(test.cname);
-    request
-      .get("/eventlogs_view")
-      .set("Authorization", `Bearer ${user_jwt}`)
-      .set("Accept", "application/json")
-      .end(function (err, res) {
-        res.status.should.equal(200);
-        should.exist(res.header["content-type"]);
-        should.exist(res.header["server"]);
-        res.header["content-type"].should.match(new RegExp("json", "g"));
-        res.header["server"].should.match(new RegExp("postgrest", "g"));
-        //console.log(res.body);
-        should.exist(res.body);
-        let event = res.body;
-        //console.log(event);
-        // minimum events log for kapla & aava 13 + 4 email_otp = 17
-        event.length.should.be.aboveOrEqual(13);
-        done(err);
       });
-  });
-}); // user JWT
+    }); // user JWT
+
+    describe("Function update preference for public access endpoint, JWT user_role", function () {
+      test.public.forEach(function (subtest) {
+        it(`${subtest.url}`, function (done) {
+          try {
+            // Reset agent so we do not save cookies
+            request = supertest.agent(test.cname);
+            request
+              .post(subtest.url)
+              .send(subtest.payload)
+              .set("Authorization", `Bearer ${user_jwt}`)
+              .set("Accept", "application/json")
+              .end(function (err, res) {
+                res.status.should.equal(200);
+                should.exist(res.header["content-type"]);
+                should.exist(res.header["server"]);
+                res.header["server"].should.match(new RegExp("postgrest", "g"));
+                //console.log(res.body);
+                should.exist(res.body);
+                //let monitoring = res.body;
+                //console.log(monitoring);
+                // minimum set for static monitoring page
+                // no value for humidity monitoring
+                //monitoring.length.should.be.aboveOrEqual(21);
+                done(err);
+              });
+          } catch (error) {
+            done();
+          }
+        });
+      });
+    }); // Monitoring endpoint
 
   }); // OpenAPI description
 }); // Users Array
