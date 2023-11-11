@@ -737,6 +737,9 @@ CREATE OR REPLACE FUNCTION api.delete_logbook_fn(IN _id integer) RETURNS BOOLEAN
             RAISE WARNING '-> delete_logbook_fn invalid input %', _id;
             RETURN FALSE;
         END IF;
+        SELECT * INTO logbook_rec
+            FROM api.logbook l
+            WHERE id = _id;
         -- Update logbook
         UPDATE api.logbook l
             SET notes = 'mark for deletion'
@@ -754,7 +757,7 @@ CREATE OR REPLACE FUNCTION api.delete_logbook_fn(IN _id integer) RETURNS BOOLEAN
                 AND s.arrived = logbook_rec._to_time;
         -- Find previous stays
         SELECT id INTO previous_stays_id
-			FROM api.stays s
+            FROM api.stays s
             WHERE s.vessel_id = current_setting('vessel.id', false)
                 AND s.arrived < logbook_rec._to_time
                 ORDER BY s.arrived DESC LIMIT 1;
