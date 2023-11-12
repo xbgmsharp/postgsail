@@ -1,6 +1,5 @@
-ERD 
-
 ```mermaid
+erDiagram
     api_logbook {
         text _from
         double_precision _from_lat
