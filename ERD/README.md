@@ -4,7 +4,7 @@ The Entity-Relationship Diagram (ERD) provides a graphical representation of dat
 ## A global overview
 Auto generated Mermaid diagram using [mermerd](https://github.com/KarnerTh/mermerd) and [MermaidJs](https://github.com/mermaid-js/mermaid).
 
-[PostgSail Schema](https://raw.githubusercontent.com/xbgmsharp/postgsail/main/ERD/postgsail.md "PostgSail Schema")
+[PostgSail Schema](https://github.com/xbgmsharp/postgsail/tree/main/ERD/postgsail.md "PostgSail Schema")
 
 ## Further
 There is 3 main schemas:
