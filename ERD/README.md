@@ -2,34 +2,33 @@
 The Entity-Relationship Diagram (ERD) provides a graphical representation of database tables, columns, and inter-relationships. ERD can give sufficient information for the database administrator to follow when developing and maintaining the database.
 
 ## A global overview
-![API Schema](https://raw.githubusercontent.com/xbgmsharp/postgsail/main/ERD/postgsail.pgerd.png "API Schema")
+Auto generated Mermaid diagram using [mermerd](https://github.com/KarnerTh/mermerd) and [MermaidJs](https://github.com/mermaid-js/mermaid).
+
+[PostgSail Schema](https://raw.githubusercontent.com/xbgmsharp/postgsail/main/ERD/postgsail.mmd "PostgSail Schema")
 
 ## Further
 There is 3 main schemas:
-- API Schema ERD
+- API Schema:
     - tables
       - metrics
       - logbook
       - ...
     - functions
       - ...
-![API Schema](https://raw.githubusercontent.com/xbgmsharp/postgsail/main/ERD/signalk%20-%20api.png)
 
-- Auth Schema ERD
+- Auth Schema:
   - tables
     - accounts
     - vessels
     - ...
   - functions
     - ...
-![Auth Schema](https://raw.githubusercontent.com/xbgmsharp/postgsail/main/ERD/signalk%20-%20auth.png "Auth Schema")
 
-- Public Schema ERD
+- Public Schema:
   - tables
     - app_settings
     - tpl_messages
     - ...
   - functions
     - ...
-![Public Schema](https://raw.githubusercontent.com/xbgmsharp/postgsail/main/ERD/signalk%20-%20public.png "Public Schema")
 
