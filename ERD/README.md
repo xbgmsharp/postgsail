@@ -9,12 +9,12 @@ Auto generated Mermaid diagram using [mermerd](https://github.com/KarnerTh/merme
 ## Further
 There is 3 main schemas:
 - API Schema:
-    - tables
-      - metrics
-      - logbook
-      - ...
-    - functions
-      - ...
+  - tables
+    - metrics
+    - logbook
+    - ...
+  - functions
+    - ...
 
 - Auth Schema:
   - tables

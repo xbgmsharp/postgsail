@@ -90,7 +90,7 @@ erDiagram
         integer moorage_id "Link api.moorages with api.stays via FOREIGN KEY and REFERENCES"
         text name
         text notes
-        integer stay_code
+        integer stay_code "Link api.stays_at with api.stays via FOREIGN KEY and REFERENCES"
         text vessel_id "{NOT_NULL}"
     }
 
@@ -240,6 +240,7 @@ erDiagram
     api_stays }o--|| api_metadata : ""
     api_moorages }o--|| api_stays_at : ""
     api_stays }o--|| api_moorages : ""
+    api_stays }o--|| api_stays_at : ""
     auth_otp |o--|| auth_accounts : ""
     auth_vessels |o--|| auth_accounts : ""
 ```
