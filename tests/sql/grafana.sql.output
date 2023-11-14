@@ -146,11 +146,25 @@ _to_moorage_id   | 2
 
 api.stays
 -[ RECORD 1 ]--------------------------------------------------
+id         | 3
+vessel_id  | t
+moorage_id | 
+active     | t
+name       | 
+latitude   | 59.86
+longitude  | 23.365766666666666
+geog       | 
+arrived    | t
+departed   | f
+duration   | 
+stay_code  | 2
+notes      | 
+-[ RECORD 2 ]--------------------------------------------------
 id         | 1
 vessel_id  | t
 moorage_id | 1
 active     | f
-name       | patch moorage name 3
+name       | patch stay name 3
 latitude   | 60.077666666666666
 longitude  | 23.530866666666668
 geog       | 0101000020E6100000B0DEBBE0E68737404DA938FBF0094E40
@@ -159,12 +173,12 @@ departed   | t
 duration   | PT1M
 stay_code  | 2
 notes      | new stay note 3
--[ RECORD 2 ]--------------------------------------------------
+-[ RECORD 3 ]--------------------------------------------------
 id         | 2
 vessel_id  | t
 moorage_id | 2
 active     | f
-name       | Norra hamnen
+name       | 0 days stay at Norra hamnen in November 2023
 latitude   | 59.97688333333333
 longitude  | 23.4321
 geog       | 0101000020E6100000029A081B9E6E37404A5658830AFD4D40
@@ -172,20 +186,6 @@ arrived    | t
 departed   | t
 duration   | PT2M
 stay_code  | 4
-notes      | 
--[ RECORD 3 ]--------------------------------------------------
-id         | 3
-vessel_id  | t
-moorage_id | 3
-active     | t
-name       | Ekenäs
-latitude   | 59.86
-longitude  | 23.365766666666666
-geog       | 0101000020E6100000DE4C5FE2A25D3740AE47E17A14EE4D40
-arrived    | t
-departed   | f
-duration   | 
-stay_code  | 1
 notes      | 
 
 stays_view
