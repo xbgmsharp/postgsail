@@ -555,9 +555,12 @@ CREATE OR REPLACE FUNCTION process_stay_queue_fn(IN _id integer) RETURNS void AS
         -- Get the stay record with all necessary fields exist
         SELECT * INTO stay_rec
             FROM api.stays
-            WHERE id = _id
+            WHERE active IS false
+                AND departed IS NOT NULL
+                AND arrived IS NOT NULL
                 AND longitude IS NOT NULL
-                AND latitude IS NOT NULL;
+                AND latitude IS NOT NULL
+                AND id = _id;
         -- Ensure the query is successful
         IF stay_rec.vessel_id IS NULL THEN
             RAISE WARNING '-> process_stay_queue_fn invalid stay %', _id;
