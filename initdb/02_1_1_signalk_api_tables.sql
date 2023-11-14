@@ -99,9 +99,11 @@ CREATE TABLE IF NOT EXISTS api.logbook(
   vessel_id TEXT NOT NULL REFERENCES api.metadata(vessel_id) ON DELETE RESTRICT,
   active BOOLEAN DEFAULT false,
   name TEXT,
+  _from_moorage_id INT NULL,
   _from TEXT,
   _from_lat DOUBLE PRECISION NULL,
   _from_lng DOUBLE PRECISION NULL,
+  _to_moorage_id INT NULL,
   _to TEXT,
   _to_lat DOUBLE PRECISION NULL,
   _to_lng DOUBLE PRECISION NULL,
@@ -128,6 +130,8 @@ COMMENT ON COLUMN api.logbook.extra IS 'computed signalk metrics of interest, ru
 
 -- Index todo!
 CREATE INDEX logbook_vessel_id_idx ON api.logbook (vessel_id);
+CREATE INDEX logbook_from_moorage_id_idx ON api.logbook (_from_moorage_id);
+CREATE INDEX logbook_to_moorage_id_idx ON api.logbook (_to_moorage_id);
 CREATE INDEX ON api.logbook USING GIST ( track_geom );
 COMMENT ON COLUMN api.logbook.track_geom IS 'postgis geometry type EPSG:4326 Unit: degres';
 CREATE INDEX ON api.logbook USING GIST ( track_geog );
@@ -142,6 +146,7 @@ CREATE TABLE IF NOT EXISTS api.stays(
   id SERIAL PRIMARY KEY,
   vessel_id TEXT NOT NULL REFERENCES api.metadata(vessel_id) ON DELETE RESTRICT,
   active BOOLEAN DEFAULT false,
+  moorage_id INT NULL,
   name TEXT,
   latitude DOUBLE PRECISION NULL,
   longitude DOUBLE PRECISION NULL,
@@ -159,21 +164,20 @@ COMMENT ON TABLE
 
 -- Index
 CREATE INDEX stays_vessel_id_idx ON api.stays (vessel_id);
+CREATE INDEX stays_moorage_id_idx ON api.stays (moorage_id);
 CREATE INDEX ON api.stays USING GIST ( geog );
 COMMENT ON COLUMN api.stays.geog IS 'postgis geography type default SRID 4326 Unit: degres';
 -- With other SRID ERROR: Only lon/lat coordinate systems are supported in geography.
+COMMENT ON COLUMN api.stays.duration IS 'Best to use standard ISO 8601';
 
 ---------------------------------------------------------------------------
 -- Moorages
 -- virtual logbook by boat? 
 CREATE TABLE IF NOT EXISTS api.moorages(
   id SERIAL PRIMARY KEY,
-  --client_id VARCHAR(255) NOT NULL REFERENCES api.metadata(client_id) ON DELETE RESTRICT,
-  --client_id VARCHAR(255) NULL,
   vessel_id TEXT NOT NULL REFERENCES api.metadata(vessel_id) ON DELETE RESTRICT,
   name TEXT,
   country TEXT,
-  stay_id INT NOT NULL, -- needed?
   stay_code INT DEFAULT 1, -- needed?  REFERENCES api.stays_at(stay_code)
   stay_duration INTERVAL NULL,
   reference_count INT DEFAULT 1,
@@ -181,7 +185,9 @@ CREATE TABLE IF NOT EXISTS api.moorages(
   longitude DOUBLE PRECISION NULL,
   geog GEOGRAPHY(POINT) NULL,
   home_flag BOOLEAN DEFAULT false,
-  notes TEXT NULL
+  notes TEXT NULL,
+  overpass JSONB NULL,
+  nominatim JSONB NULL
 );
 -- Description
 COMMENT ON TABLE
@@ -193,11 +199,12 @@ CREATE INDEX moorages_vessel_id_idx ON api.moorages (vessel_id);
 CREATE INDEX ON api.moorages USING GIST ( geog );
 COMMENT ON COLUMN api.moorages.geog IS 'postgis geography type default SRID 4326 Unit: degres';
 -- With other SRID ERROR: Only lon/lat coordinate systems are supported in geography.
+COMMENT ON COLUMN api.moorages.stay_duration IS 'Best to use standard ISO 8601';
 
 ---------------------------------------------------------------------------
 -- Stay Type
 CREATE TABLE IF NOT EXISTS api.stays_at(
-  stay_code   INTEGER NOT NULL,
+  stay_code   INTEGER UNIQUE NOT NULL,
   description TEXT NOT NULL
 );
 -- Description
@@ -383,8 +390,12 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
             RAISE WARNING 'Metrics Ignoring metric, vessel_id [%], latitude and longitude are equal [%] [%]', NEW.vessel_id, NEW.latitude, NEW.longitude;
             RETURN NULL;
         END IF;
-        -- Check if status is null
-        IF NEW.status IS NULL THEN
+        -- Check if status is null but speed is over 3knots set status to sailing
+        IF NEW.status IS NULL AND NEW.speedoverground >= 3 THEN
+            RAISE WARNING 'Metrics Unknown NEW.status, vessel_id [%], null status, set to sailing because of speedoverground is +3 from [%]', NEW.vessel_id, NEW.status;
+            NEW.status := 'sailing';
+        -- Check if status is null then set status to default moored
+        ELSIF NEW.status IS NULL THEN
             RAISE WARNING 'Metrics Unknown NEW.status, vessel_id [%], null status, set to default moored from [%]', NEW.vessel_id, NEW.status;
             NEW.status := 'moored';
         END IF;
@@ -404,7 +415,7 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
             -- Add stay entry to process queue for further processing
             INSERT INTO process_queue (channel, payload, stored, ref_id)
                 VALUES ('new_stay', stay_id, now(), current_setting('vessel.id', true));
-            RAISE WARNING 'Metrics Insert first stay as no previous metrics exist, stay_id %', stay_id;
+            RAISE WARNING 'Metrics Insert first stay as no previous metrics exist, stay_id stay_id [%] [%] [%]', stay_id, NEW.status, NEW.time;
         END IF;
         -- Check if status is valid enum
         SELECT NEW.status::name = any(enum_range(null::status)::name[]) INTO valid_status;
@@ -433,7 +444,7 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                     (vessel_id, active, _from_time, _from_lat, _from_lng)
                     VALUES (current_setting('vessel.id', true), true, NEW.time, NEW.latitude, NEW.longitude)
                     RETURNING id INTO logbook_id;
-                RAISE WARNING 'Metrics Insert new logbook, logbook_id %', logbook_id;
+                RAISE WARNING 'Metrics Insert new logbook, logbook_id [%] [%] [%]', logbook_id, NEW.status, NEW.time;
             ELSE
                 UPDATE api.logbook
                     SET
@@ -454,9 +465,6 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                         departed = NEW.time
                     WHERE id = stay_id;
                 RAISE WARNING 'Metrics Updating Stay end current stay_id [%] [%] [%]', stay_id, NEW.status, NEW.time;
-                -- Add moorage entry to process queue for further processing
-                INSERT INTO process_queue (channel, payload, stored, ref_id)
-                    VALUES ('new_moorage', stay_id, now(), current_setting('vessel.id', true));
             ELSE
                 RAISE WARNING 'Metrics Invalid stay_id [%] [%]', stay_id, NEW.time;
             END IF;
@@ -483,6 +491,7 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                 -- Add stay entry to process queue for further processing
                 INSERT INTO process_queue (channel, payload, stored, ref_id)
                     VALUES ('new_stay', stay_id, now(), current_setting('vessel.id', true));
+                RAISE WARNING 'Metrics Insert new stay, stay_id stay_id [%] [%] [%]', stay_id, NEW.status, NEW.time;
             ELSE
                 RAISE WARNING 'Metrics Invalid stay_id [%] [%]', stay_id, NEW.time;
                 UPDATE api.stays
@@ -507,9 +516,9 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                     WHERE id = logbook_id;
                 -- Add logbook entry to process queue for later processing
                 INSERT INTO process_queue (channel, payload, stored, ref_id)
-                    VALUEs ('new_logbook', logbook_id, now(), current_setting('vessel.id', true));
+                    VALUES ('new_logbook', logbook_id, now(), current_setting('vessel.id', true));
             ELSE
-                RAISE WARNING 'Metrics Invalid logbook_id [%] [%]', logbook_id, NEW.time;
+                RAISE WARNING 'Metrics Invalid logbook_id [%] [%] [%]', logbook_id, NEW.status, NEW.time;
             END IF;
         END IF;
         RETURN NEW; -- Finally insert the actual new metric
@@ -528,3 +537,57 @@ CREATE TRIGGER metrics_trigger BEFORE INSERT ON api.metrics
 COMMENT ON TRIGGER 
     metrics_trigger ON api.metrics 
     IS  'BEFORE INSERT ON api.metrics run function metrics_trigger_fn';
+
+-- Function update of name and stay_code on logbook and stays reference
+DROP FUNCTION IF EXISTS moorage_update_trigger_fn;
+CREATE FUNCTION moorage_update_trigger_fn() RETURNS trigger AS $moorage_update$
+    DECLARE
+    BEGIN
+        RAISE NOTICE 'moorages_update_trigger_fn [%]', NEW;
+        IF ( OLD.name != NEW.name) THEN
+            UPDATE api.logbook SET _from = NEW.name WHERE _from_moorage_id = NEW.id;
+            UPDATE api.logbook SET _to = NEW.name WHERE _to_moorage_id = NEW.id;
+        END IF;
+        IF ( OLD.stay_code != NEW.stay_code) THEN
+            UPDATE api.stays SET stay_code = NEW.stay_code WHERE moorage_id = NEW.id;
+        END IF;
+        RETURN NULL; -- result is ignored since this is an AFTER trigger
+    END;
+$moorage_update$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.moorage_update_trigger_fn
+    IS 'Automatic update of name and stay_code on logbook and stays reference';
+
+-- Triggers moorage update after update
+CREATE TRIGGER moorage_update_trigger AFTER UPDATE ON api.moorages
+    FOR EACH ROW EXECUTE FUNCTION moorage_update_trigger_fn();
+-- Description
+COMMENT ON TRIGGER moorage_update_trigger
+  ON api.moorages
+  IS 'Automatic update of name and stay_code on logbook and stays reference';
+
+-- Function delete logbook and stays reference when delete a moorage
+DROP FUNCTION IF EXISTS moorage_delete_trigger_fn;
+CREATE FUNCTION moorage_delete_trigger_fn() RETURNS trigger AS $moorage_delete$
+    DECLARE
+    BEGIN
+        RAISE NOTICE 'moorages_delete_trigger_fn [%]', NEW;
+        DELETE FROM api.stays WHERE moorage_id = NEW.id;
+        DELETE FROM api.logbook WHERE _from_moorage_id = NEW.id;
+        DELETE FROM api.logbook WHERE _to_moorage_id = NEW.id;
+        RETURN NULL; -- result is ignored since this is an AFTER trigger
+    END;
+$moorage_delete$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.moorage_delete_trigger_fn
+    IS 'Automatic delete logbook and stays reference when delete a moorage';
+
+-- Triggers moorage delete
+CREATE TRIGGER moorage_delete_trigger BEFORE DELETE ON api.moorages
+    FOR EACH ROW EXECUTE FUNCTION moorage_delete_trigger_fn();
+-- Description
+COMMENT ON TRIGGER moorage_delete_trigger
+  ON api.moorages
+  IS 'Automatic update of name and stay_code on logbook and stays reference';

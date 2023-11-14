@@ -19,7 +19,7 @@ SELECT cron.schedule('cron_new_stay', '*/6 * * * *', 'select public.cron_process
 --UPDATE cron.job SET database = 'signalk' where jobname = 'cron_new_stay';
 
 -- Create a every 6 minute job cron_process_new_moorage_fn, delay from stay to give time to generate geo reverse location, eg: name
-SELECT cron.schedule('cron_new_moorage', '*/7 * * * *', 'select public.cron_process_new_moorage_fn()');
+--SELECT cron.schedule('cron_new_moorage', '*/7 * * * *', 'select public.cron_process_new_moorage_fn()');
 --UPDATE cron.job SET database = 'signalk' where jobname = 'cron_new_moorage';
 
 -- Create a every 10 minute job cron_process_monitor_offline_fn

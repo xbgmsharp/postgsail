@@ -129,6 +129,9 @@ CREATE FUNCTION public.logbook_update_geojson_fn(IN _id integer, IN _start text,
                 max_speed,
                 max_wind_speed,
                 _from_time,
+                _to_time
+                _from_moorage_id,
+                _to_moorage_id,
                 notes,
                 track_geom
                 FROM api.logbook
@@ -367,9 +370,11 @@ DROP FUNCTION IF EXISTS process_logbook_queue_fn;
 CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void AS $process_logbook_queue$
     DECLARE
         logbook_rec record;
-        from_name varchar;
-        to_name varchar;
-        log_name varchar;
+        from_name text;
+        to_name text;
+        log_name text;
+        from_moorage record;
+        to_moorage record;
         avg_rec record;
         geo_rec record;
         log_settings jsonb;
@@ -472,14 +477,19 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
             RETURN;
         END IF;
 
+        -- Do we have an existing moorage within 300m of the new log
+        -- generate logbook name, concat _from_location and _to_location from moorage name
+        from_moorage := process_lat_lon_fn(logbook_rec._from_lng::NUMERIC, logbook_rec._from_lat::NUMERIC);
+        to_moorage := process_lat_lon_fn(logbook_rec._to_lng::NUMERIC, logbook_rec._to_lat::NUMERIC);
+        SELECT CONCAT(from_moorage.moorage_name, ' to ' , to_moorage.moorage_name) INTO log_name;
         -- Generate logbook name, concat _from_location and _to_location
         -- geo reverse _from_lng _from_lat
         -- geo reverse _to_lng _to_lat
-        geo := reverse_geocode_py_fn('nominatim', logbook_rec._from_lng::NUMERIC, logbook_rec._from_lat::NUMERIC);
-        from_name := geo->>'name';
-        geo := reverse_geocode_py_fn('nominatim', logbook_rec._to_lng::NUMERIC, logbook_rec._to_lat::NUMERIC);
-        to_name := geo->>'name';
-        SELECT CONCAT(from_name, ' to ' , to_name) INTO log_name;
+        --geo := reverse_geocode_py_fn('nominatim', logbook_rec._from_lng::NUMERIC, logbook_rec._from_lat::NUMERIC);
+        --from_name := geo->>'name';
+        --geo := reverse_geocode_py_fn('nominatim', logbook_rec._to_lng::NUMERIC, logbook_rec._to_lat::NUMERIC);
+        --to_name := geo->>'name';
+        --SELECT CONCAT(from_name, ' to ' , to_name) INTO log_name;
 
         -- Process `propulsion.*.runTime` and `navigation.log`
         -- Calculate extra json
@@ -492,8 +502,10 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
                 avg_speed = avg_rec.avg_speed,
                 max_speed = avg_rec.max_speed,
                 max_wind_speed = avg_rec.max_wind_speed,
-                _from = from_name,
-                _to = to_name,
+                _from = from_moorage.moorage_name,
+                _from_moorage_id = from_moorage.moorage_id,
+                _to_moorage_id = to_moorage.moorage_id,
+                _to = to_moorage.moorage_name,
                 name = log_name,
                 track_geom = geo_rec._track_geom,
                 distance = geo_rec._track_distance,
@@ -532,7 +544,7 @@ DROP FUNCTION IF EXISTS process_stay_queue_fn;
 CREATE OR REPLACE FUNCTION process_stay_queue_fn(IN _id integer) RETURNS void AS $process_stay_queue$
     DECLARE
         stay_rec record;
-        geo jsonb;
+        moorage record;
     BEGIN
         RAISE NOTICE 'process_stay_queue_fn';
         -- If _id is valid, not NULL
@@ -553,17 +565,40 @@ CREATE OR REPLACE FUNCTION process_stay_queue_fn(IN _id integer) RETURNS void AS
         END IF;
 
         PERFORM set_config('vessel.id', stay_rec.vessel_id, false);
-        -- geo reverse _lng _lat
-        geo := reverse_geocode_py_fn('nominatim', stay_rec.longitude::NUMERIC, stay_rec.latitude::NUMERIC);
 
-        RAISE NOTICE 'Updating stay entry [%]', stay_rec.id;
+        -- Do we have an existing moorage within 300m of the new stay
+        moorage := process_lat_lon_fn(stay_rec.longitude::NUMERIC, stay_rec.latitude::NUMERIC);
+
+        RAISE NOTICE '-> process_stay_queue_fn Updating stay entry [%]', stay_rec.id;
         UPDATE api.stays
             SET
-                name = coalesce(geo->>'name', null),
+                name = concat(
+                            ROUND( EXTRACT(epoch from (stay_rec.departed::timestamp without time zone - stay_rec.arrived::timestamp without time zone)::INTERVAL / 86400) ),
+                            ' days stay at ',
+                            moorage.moorage_name,
+                            ' in ',
+                            RTRIM(TO_CHAR(stay_rec.departed, 'Month')),
+                            ' ',
+                            TO_CHAR(stay_rec.departed, 'YYYY')
+                        ),
+                moorage_id = moorage.moorage_id,
+                duration = (stay_rec.departed::timestamp without time zone - stay_rec.arrived::timestamp without time zone)::INTERVAL,
+                stay_code = moorage.moorage_type,
                 geog = Geography(ST_MakePoint(stay_rec.longitude, stay_rec.latitude))
             WHERE id = stay_rec.id;
 
-        -- Notification email/pushover?
+        RAISE NOTICE '-> process_stay_queue_fn Updating moorage entry [%]', moorage.moorage_id;
+        UPDATE api.moorages
+            SET
+                reference_count = (
+                    with _from as (select count(*) from api.logbook where _from_moorage_id = moorage.moorage_id),
+                        _to as (select count(*) from api.logbook where _to_moorage_id = moorage.moorage_id)
+                        select _from.count+_to.count from _from,_to
+                ),
+                stay_duration = (
+                    select sum(departed-arrived) from api.stays where moorage_id = moorage.moorage_id
+                )
+            WHERE id = moorage.moorage_id;
     END;
 $process_stay_queue$ LANGUAGE plpgsql;
 -- Description
@@ -572,7 +607,7 @@ COMMENT ON FUNCTION
     IS 'Update stay details, reverse_geocode_py_fn';
 
 -- Handle moorage insert or update from stays
--- todo valide geography unit
+-- todo validate geography unit
 -- https://postgis.net/docs/ST_DWithin.html
 DROP FUNCTION IF EXISTS process_moorage_queue_fn;
 CREATE OR REPLACE FUNCTION process_moorage_queue_fn(IN _id integer) RETURNS void AS $process_moorage_queue$
@@ -605,44 +640,44 @@ CREATE OR REPLACE FUNCTION process_moorage_queue_fn(IN _id integer) RETURNS void
 
         PERFORM set_config('vessel.id', stay_rec.vessel_id, false);
 
-        -- Do we have an existing stay within 100m of the new moorage
-	    FOR moorage_rec in 
-	        SELECT
-	            *
-	        FROM api.moorages
-	        WHERE 
-	            latitude IS NOT NULL
-	            AND longitude IS NOT NULL
+        -- Do we have an existing stay within 200m of the new moorage
+        FOR moorage_rec in
+            SELECT
+                *
+            FROM api.moorages
+            WHERE
+                latitude IS NOT NULL
+                AND longitude IS NOT NULL
                 AND geog IS NOT NULL
-	            AND ST_DWithin(
-				    -- Geography(ST_MakePoint(stay_rec._lng, stay_rec._lat)),
+                AND ST_DWithin(
+                    -- Geography(ST_MakePoint(stay_rec._lng, stay_rec._lat)),
                     stay_rec.geog,
-				    -- Geography(ST_MakePoint(longitude, latitude)),
+                    -- Geography(ST_MakePoint(longitude, latitude)),
                     geog,
-				    100 -- in meters ?
-				  )
-			ORDER BY id ASC
-	    LOOP
-		    -- found previous stay within 100m of the new moorage
-			 IF moorage_rec.id IS NOT NULL AND moorage_rec.id > 0 THEN
-			 	RAISE NOTICE 'Found previous stay within 100m of moorage %', moorage_rec;
-			 	EXIT; -- exit loop
-			 END IF;
-	    END LOOP;
+                    200 -- in meters ?
+                    )
+            ORDER BY id ASC
+        LOOP
+            -- found previous stay within 200m of the new moorage
+            IF moorage_rec.id IS NOT NULL AND moorage_rec.id > 0 THEN
+                RAISE NOTICE 'Found previous stay within 200m of moorage %', moorage_rec;
+                EXIT; -- exit loop
+            END IF;
+        END LOOP;
 
-		-- if with in 100m update reference count and stay duration
-		-- else insert new entry
-		IF moorage_rec.id IS NOT NULL AND moorage_rec.id > 0 THEN
-		 	RAISE NOTICE 'Update moorage %', moorage_rec;
-		 	UPDATE api.moorages 
-		 		SET 
-		 			reference_count = moorage_rec.reference_count + 1,
-		 			stay_duration = 
+        -- if with in 200m update reference count and stay duration
+        -- else insert new entry
+        IF moorage_rec.id IS NOT NULL AND moorage_rec.id > 0 THEN
+            RAISE NOTICE 'Update moorage %', moorage_rec;
+            UPDATE api.moorages
+                SET
+                    reference_count = moorage_rec.reference_count + 1,
+                    stay_duration =
                         moorage_rec.stay_duration + 
                         (stay_rec.departed::timestamp without time zone - stay_rec.arrived::timestamp without time zone)
-		 		WHERE id = moorage_rec.id;
-		ELSE
-			RAISE NOTICE 'Insert new moorage entry from stay %', stay_rec;
+                WHERE id = moorage_rec.id;
+        ELSE
+            RAISE NOTICE 'Insert new moorage entry from stay %', stay_rec;
             -- Set the moorage name and country if lat,lon
             IF stay_rec.longitude IS NOT NULL AND stay_rec.latitude IS NOT NULL THEN
                 geo := reverse_geocode_py_fn('nominatim', stay_rec.longitude::NUMERIC, stay_rec.latitude::NUMERIC);
@@ -650,21 +685,21 @@ CREATE OR REPLACE FUNCTION process_moorage_queue_fn(IN _id integer) RETURNS void
                 moorage_rec.country = geo->>'country_code';
             END IF;
             -- Insert new moorage from stay
-	        INSERT INTO api.moorages
-	                (vessel_id, name, country, stay_id, stay_code, stay_duration, reference_count, latitude, longitude, geog)
-	                VALUES (
+            INSERT INTO api.moorages
+                    (vessel_id, name, country, stay_id, stay_code, stay_duration, reference_count, latitude, longitude, geog)
+                    VALUES (
                         stay_rec.vessel_id,
                         coalesce(moorage_rec.name, null),
                         coalesce(moorage_rec.country, null),
-						stay_rec.id,
-						stay_rec.stay_code,
-						(stay_rec.departed::timestamp without time zone - stay_rec.arrived::timestamp without time zone),
-						1, -- default reference_count
-						stay_rec.latitude,
-						stay_rec.longitude,
+                        stay_rec.id,
+                        stay_rec.stay_code,
+                        (stay_rec.departed::timestamp without time zone - stay_rec.arrived::timestamp without time zone),
+                        1, -- default reference_count
+                        stay_rec.latitude,
+                        stay_rec.longitude,
                         Geography(ST_MakePoint(stay_rec.longitude, stay_rec.latitude))
                     );
-		END IF;
+        END IF;
 
         -- Process badges
         PERFORM badges_moorages_fn();
@@ -1403,6 +1438,121 @@ COMMENT ON FUNCTION
     public.process_logbook_queue_fn
     IS 'Avoid/ignore/delete logbook stationary movement or time sync issue';
 
+DROP FUNCTION IF EXISTS process_lat_lon_fn;
+CREATE OR REPLACE FUNCTION process_lat_lon_fn(IN lon NUMERIC, IN lat NUMERIC,
+    OUT moorage_id INTEGER,
+    OUT moorage_type INTEGER,
+    OUT moorage_name TEXT,
+    OUT moorage_country TEXT
+) AS $process_lat_lon$
+    DECLARE
+        stay_rec record;
+        --moorage_id INTEGER := NULL;
+        --moorage_type INTEGER := 1; -- Unknown
+        --moorage_name TEXT := NULL;
+        --moorage_country TEXT := NULL;
+        existing_rec record;
+        geo jsonb;
+        overpass jsonb;
+    BEGIN
+        RAISE NOTICE 'process_lat_lon_fn';
+        -- If _id is valid, not NULL
+        IF lon IS NULL OR lat IS NULL THEN
+            RAISE WARNING '-> process_lat_lon_fn invalid input lon,lat %', _id;
+            --return NULL;
+        END IF;
+
+        -- Do we have an existing moorages within 300m of the new stay
+        FOR existing_rec in
+            SELECT
+                *
+            FROM api.moorages m
+            WHERE
+                m.latitude IS NOT NULL
+                AND m.longitude IS NOT NULL
+                AND m.geog IS NOT NULL
+                AND ST_DWithin(
+                    Geography(ST_MakePoint(m.longitude, m.latitude)),
+                    Geography(ST_MakePoint(lon, lat)),
+                    300 -- in meters
+                    )
+                AND m.vessel_id = current_setting('vessel.id', false)
+            ORDER BY id ASC
+        LOOP
+            -- found previous stay within 300m of the new moorage
+            IF existing_rec.id IS NOT NULL AND existing_rec.id > 0 THEN
+                RAISE NOTICE '-> process_lat_lon_fn found previous moorages within 300m %', existing_rec;
+                EXIT; -- exit loop
+            END IF;
+        END LOOP;
+
+        -- if with in 200m use existing name and stay_code
+        -- else insert new entry
+        IF existing_rec.id IS NOT NULL AND existing_rec.id > 0 THEN
+            RAISE NOTICE '-> process_lat_lon_fn found close by moorage using existing name and stay_code %', existing_rec;
+            moorage_id := existing_rec.id;
+            moorage_name := existing_rec.name;
+            moorage_type := existing_rec.stay_code;
+        ELSE
+            RAISE NOTICE '-> process_lat_lon_fn create new moorage';
+            -- query overpass api to guess moorage type
+            overpass := overpass_py_fn(lon::NUMERIC, lat::NUMERIC);
+            RAISE NOTICE '-> process_lat_lon_fn overpass name:[%] type:[%]', overpass->'name', overpass->'seamark:type';
+            moorage_type = 1; -- Unknown
+            IF overpass->>'seamark:type' = 'harbour' AND overpass->>'seamark:harbour:category' = 'marina' then
+                moorage_type = 4; -- Dock
+            ELSIF overpass->>'seamark:type' = 'mooring' AND overpass->>'seamark:mooring:category' = 'buoy' then
+                moorage_type = 3; -- Mooring Buoy
+            ELSIF overpass->>'seamark:type' ~ '(anchorage|anchor_berth|berth)' OR overpass->>'natural' ~ '(bay|beach)' then
+                moorage_type = 2; -- Anchor
+            ELSIF overpass->>'seamark:type' = 'mooring' then
+                moorage_type = 3; -- Mooring Buoy
+            ELSIF overpass->>'leisure' = 'marina' then
+                moorage_type = 4; -- Dock
+            END IF;
+            IF overpass->>'name:en' IS NOT NULL then
+                moorage_name = overpass->>'name:en';
+            ELSIF overpass->>'name' IS NOT NULL then
+                moorage_name = overpass->>'name';
+            ELSE
+                -- geo reverse _lng _lat
+                geo := reverse_geocode_py_fn('nominatim', lon::NUMERIC, lat::NUMERIC);
+                moorage_name := geo->>'name';
+                moorage_country := geo->>'country_code';
+            END IF;
+            RAISE NOTICE '-> process_lat_lon_fn output name:[%] type:[%]', moorage_name, moorage_type;
+            RAISE NOTICE '-> process_lat_lon_fn insert new moorage for [%] name:[%] type:[%]', current_setting('vessel.id', false), moorage_name, moorage_type;
+            -- Insert new moorage from stay
+            INSERT INTO api.moorages
+                (vessel_id, name, country, stay_code, reference_count, latitude, longitude, geog, overpass, nominatim)
+                VALUES (
+                    current_setting('vessel.id', false),
+                    coalesce(moorage_name, null),
+                    coalesce(moorage_country, null),
+                    moorage_type,
+                    1,
+                    lat,
+                    lon,
+                    Geography(ST_MakePoint(lon, lat)),
+                    coalesce(overpass, null),
+                    coalesce(geo, null)
+                ) returning id into moorage_id;
+            -- Add moorage entry to process queue for reference
+            --INSERT INTO process_queue (channel, payload, stored, ref_id, processed)
+            --    VALUES ('new_moorage', moorage_id, now(), current_setting('vessel.id', true), now());
+        END IF;
+        --return json_build_object(
+        --        'id', moorage_id,
+        --        'name', moorage_name,
+        --        'type', moorage_type
+        --        )::jsonb;
+    END;
+$process_lat_lon$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.process_lat_lon_fn
+    IS 'Add or Update moorage base on lat/lon';
+
 ---------------------------------------------------------------------------
 -- TODO add alert monitoring for Battery
 
@@ -1461,6 +1611,7 @@ BEGIN
         OR _path = '/rpc/update_user_preferences_fn'
         OR _path = '/rpc/versions_fn'
         OR _path = '/rpc/email_fn'
+        OR _path = '/rpc/login'
         OR _path = '/' THEN
         RETURN;
     END IF;
@@ -1594,7 +1745,7 @@ BEGIN
     perform public.cron_process_monitor_online_fn();
     perform public.cron_process_new_logbook_fn();
     perform public.cron_process_new_stay_fn();
-    perform public.cron_process_new_moorage_fn();
+    --perform public.cron_process_new_moorage_fn();
     perform public.cron_process_monitor_offline_fn();
 END
 $$ language plpgsql;

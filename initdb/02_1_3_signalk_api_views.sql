@@ -48,7 +48,8 @@ CREATE OR REPLACE VIEW api.logs_view WITH (security_invoker=true,security_barrie
             _to as "to",
             _to_time as "ended",
             distance as "distance",
-            duration as "duration"
+            duration as "duration",
+            _from_moorage_id,_to_moorage_id
         FROM api.logbook l
         WHERE _to_time IS NOT NULL
         ORDER BY _from_time DESC;
@@ -66,7 +67,8 @@ CREATE MATERIALIZED VIEW api.logs_mat_view AS
             _to as "to",
             _to_time as "ended",
             distance as "distance",
-            duration as "duration"
+            duration as "duration",
+            _from_moorage_id,_to_moorage_id
         FROM api.logbook l
         WHERE _to_time IS NOT NULL
         ORDER BY _from_time DESC;
@@ -90,7 +92,9 @@ CREATE OR REPLACE VIEW api.log_view WITH (security_invoker=true,security_barrier
             avg_speed as avg_speed,
             max_speed as max_speed,
             max_wind_speed as max_wind_speed,
-            extra as extra
+            extra as extra,
+            _from_moorage_id as from_moorage_id,
+            _to_moorage_id as to_moorage_id
         FROM api.logbook l
         WHERE _to_time IS NOT NULL
         ORDER BY _from_time DESC;
@@ -104,30 +108,28 @@ COMMENT ON VIEW
 DROP VIEW IF EXISTS api.stays_view;
 CREATE OR REPLACE VIEW api.stays_view WITH (security_invoker=true,security_barrier=true) AS
     SELECT s.id,
-        concat(
-            extract(DAYS FROM (s.departed-s.arrived)::interval),
-            ' days',
-            --DATE_TRUNC('day', s.departed-s.arrived),
-            ' stay at ',
-            s.name,
-            ' in ',
-            RTRIM(TO_CHAR(s.departed, 'Month')),
-            ' ',
-            TO_CHAR(s.departed, 'YYYY')
-            ) as "name",
-        s.name AS "moorage",
+        s.name AS "name",
+        m.name AS "moorage",
         m.id AS "moorage_id",
         (s.departed-s.arrived) AS "duration",
         sa.description AS "stayed_at",
         sa.stay_code AS "stayed_at_id",
         s.arrived AS "arrived",
+        _from.id as "arrived_log_id",
+        _from._to_moorage_id as "arrived_from_moorage_id",
+        _from._to as "arrived_from_moorage_name",
         s.departed AS "departed",
+        _to.id AS "departed_log_id",
+        _to._from_moorage_id AS "departed_to_moorage_id",
+        _to._from AS "departed_to_moorage_name",
         s.notes AS "notes"
     FROM api.stays s, api.stays_at sa, api.moorages m
-    WHERE departed IS NOT NULL
+    LEFT JOIN api.logbook As _from ON _from._from_moorage_id = m.id
+    LEFT JOIN api.logbook AS _to ON _to._to_moorage_id = m.id
+    WHERE s.departed IS NOT NULL
         AND s.name IS NOT NULL
         AND s.stay_code = sa.stay_code
-        AND s.id = m.stay_id
+        AND s.moorage_id = m.id
     ORDER BY s.arrived DESC;
 -- Description
 COMMENT ON VIEW
@@ -137,30 +139,28 @@ COMMENT ON VIEW
 DROP VIEW IF EXISTS api.stay_view;
 CREATE OR REPLACE VIEW api.stay_view WITH (security_invoker=true,security_barrier=true) AS
     SELECT s.id,
-        concat(
-            extract(DAYS FROM (s.departed-s.arrived)::interval),
-            ' days',
-            --DATE_TRUNC('day', s.departed-s.arrived),
-            ' stay at ',
-            s.name,
-            ' in ',
-            RTRIM(TO_CHAR(s.departed, 'Month')),
-            ' ',
-            TO_CHAR(s.departed, 'YYYY')
-            ) as "name",
-        s.name AS "moorage",
+        s.name AS "name",
+        m.name AS "moorage",
         m.id AS "moorage_id",
         (s.departed-s.arrived) AS "duration",
         sa.description AS "stayed_at",
         sa.stay_code AS "stayed_at_id",
         s.arrived AS "arrived",
+        _from.id as "arrived_log_id",
+        _from._to_moorage_id as "arrived_from_moorage_id",
+        _from._to as "arrived_from_moorage_name",
         s.departed AS "departed",
+        _to.id AS "departed_log_id",
+        _to._from_moorage_id AS "departed_to_moorage_id",
+        _to._from AS "departed_to_moorage_name",
         s.notes AS "notes"
     FROM api.stays s, api.stays_at sa, api.moorages m
-    WHERE departed IS NOT NULL
+    LEFT JOIN api.logbook As _from ON _from._from_moorage_id = m.id
+    LEFT JOIN api.logbook AS _to ON _to._to_moorage_id = m.id
+    WHERE s.departed IS NOT NULL
         AND s.name IS NOT NULL
         AND s.stay_code = sa.stay_code
-        AND s.id = m.stay_id
+        AND s.moorage_id = m.id
     ORDER BY s.arrived DESC;
 -- Description
 COMMENT ON VIEW
@@ -191,17 +191,20 @@ CREATE OR REPLACE VIEW api.moorages_view WITH (security_invoker=true,security_ba
         sa.description AS Default_Stay,
         sa.stay_code AS Default_Stay_Id,
         EXTRACT(DAY FROM justify_hours ( m.stay_duration )) AS Total_Stay, -- in days
+        m.stay_duration AS Total_Duration,
         m.reference_count AS Arrivals_Departures
 --        m.geog
 --        m.stay_duration,
 --        justify_hours ( m.stay_duration )
     FROM api.moorages m, api.stays_at sa
-    WHERE m.name IS NOT NULL
-        AND geog IS NOT NULL
+-- m.stay_duration is only process on a stay
+    WHERE m.stay_duration IS NOT NULL
+        AND m.geog IS NOT NULL
         AND m.stay_code = sa.stay_code
    GROUP BY m.id,m.name,sa.description,m.stay_duration,m.reference_count,m.geog,sa.stay_code
 --   ORDER BY 4 DESC;
-   ORDER BY m.reference_count DESC;
+--   ORDER BY m.reference_count DESC;
+    ORDER BY m.stay_duration DESC;
 -- Description
 COMMENT ON VIEW
     api.moorages_view
@@ -215,17 +218,34 @@ CREATE OR REPLACE VIEW api.moorage_view WITH (security_invoker=true,security_bar
         sa.stay_code AS Default_Stay_Id,
         m.home_flag AS Home,
         EXTRACT(DAY FROM justify_hours ( m.stay_duration )) AS Total_Stay,
+        m.stay_duration AS Total_Duration,
         m.reference_count AS Arrivals_Departures,
         m.notes
 --        m.geog
     FROM api.moorages m, api.stays_at sa
-    WHERE m.name IS NOT NULL
+-- m.stay_duration is only process on a stay
+    WHERE m.stay_duration IS NOT NULL
         AND geog IS NOT NULL
         AND m.stay_code = sa.stay_code;
 -- Description
 COMMENT ON VIEW
     api.moorage_view
     IS 'Moorage details web view';
+
+DROP VIEW IF EXISTS api.moorages_stays_view;
+CREATE OR REPLACE VIEW api.moorages_stays_view WITH (security_invoker=true,security_barrier=true) AS -- TODO
+    SELECT
+        _to.id AS _to_id,_to._to_time,
+        _from.id AS _from_id,_from._from_time,
+        m.stay_code,m.stay_duration,m.id
+        FROM api.moorages m
+        LEFT JOIN api.logbook As _from ON _from._from_moorage_id = m.id
+        LEFT JOIN api.logbook AS _to ON _to._to_moorage_id = m.id
+        ORDER BY _to._to_time DESC;
+-- Description
+COMMENT ON VIEW
+    api.moorages_stays_view
+    IS 'Moorages stay listing web view';
 
 -- All moorage in 100 meters from the start of a logbook.
 -- ST_DistanceSphere Returns minimum distance in meters between two lon/lat points.
@@ -269,7 +289,7 @@ CREATE OR REPLACE VIEW api.stats_logs_view WITH (security_invoker=true,security_
                 concat( max(l.distance), ' NM, ', max(l.duration), ' hours') AS "longest_nonstop_sail"
             FROM api.logbook l)
     SELECT
-        m.name as Name,
+        m.name AS name,
         fm.time AS first,
         lm.time AS last,
         l.* 
