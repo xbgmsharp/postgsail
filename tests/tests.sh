@@ -9,8 +9,20 @@ if [[ -z "${PGSAIL_API_URI}" ]]; then
   exit 1
 fi
 
-#npm install
-npm install -g pnpm && pnpm install
+# go install
+if [[ ! -x "/usr/bin/go" || ! -x "/root/go/bin/mermerd" ]]; then
+    #wget -q https://go.dev/dl/go1.21.4.linux-arm64.tar.gz && \
+    #rm -rf /usr/local/go && tar -C /usr/local -xzf go1.21.4.linux-arm64.tar.gz && \
+    apt update && apt -y install golang && \
+    go install github.com/KarnerTh/mermerd@latest
+fi
+
+# pnpm install
+if [[ ! -x "/usr/local/bin/pnpm" ]]; then
+    npm install -g pnpm
+fi
+pnpm install || exit 1
+
 # settings
 export mymocha="./node_modules/mocha/bin/_mocha"
 mkdir -p output/ && rm -rf output/*
@@ -129,6 +141,14 @@ else
     exit 1
 fi
 
+$mymocha index5.js --reporter ./node_modules/mochawesome --reporter-options reportDir=output/,reportFilename=report5.html
+if [ $? -eq 0 ]; then
+    echo OK
+else
+    echo mocha index5.js
+    exit 1
+fi
+
 # Monitoring unit tests
 psql ${PGSAIL_DB_URI} < sql/monitoring.sql > output/monitoring.sql.output
 diff sql/monitoring.sql.output output/monitoring.sql.output > /dev/null
@@ -143,11 +163,23 @@ else
 fi
 
 # Download and update openapi documentation
-wget ${PGSAIL_API_URI} -O ../openapi.json
+wget ${PGSAIL_API_URI} -O openapi.json
 #echo 0
 if [ $? -eq 0 ]; then
+    cp openapi.json ../openapi.json
     echo openapi.json OK
 else
     echo openapi.json FAILED
+    exit 1
+fi
+
+# Generate and update mermaid schema documentation
+/root/go/bin/mermerd --runConfig ../ERD/mermerdConfig.yaml
+#echo 0
+if [ $? -eq 0 ]; then
+    cp postgsail.md ../ERD/postgsail.md
+    echo postgsail.md OK
+else
+    echo postgsail.md FAILED
     exit 1
 fi

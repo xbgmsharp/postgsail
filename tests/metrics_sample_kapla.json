@@ -13,6 +13,18 @@
 		"metrics" : {"environment.wind.speedTrue": 4.44, "navigation.speedThroughWater": 3.0918118943701245, "performance.velocityMadeGood": 2.9323340761912995, "environment.wind.angleTrueWater": -0.3665191430024964, "environment.depth.belowTransducer": 13.1, "navigation.courseOverGroundMagnetic": 3.620685534088946, "navigation.courseRhumbline.crossTrackError": 0}
 	},
 	{
+		"time" : "2022-07-30T14:52:28.000Z",
+		"client_id" : "vessels.urn:mrn:imo:mmsi:123456789",
+		"latitude" : 60.077666666666666,
+		"longitude" : 23.530866666666668,
+		"speedoverground" : 0.0,
+		"courseovergroundtrue" : 207.5,
+		"windspeedapparent" : 14.8,
+		"anglespeedapparent" : -12.0,
+		"status" : "sailing",
+		"metrics" : {"environment.wind.speedTrue": 4.44, "navigation.speedThroughWater": 3.0918118943701245, "performance.velocityMadeGood": 2.9323340761912995, "environment.wind.angleTrueWater": -0.3665191430024964, "environment.depth.belowTransducer": 13.1, "navigation.courseOverGroundMagnetic": 3.620685534088946, "navigation.courseRhumbline.crossTrackError": 0, "propulsion.main.runTime":1776241 }
+	},
+	{
 		"time" : "2022-07-30T14:53:28.000Z",
 		"client_id" : "vessels.urn:mrn:imo:mmsi:123456789",
 		"latitude" : 60.077666666666666,
@@ -21,8 +33,8 @@
 		"courseovergroundtrue" : 207.5,
 		"windspeedapparent" : 14.8,
 		"anglespeedapparent" : -12.0,
-		"status" : "moored",
-		"metrics" : {"environment.wind.speedTrue": 4.44, "navigation.speedThroughWater": 3.0918118943701245, "performance.velocityMadeGood": 2.9323340761912995, "environment.wind.angleTrueWater": -0.3665191430024964, "environment.depth.belowTransducer": 13.1, "navigation.courseOverGroundMagnetic": 3.620685534088946, "navigation.courseRhumbline.crossTrackError": 0, "propulsion.main.runTime":1776241 }
+		"status" : "sailing",
+		"metrics" : {"environment.wind.speedTrue": 4.44, "navigation.speedThroughWater": 3.0918118943701245, "performance.velocityMadeGood": 2.9323340761912995, "environment.wind.angleTrueWater": -0.3665191430024964, "environment.depth.belowTransducer": 13.1, "navigation.courseOverGroundMagnetic": 3.620685534088946, "navigation.courseRhumbline.crossTrackError": 0 }
 	},
 	{
 		"time" : "2022-07-30T14:54:28.016Z",
@@ -322,7 +334,7 @@
 		"windspeedapparent" : 11.1,
 		"anglespeedapparent" : 88.0,
 		"status" : "sailing",
-		"metrics" : {"environment.wind.speedTrue": 3.1895563635765014, "navigation.speedThroughWater": 0, "performance.velocityMadeGood": 0, "environment.wind.angleTrueWater": 1.8151424224885533, "environment.depth.belowTransducer": 1.67, "navigation.courseOverGroundMagnetic": 3.1290262836898832, "navigation.courseRhumbline.crossTrackError": 0}
+		"metrics" : {"environment.wind.speedTrue": 3.1895563635765014, "navigation.speedThroughWater": 0, "performance.velocityMadeGood": 0, "environment.wind.angleTrueWater": 1.8151424224885533, "environment.depth.belowTransducer": 1.67, "navigation.courseOverGroundMagnetic": 3.1290262836898832, "navigation.courseRhumbline.crossTrackError": 0 }
 	},
 	{
 		"time" : "2022-07-30T15:19:28.467Z",
@@ -349,6 +361,18 @@
 		"metrics" : {"environment.wind.speedTrue": 0, "navigation.speedThroughWater": 0, "performance.velocityMadeGood": 0, "environment.wind.angleTrueWater": 0.7853981635767779, "environment.depth.belowTransducer": 1.65, "navigation.courseOverGroundMagnetic": 4.206068965341505, "navigation.courseRhumbline.crossTrackError": 0}
 	},
 	{
+		"time" : "2022-07-30T15:20:28.467Z",
+		"client_id" : "vessels.urn:mrn:imo:mmsi:123456789",
+		"latitude" : 59.97688333333333,
+		"longitude" : 23.4321,
+		"speedoverground" : 0.0,
+		"courseovergroundtrue" : 241.0,
+		"windspeedapparent" : 4.3,
+		"anglespeedapparent" : 74.0,
+		"status" : "sailing",
+		"metrics" : {"environment.wind.speedTrue": 0, "navigation.speedThroughWater": 0, "performance.velocityMadeGood": 0, "environment.wind.angleTrueWater": 0.7853981635767779, "environment.depth.belowTransducer": 1.65, "navigation.courseOverGroundMagnetic": 4.206068965341505, "navigation.courseRhumbline.crossTrackError": 0, "propulsion.main.runTime":1776251}
+	},
+	{
 		"time" : "2022-07-30T15:21:28.467Z",
 		"client_id" : "vessels.urn:mrn:imo:mmsi:123456789",
 		"latitude" : 59.97688333333333,
@@ -357,7 +381,7 @@
 		"courseovergroundtrue" : 241.0,
 		"windspeedapparent" : 4.3,
 		"anglespeedapparent" : 74.0,
-		"status" : "moored",
+		"status" : "sailing",
 		"metrics" : {"environment.wind.speedTrue": 0, "navigation.speedThroughWater": 0, "performance.velocityMadeGood": 0, "environment.wind.angleTrueWater": 0.7853981635767779, "environment.depth.belowTransducer": 1.65, "navigation.courseOverGroundMagnetic": 4.206068965341505, "navigation.courseRhumbline.crossTrackError": 0}
 	},
 	{

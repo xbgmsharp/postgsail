@@ -53,10 +53,12 @@ SELECT
 
 \echo 'Insert new api.moorages for badges'
 INSERT INTO api.moorages
-    (id,"name",country,stay_id,stay_code,stay_duration,reference_count,latitude,longitude,geog,home_flag,notes,vessel_id)
+    (id,"name",country,stay_code,stay_duration,reference_count,latitude,longitude,geog,home_flag,notes,vessel_id)
     VALUES
-    (5,'Badge Mooring Pro',NULL,5,3,'11 days 00:39:56.418',1,NULL,NULL,NULL,false,'Badge Mooring Pro',current_setting('vessel.id', false)),
-    (6,'Badge Anchormaster',NULL,5,2,'26 days 00:49:56.418',1,NULL,NULL,NULL,false,'Badge Anchormaster',current_setting('vessel.id', false));
+    (8,'Badge Mooring Pro',NULL,3,'11 days 00:39:56.418',1,NULL,NULL,NULL,false,'Badge Mooring Pro',current_setting('vessel.id', false)),
+    (9,'Badge Anchormaster',NULL,2,'26 days 00:49:56.418',1,NULL,NULL,NULL,false,'Badge Anchormaster',current_setting('vessel.id', false));
+-- Update seq
+ALTER SEQUENCE api.moorages_id_seq RESTART 10;
 
 \echo 'Set config'
 SELECT set_config('user.email', 'demo+aava@openplotter.cloud', false);

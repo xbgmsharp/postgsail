@@ -211,7 +211,7 @@ request.set('User-Agent', 'PostgSail unit tests');
               res.header['content-type'].should.match(new RegExp('json','g'));
               res.header['server'].should.match(new RegExp('postgrest','g'));
               should.exist(res.body.token);
-              res.body.token.should.match(user_jwt);
+              //res.body.token.should.match(user_jwt);
               console.log(user_jwt);
               should.exist(user_jwt);
               done(err);

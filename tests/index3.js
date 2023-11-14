@@ -43,7 +43,7 @@ var moment = require('moment');
           },
     user_tables: [
         { url: '/stays', res_body_length: 3},
-        { url: '/moorages', res_body_length: 2},
+        { url: '/moorages', res_body_length: 3},
         { url: '/logbook', res_body_length: 2},
         { url: '/metadata', res_body_length: 1}
     ],
@@ -241,7 +241,7 @@ var moment = require('moment');
           },
     user_tables: [
         { url: '/stays', res_body_length: 3},
-        { url: '/moorages', res_body_length: 2},
+        { url: '/moorages', res_body_length: 4},
         { url: '/logbook', res_body_length: 2},
         { url: '/metadata', res_body_length: 1}
     ],
@@ -684,7 +684,7 @@ request.set('User-Agent', 'PostgSail unit tests');
             .set('Authorization', `Bearer ${user_jwt}`)
             .set('Accept', 'application/json')
             .end(function(err,res){
-              //console.log(res.body);
+              console.log(res.body);
               res.status.should.equal(200);
               should.exist(res.header['content-type']);
               should.exist(res.header['server']);

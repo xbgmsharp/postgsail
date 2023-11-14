@@ -125,80 +125,87 @@ time            | t
 active          | t
 
 api.logs_view
--[ RECORD 1 ]--------------
-id       | 2
-name     | Knipan to Ekenäs
-from     | Knipan
-to       | Ekenäs
-distance | 8.6862
-duration | PT18M
--[ RECORD 2 ]--------------
-id       | 1
-name     | patch log name 3
-from     | Bollsta
-to       | Slottsbacken
-distance | 7.17
-duration | PT25M
+-[ RECORD 1 ]----+-----------------------
+id               | 2
+name             | Norra hamnen to Ekenäs
+from             | Norra hamnen
+to               | Ekenäs
+distance         | 8.8968
+duration         | PT20M
+_from_moorage_id | 2
+_to_moorage_id   | 3
+-[ RECORD 2 ]----+-----------------------
+id               | 1
+name             | patch log name 3
+from             | patch moorage name 3
+to               | Norra hamnen
+distance         | 7.6447
+duration         | PT27M
+_from_moorage_id | 1
+_to_moorage_id   | 2
 
 api.stays
--[ RECORD 1 ]-------------------------------------------------
-id        | 1
-vessel_id | t
-active    | f
-name      | patch stay name 3
-latitude  | 60.077666666666666
-longitude | 23.530866666666668
-geog      | 0101000020E6100000B0DEBBE0E68737404DA938FBF0094E40
-arrived   | t
-departed  | t
-duration  | 
-stay_code | 2
-notes     | new stay note 3
--[ RECORD 2 ]-------------------------------------------------
-id        | 2
-vessel_id | t
-active    | f
-name      | Slottsbacken
-latitude  | 59.97688333333333
-longitude | 23.4321
-geog      | 0101000020E6100000029A081B9E6E37404A5658830AFD4D40
-arrived   | t
-departed  | t
-duration  | 
-stay_code | 1
-notes     | 
--[ RECORD 3 ]-------------------------------------------------
-id        | 3
-vessel_id | t
-active    | t
-name      | Ekenäs
-latitude  | 59.86
-longitude | 23.365766666666666
-geog      | 0101000020E6100000DE4C5FE2A25D3740AE47E17A14EE4D40
-arrived   | t
-departed  | f
-duration  | 
-stay_code | 2
-notes     | 
+-[ RECORD 1 ]--------------------------------------------------
+id         | 1
+vessel_id  | t
+moorage_id | 1
+active     | f
+name       | patch moorage name 3
+latitude   | 60.077666666666666
+longitude  | 23.530866666666668
+geog       | 0101000020E6100000B0DEBBE0E68737404DA938FBF0094E40
+arrived    | t
+departed   | t
+duration   | PT1M
+stay_code  | 2
+notes      | new stay note 3
+-[ RECORD 2 ]--------------------------------------------------
+id         | 2
+vessel_id  | t
+moorage_id | 2
+active     | f
+name       | Norra hamnen
+latitude   | 59.97688333333333
+longitude  | 23.4321
+geog       | 0101000020E6100000029A081B9E6E37404A5658830AFD4D40
+arrived    | t
+departed   | t
+duration   | PT2M
+stay_code  | 4
+notes      | 
+-[ RECORD 3 ]--------------------------------------------------
+id         | 3
+vessel_id  | t
+moorage_id | 3
+active     | t
+name       | Ekenäs
+latitude   | 59.86
+longitude  | 23.365766666666666
+geog       | 0101000020E6100000DE4C5FE2A25D3740AE47E17A14EE4D40
+arrived    | t
+departed   | f
+duration   | 
+stay_code  | 1
+notes      | 
 
 stays_view
--[ RECORD 1 ]+------------------
+-[ RECORD 1 ]+---------------------
 id           | 2
 name         | t
-moorage      | Slottsbacken
+moorage      | Norra hamnen
 moorage_id   | 2
-duration     | PT3M
-stayed_at    | Unknown
-stayed_at_id | 1
+duration     | PT2M
+stayed_at    | Dock
+stayed_at_id | 4
 arrived      | t
 departed     | t
 notes        | 
--[ RECORD 2 ]+------------------
+-[ RECORD 2 ]+---------------------
 id           | 1
 name         | t
-moorage      | patch stay name 3
+moorage      | patch moorage name 3
 moorage_id   | 1
-duration     | PT2M
+duration     | PT1M
 stayed_at    | Anchor
 stayed_at_id | 2
 arrived      | t
@@ -210,44 +217,57 @@ api.moorages
 id              | 1
 vessel_id       | t
 name            | patch moorage name 3
-country         | fi
-stay_id         | 1
+country         | 
 stay_code       | 2
-stay_duration   | PT2M
+stay_duration   | PT1M
 reference_count | 1
-latitude        | 60.077666666666666
-longitude       | 23.530866666666668
-geog            | 0101000020E6100000B0DEBBE0E68737404DA938FBF0094E40
+latitude        | 60.0776666666667
+longitude       | 23.5308666666667
+geog            | 0101000020E6100000B9DEBBE0E687374052A938FBF0094E40
 home_flag       | t
 notes           | new moorage note 3
 -[ RECORD 2 ]---+---------------------------------------------------
 id              | 2
 vessel_id       | t
-name            | Slottsbacken
-country         | fi
-stay_id         | 2
-stay_code       | 1
-stay_duration   | PT3M
-reference_count | 1
-latitude        | 59.97688333333333
+name            | Norra hamnen
+country         | 
+stay_code       | 4
+stay_duration   | PT2M
+reference_count | 2
+latitude        | 59.9768833333333
 longitude       | 23.4321
-geog            | 0101000020E6100000029A081B9E6E37404A5658830AFD4D40
+geog            | 0101000020E6100000029A081B9E6E3740455658830AFD4D40
+home_flag       | f
+notes           | 
+-[ RECORD 3 ]---+---------------------------------------------------
+id              | 3
+vessel_id       | t
+name            | Ekenäs
+country         | fi
+stay_code       | 1
+stay_duration   | 
+reference_count | 1
+latitude        | 59.86
+longitude       | 23.3657666666667
+geog            | 0101000020E6100000E84C5FE2A25D3740AE47E17A14EE4D40
 home_flag       | f
 notes           | 
 
 api.moorages_view
 -[ RECORD 1 ]-------+---------------------
+id                  | 2
+moorage             | Norra hamnen
+default_stay        | Dock
+default_stay_id     | 4
+total_stay          | 0
+total_duration      | PT2M
+arrivals_departures | 2
+-[ RECORD 2 ]-------+---------------------
 id                  | 1
 moorage             | patch moorage name 3
 default_stay        | Anchor
 default_stay_id     | 2
 total_stay          | 0
-arrivals_departures | 1
--[ RECORD 2 ]-------+---------------------
-id                  | 2
-moorage             | Slottsbacken
-default_stay        | Unknown
-default_stay_id     | 1
-total_stay          | 0
+total_duration      | PT1M
 arrivals_departures | 1
 

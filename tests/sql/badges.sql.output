@@ -65,6 +65,7 @@ user_settings | {"boat" : "kapla", "recipient" : "First_kapla", "email" : "demo+
 
 Insert new api.moorages for badges
 INSERT 0 2
+ALTER SEQUENCE
 Set config
 -[ RECORD 1 ]---------------------------
 set_config | demo+aava@openplotter.cloud

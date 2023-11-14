@@ -60,12 +60,12 @@ SELECT m.id, m.name, m.mmsi, m.client_id, m.length, m.beam, m.height, m.ship_typ
 \echo 'api.logs_view'
 --SELECT * FROM api.logbook l;
 --SELECT * FROM api.logs_view l;
-SELECT l.id, l.name, l.from, l.to, l.distance, l.duration FROM api.logs_view AS l;
+SELECT l.id, l.name, l.from, l.to, l.distance, l.duration, l._from_moorage_id, l._to_moorage_id FROM api.logs_view AS l;
 --SELECT * FROM api.log_view l;
 
 \echo 'api.stays'
 --SELECT * FROM api.stays s;
-SELECT m.id, m.vessel_id IS NOT NULL AS vessel_id, m.active, m.name, m.latitude, m.longitude, m.geog, m.arrived IS NOT NULL AS arrived, m.departed IS NOT NULL AS departed, m.duration, m.stay_code, m.notes FROM api.stays AS m;
+SELECT m.id, m.vessel_id IS NOT NULL AS vessel_id, m.moorage_id, m.active, m.name, m.latitude, m.longitude, m.geog, m.arrived IS NOT NULL AS arrived, m.departed IS NOT NULL AS departed, m.duration, m.stay_code, m.notes FROM api.stays AS m;
 
 \echo 'stays_view'
 --SELECT * FROM api.stays_view s;
@@ -73,7 +73,7 @@ SELECT m.id, m.name IS NOT NULL AS name, m.moorage, m.moorage_id, m.duration, m.
 
 \echo 'api.moorages'
 --SELECT * FROM api.moorages m;
-SELECT m.id, m.vessel_id IS NOT NULL AS vessel_id, m.name, m.country, m.stay_id, m.stay_code, m.stay_duration, m.reference_count, m.latitude, m.longitude, m.geog, m.home_flag, m.notes FROM api.moorages AS m;
+SELECT m.id, m.vessel_id IS NOT NULL AS vessel_id, m.name, m.country, m.stay_code, m.stay_duration, m.reference_count, m.latitude, m.longitude, m.geog, m.home_flag, m.notes FROM api.moorages AS m;
 
 \echo 'api.moorages_view'
 SELECT * FROM api.moorages_view s;
