@@ -42,9 +42,10 @@ AS $reverse_geocode_py$
     def georeverse(geocoder, lon, lat, zoom="18"):
 	    # Make the request to the geocoder API
 	    # https://operations.osmfoundation.org/policies/nominatim/
+	    headers = {"Accept-Language": "en-US,en;q=0.5", "User-Agent": "PostgSail", "From": "xbgmsharp@gmail.com"}
 	    payload = {"lon": lon, "lat": lat, "format": "jsonv2", "zoom": zoom, "accept-language": "en"}
 	    # https://nominatim.org/release-docs/latest/api/Reverse/
-	    r = requests.get(url, headers = {"Accept-Language": "en-US,en;q=0.5"}, params=payload)
+	    r = requests.get(url, headers=headers, params=payload)
 
 	    # Parse response
 	    # If name is null fallback to address field tags: neighbourhood,suburb
@@ -373,11 +374,10 @@ AS $reverse_geoip_py$
     url = f'https://ipapi.co/{_ip}/json/'
     r = requests.get(url)
     #print(r.text)
-    # Return something boolean?
-    plpy.warning('IP [{}] [{}]'.format(_ip, r.status_code))
+    #plpy.notice('IP [{}] [{}]'.format(_ip, r.status_code))
     if r.status_code == 200:
         #plpy.notice('Got [{}] [{}]'.format(r.text, r.status_code))
-        return r.text;
+        return r.json();
     else:
         plpy.error('Failed to get ip details')
     return '{}'
@@ -432,3 +432,50 @@ IMMUTABLE STRICT;
 COMMENT ON FUNCTION
     public.geojson_py_fn
     IS 'Parse geojson using plpython3u (should be done in PGSQL)';
+
+DROP FUNCTION IF EXISTS overpass_py_fn;
+CREATE OR REPLACE FUNCTION overpass_py_fn(IN lon NUMERIC, IN lat NUMERIC,
+    OUT geo JSONB) RETURNS JSONB
+AS $overpass_py$
+    """
+    Return https://overpass-turbo.eu seamark details within 400m
+    https://overpass-turbo.eu/s/1D91
+    https://wiki.openstreetmap.org/wiki/Key:seamark:type
+    """
+    import requests
+    import json
+    import urllib.parse
+
+    headers = {'User-Agent': 'PostgSail', 'From': 'xbgmsharp@gmail.com'}
+    payload = """
+    [out:json][timeout:20];
+    nwr(around:400.0,{0},{1})->.all;
+    (
+        nwr.all["seamark:type"~"(mooring|harbour)"][~"^seamark:.*:category$"~"."];
+        nwr.all["seamark:type"~"(anchorage|anchor_berth|berth)"];
+        nwr.all["leisure"="marina"];
+        nwr.all["natural"~"(bay|beach)"];
+    );
+    out tags qt;
+    """.format(lat, lon)
+    data = urllib.parse.quote(payload, safe="");
+    url = f'https://overpass-api.de/api/interpreter?data={data}'.format(data)
+    r = requests.get(url, headers)
+    #print(r.text)
+    #plpy.notice(url)
+    plpy.notice('overpass-api coord lon[{}] lat[{}] [{}]'.format(lon, lat, r.status_code))
+    if r.status_code == 200 and "elements" in r.json():
+        r_dict = r.json()
+        plpy.notice('overpass-api Got [{}]'.format(r_dict["elements"]))
+        if r_dict["elements"]:
+            if "tags" in r_dict["elements"][0] and r_dict["elements"][0]["tags"]:
+                return r_dict["elements"][0]["tags"]; # return the first element
+        return '{}'
+    else:
+        plpy.notice('overpass-api Failed to get overpass-api details')
+    return '{}'
+$overpass_py$ IMMUTABLE strict TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
+-- Description
+COMMENT ON FUNCTION
+    public.overpass_py_fn
+    IS 'Return https://overpass-turbo.eu seamark details within 300m using plpython3u';
