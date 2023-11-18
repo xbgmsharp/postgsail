@@ -28,31 +28,31 @@ var moment = require("moment");
     name: "PostgSail unit test kapla",
     logs: {
       url: "/logs_view",
-      header: { name: "x-is-public", value: btoa("1,public_logs_list") },
+      header: { name: "x-is-public", value: btoa("kapla,public_logs_list,0") },
       payload: null,
       res: {},
     },
     log: {
       url: "/log_view?id=eq.1",
-      header: { name: "x-is-public", value: btoa("2,public_logs") },
+      header: { name: "x-is-public", value: btoa("kapla,public_logs,1") },
       payload: null,
       res: {},
     },
     monitoring: {
       url: "/monitoring_view",
-      header: { name: "x-is-public", value: btoa("1,public_monitoring") },
+      header: { name: "x-is-public", value: btoa("kapla,public_monitoring,0") },
       payload: null,
       res: {},
     },
     timelapse: {
       url: "/rpc/timelapse_fn",
-      header: { name: "x-is-public", value: btoa("1,public_timelapse") },
+      header: { name: "x-is-public", value: btoa("kapla,public_timelapse,1") },
       payload: null,
       res: {},
     },
     export_gpx: {
       url: "/rpc/export_logbook_gpx_fn",
-      header: { name: "x-is-public", value: btoa("1,public_logs") },
+      header: { name: "x-is-public", value: btoa("kapla,public_logs,0") },
       payload: null,
       res: {},
     },
@@ -62,31 +62,31 @@ var moment = require("moment");
     name: "PostgSail unit test, aava",
     logs: {
       url: "/logs_view",
-      header: { name: "x-is-public", value: btoa("2,public_logs_list") },
+      header: { name: "x-is-public", value: btoa("aava,public_logs_list,0") },
       payload: null,
       res: {},
     },
     log: {
-      url: "/log_view?id=eq.1",
-      header: { name: "x-is-public", value: btoa("3,public_logs") },
+      url: "/log_view?id=eq.3",
+      header: { name: "x-is-public", value: btoa("aava,public_logs,3") },
       payload: null,
       res: {},
     },
     monitoring: {
       url: "/monitoring_view",
-      header: { name: "x-is-public", value: btoa("2,public_monitoring") },
+      header: { name: "x-is-public", value: btoa("aava,public_monitoring,0") },
       payload: null,
       res: {},
     },
     timelapse: {
       url: "/rpc/timelapse_fn",
-      header: { name: "x-is-public", value: btoa("2,public_timelapse") },
+      header: { name: "x-is-public", value: btoa("aava,public_timelapse,0") },
       payload: null,
       res: {},
     },
     export_gpx: {
       url: "/rpc/export_logbook_gpx_fn",
-      header: { name: "x-is-public", value: btoa("2,public_logs") },
+      header: { name: "x-is-public", value: btoa("aava,public_logs,0") },
       payload: null,
       res: {},
     },
@@ -106,7 +106,7 @@ var moment = require("moment");
           .set(test.logs.header.name, test.logs.header.value)
           .set("Accept", "application/json")
           .end(function (err, res) {
-            res.status.should.equal(401);
+            res.status.should.equal(404);
             should.exist(res.header["content-type"]);
             should.exist(res.header["server"]);
             res.header["content-type"].should.match(new RegExp("json", "g"));
@@ -156,7 +156,7 @@ var moment = require("moment");
           .set("Accept", "application/json")
           .end(function (err, res) {
             console.log(res.text);
-            res.status.should.equal(401);
+            res.status.should.equal(404);
             should.exist(res.header["content-type"]);
             should.exist(res.header["server"]);
             res.header["content-type"].should.match(new RegExp("json", "g"));

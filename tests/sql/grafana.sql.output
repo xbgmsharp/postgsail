@@ -15,29 +15,27 @@ current_setting |
 
 link vessel and user based on current_setting
 -[ RECORD 1 ]----------------------------------------------------------------
-name      | kapla
-client_id | vessels.urn:mrn:signalk:uuid:5b4f7543-7153-4840-b139-761310b242fd
--[ RECORD 2 ]----------------------------------------------------------------
 name      | aava
 client_id | vessels.urn:mrn:imo:mmsi:787654321
+-[ RECORD 2 ]----------------------------------------------------------------
+name      | kapla
+client_id | vessels.urn:mrn:signalk:uuid:5b4f7543-7153-4840-b139-761310b242fd
 
 auth.accounts details
 -[ RECORD 1 ]-----+-----------------------------
-public_id         | t
 user_id           | t
-email             | demo+kapla@openplotter.cloud
-first             | First_kapla
-last              | Last_kapla
+email             | demo+aava@openplotter.cloud
+first             | first_aava
+last              | last_aava
 pass              | t
 role              | user_role
 telegram          | 
 pushover_user_key | 
 -[ RECORD 2 ]-----+-----------------------------
-public_id         | t
 user_id           | t
-email             | demo+aava@openplotter.cloud
-first             | first_aava
-last              | last_aava
+email             | demo+kapla@openplotter.cloud
+first             | First_kapla
+last              | Last_kapla
 pass              | t
 role              | user_role
 telegram          | 
