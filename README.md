@@ -25,7 +25,7 @@ postgsail-telegram-bot:
 - Automatically capture the details of your voyages (boat speed, heading, wind speed, etc).
 - Timelapse video your trips, with or without time control.
 - Add custom notes to your logs.
-- Export to CSV or GPX or KLM and download your logs.
+- Export to CSV, GPX, GeoJSON, KML and download your logs.
 - Aggregate your trip statistics: Longest voyage, time spent at anchorages, home ports etc.
 - See your moorages on a global map, with incoming and outgoing voyages from each trip.
 - Monitor your boat (position, depth, wind, temperature, battery charge status, etc.) remotely.
@@ -144,7 +144,7 @@ Next, to ingest data from signalk, you need to install [signalk-postgsail](https
 Also, if you like, you can import saillogger data using the postgsail helpers, [postgsail-helpers](https://github.com/xbgmsharp/postgsail-helpers).
 
 You might want to import your influxdb1 data as well, [outflux](https://github.com/timescale/outflux).
-Any taker on influxdb2 to PostgSail? It is definitely possible.
+For InfluxDB 2.x and 3.x. You will need to enable the 1.x APIs to use them. Consult the InfluxDB documentation for more details.
 
 Last, if you like, you can import the sample data from Signalk NMEA Plaka by running the tests.
 If everything goes well all tests pass successfully and you should receive a few notifications by email or PushOver or Telegram.
