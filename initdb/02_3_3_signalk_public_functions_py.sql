@@ -77,7 +77,7 @@ AS $reverse_geocode_py$
 	        else:
 	            if (zoom == 15):
 	                plpy.notice('georeverse recursive retry with lower zoom than:[{}], Response [{}]'.format(zoom , r.json()))
-	                return georeverse(geocoder, lon, lat, 14)
+	                return { "name": "n/a", "country_code": country_code }
 	            else:
 	                plpy.notice('georeverse recursive retry with lower zoom than:[{}], Response [{}]'.format(zoom , r.json()))
 	                return georeverse(geocoder, lon, lat, 15)
