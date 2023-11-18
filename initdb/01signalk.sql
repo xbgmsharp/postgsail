@@ -5,18 +5,18 @@
 -- https://groups.google.com/g/signalk/c/W2H15ODCic4
 --
 -- Description:
--- Insert data into table metadata from API using PostgREST
--- Insert data into table metrics from API using PostgREST
--- TimescaleDB Hypertable to store signalk metrics
--- pgsql functions to generate logbook, stays, moorages
+-- Insert data into table api.metadata from API using PostgREST
+-- Insert data into table api.metrics from API using PostgREST
+-- TimescaleDB Hypertable to store signalk metrics on table api.metrics
+-- pgsql functions to generate logbook, stays, moorages from table api.metrics
 -- CRON functions to process logbook, stays, moorages
--- python functions for geo reverse and send notification via email and/or pushover
+-- python functions for geo reverse and send notification via email, pushover, telegram
 -- Views statistics, timelapse, monitoring, logs
 -- Always store time in UTC
 ---------------------------------------------------------------------------
 
--- vessels signalk -(POST)-> metadata -> metadata_upsert -(trigger)-> metadata_upsert_trigger_fn (INSERT or UPDATE)
--- vessels signalk -(POST)-> metrics -> metrics -(trigger)-> metrics_fn new log,stay,moorage
+-- vessels signalk -(POST)-> metadata -> metadata_upsert_trigger -(BEFORE INSERT)-> metadata_upsert_trigger_fn (INSERT or UPDATE)
+-- vessels signalk -(POST)-> metrics -> metrics_trigger -(BEFORE INSERT)-> metrics_trigger_fn (INSERT or UPDATE new log,stay)
 
 ---------------------------------------------------------------------------
 
