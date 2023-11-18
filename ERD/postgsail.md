@@ -107,7 +107,6 @@ erDiagram
         text last "User last name with CONSTRAINT CHECK {NOT_NULL}"
         text pass "{NOT_NULL}"
         jsonb preferences
-        integer public_id "User public_id to allow mapping for anonymous access, could be use as well for as Grafana orgId {NOT_NULL}"
         name role "{NOT_NULL}"
         timestamp_without_time_zone updated_at "{NOT_NULL}"
         text user_id "{NOT_NULL}"
