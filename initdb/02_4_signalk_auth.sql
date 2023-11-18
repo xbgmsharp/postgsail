@@ -21,7 +21,6 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto"; -- provides cryptographic functions
 
 DROP TABLE IF EXISTS auth.accounts CASCADE;
 CREATE TABLE IF NOT EXISTS auth.accounts (
-  public_id     SERIAL UNIQUE NOT NULL,
   user_id       TEXT NOT NULL UNIQUE DEFAULT RIGHT(gen_random_uuid()::text, 12),
   email         CITEXT PRIMARY KEY CHECK ( email ~* '^.+@.+\..+$' ),
   first         TEXT NOT NULL CHECK (length(pass) < 512),
@@ -42,11 +41,7 @@ COMMENT ON TABLE
     auth.accounts
     IS 'users account table';
 -- Indexes
--- is unused index?
---CREATE INDEX accounts_role_idx ON auth.accounts (role);
 CREATE INDEX accounts_preferences_idx ON auth.accounts USING GIN (preferences);
-CREATE INDEX accounts_public_id_idx ON auth.accounts (public_id);
-COMMENT ON COLUMN auth.accounts.public_id IS 'User public_id to allow mapping for anonymous access, could be use as well for as Grafana orgId';
 COMMENT ON COLUMN auth.accounts.first IS 'User first name with CONSTRAINT CHECK';
 COMMENT ON COLUMN auth.accounts.last IS 'User last name with CONSTRAINT CHECK';
 
@@ -61,7 +56,7 @@ COMMENT ON TRIGGER accounts_moddatetime
 
 DROP TABLE IF EXISTS auth.vessels;
 CREATE TABLE IF NOT EXISTS auth.vessels (
-  vessel_id     TEXT NOT NULL UNIQUE DEFAULT RIGHT(gen_random_uuid()::text, 12),
+  vessel_id   TEXT NOT NULL UNIQUE DEFAULT RIGHT(gen_random_uuid()::text, 12),
 --  user_id       TEXT NOT NULL REFERENCES auth.accounts(user_id) ON DELETE RESTRICT,
   owner_email CITEXT PRIMARY KEY REFERENCES auth.accounts(email) ON DELETE RESTRICT,
 --  mmsi		    TEXT UNIQUE, -- Should be a numeric range between 100000000 and 800000000.
@@ -79,10 +74,6 @@ COMMENT ON TABLE
     auth.vessels
     IS 'vessels table link to accounts email user_id column';
 -- Indexes
--- is unused index?
---CREATE INDEX vessels_role_idx ON auth.vessels (role);
--- is unused index?
---CREATE INDEX vessels_name_idx ON auth.vessels (name);
 CREATE INDEX vessels_vesselid_idx ON auth.vessels (vessel_id);
 
 CREATE TRIGGER vessels_moddatetime
@@ -275,6 +266,8 @@ begin
     vessel_rec.role := 'vessel_role';
     vessel_rec.owner_email = vessel_email;
     vessel_rec.vessel_id = _vessel_id;
+    -- Update user settings with a public vessel name
+    PERFORM api.update_user_preferences_fn('{public_vessel}', vessel_name);
   END IF;
 
   -- Get app_jwt_secret

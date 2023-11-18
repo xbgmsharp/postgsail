@@ -38,7 +38,17 @@ grant execute on function api.pushover_fn(text,text) to api_anonymous;
 grant execute on function api.telegram_fn(text,text) to api_anonymous;
 grant execute on function api.telegram_otp_fn(text) to api_anonymous;
 --grant execute on function api.generate_otp_fn(text) to api_anonymous;
-grant execute on function api.ispublic_fn(integer,public_type) to api_anonymous;
+grant execute on function api.ispublic_fn(text,text,integer) to api_anonymous;
+grant execute on function api.timelapse_fn to api_anonymous;
+-- Allow read on TABLES on API schema
+--GRANT SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata,api.stays_at TO api_anonymous;
+-- Allow read on VIEWS on API schema
+--GRANT SELECT ON TABLE api.logs_view,api.moorages_view,api.stays_view TO api_anonymous;
+--GRANT SELECT ON TABLE api.log_view,api.moorage_view,api.stay_view,api.vessels_view TO api_anonymous;
+GRANT SELECT ON ALL TABLES IN SCHEMA api TO api_anonymous;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO api_anonymous;
+--grant execute on function public.st_asgeojson(record,text,integer,boolean) to api_anonymous;
+--grant execute on function public.st_makepoint(float,float) to api_anonymous;
 
 -- authenticator
 -- login role
@@ -97,9 +107,11 @@ GRANT SELECT ON TABLE public.process_queue TO user_role;
 -- To check?
 GRANT SELECT ON TABLE auth.vessels TO user_role;
 -- Allow users to update certain columns on specific TABLES on API schema
-GRANT UPDATE (name, notes) ON api.logbook TO user_role;
-GRANT UPDATE (name, notes, stay_code) ON api.stays TO user_role;
+GRANT UPDATE (name, _from, _to, notes) ON api.logbook TO user_role;
+GRANT UPDATE (name, notes, stay_code, active, departed) ON api.stays TO user_role;
 GRANT UPDATE (name, notes, stay_code, home_flag) ON api.moorages TO user_role;
+-- Allow users to remove logs and stays
+GRANT DELETE ON api.logbook,api.stays,api.moorages TO user_role;
 -- Allow EXECUTE on all FUNCTIONS on API and public schema
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA api TO user_role;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO user_role;
@@ -115,6 +127,7 @@ GRANT SELECT ON TABLE api.stats_logs_view TO user_role;
 GRANT SELECT ON TABLE api.stats_moorages_view TO user_role;
 GRANT SELECT ON TABLE api.eventlogs_view TO user_role;
 GRANT SELECT ON TABLE api.vessels_view TO user_role;
+GRANT SELECT ON TABLE api.moorages_stays_view TO user_role;
 
 -- Vessel:
 -- nologin
@@ -137,7 +150,8 @@ GRANT EXECUTE ON FUNCTION public.trip_in_progress_fn(text) to vessel_role;
 GRANT EXECUTE ON FUNCTION public.stay_in_progress_fn(text) to vessel_role;
 -- hypertable get_partition_hash ?!?
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA _timescaledb_internal TO vessel_role;
-
+-- on metrics st_makepoint
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO vessel_role;
 
 --- Scheduler:
 -- TODO: currently cron function are run as super user, switch to scheduler role.
@@ -209,6 +223,10 @@ CREATE POLICY api_scheduler_role ON api.metrics TO scheduler
 CREATE POLICY grafana_role ON api.metrics TO grafana
     USING (vessel_id = current_setting('vessel.id', false))
     WITH CHECK (false);
+-- Allow anonymous to select based on the vessel.id
+CREATE POLICY api_anonymous_role ON api.metrics TO api_anonymous
+    USING (vessel_id = current_setting('vessel.id', false))
+    WITH CHECK (false);
 
 -- Be sure to enable row level security on the table
 ALTER TABLE api.logbook ENABLE ROW LEVEL SECURITY;
@@ -231,6 +249,10 @@ CREATE POLICY api_scheduler_role ON api.logbook TO scheduler
     WITH CHECK (vessel_id = current_setting('vessel.id', false));
 -- Allow grafana to select based on the vessel.id
 CREATE POLICY grafana_role ON api.logbook TO grafana
+    USING (vessel_id = current_setting('vessel.id', false))
+    WITH CHECK (false);
+-- Allow anonymous to select based on the vessel.id
+CREATE POLICY api_anonymous_role ON api.logbook TO api_anonymous
     USING (vessel_id = current_setting('vessel.id', false))
     WITH CHECK (false);
 

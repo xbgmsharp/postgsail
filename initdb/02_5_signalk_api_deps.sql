@@ -20,7 +20,16 @@ COMMENT ON COLUMN api.metadata.vessel_id IS 'Link auth.vessels with api.metadata
 
 -- REFERENCE ship type with AIS type ?
 -- REFERENCE mmsi MID with country ?
-
+ALTER TABLE api.logbook ADD FOREIGN KEY (_from_moorage_id) REFERENCES api.moorages(id) ON DELETE RESTRICT;
+COMMENT ON COLUMN api.logbook._from_moorage_id IS 'Link api.moorages with api.logbook via FOREIGN KEY and REFERENCES';
+ALTER TABLE api.logbook ADD FOREIGN KEY (_to_moorage_id) REFERENCES api.moorages(id) ON DELETE RESTRICT;
+COMMENT ON COLUMN api.logbook._to_moorage_id IS 'Link api.moorages with api.logbook via FOREIGN KEY and REFERENCES';
+ALTER TABLE api.stays ADD FOREIGN KEY (moorage_id) REFERENCES api.moorages(id) ON DELETE RESTRICT;
+COMMENT ON COLUMN api.stays.moorage_id IS 'Link api.moorages with api.stays via FOREIGN KEY and REFERENCES';
+ALTER TABLE api.stays ADD FOREIGN KEY (stay_code) REFERENCES api.stays_at(stay_code) ON DELETE RESTRICT;
+COMMENT ON COLUMN api.stays.stay_code IS 'Link api.stays_at with api.stays via FOREIGN KEY and REFERENCES';
+ALTER TABLE api.moorages ADD FOREIGN KEY (stay_code) REFERENCES api.stays_at(stay_code) ON DELETE RESTRICT;
+COMMENT ON COLUMN api.moorages.stay_code IS 'Link api.stays_at with api.moorages via FOREIGN KEY and REFERENCES';
 
 -- List vessel
 --TODO add geojson with position
@@ -140,12 +149,11 @@ AS $user_settings$
         from (
             select a.email, a.first, a.last, a.preferences, a.created_at,
                 INITCAP(CONCAT (LEFT(first, 1), ' ', last)) AS username,
-                public.has_vessel_fn() as has_vessel,
+                public.has_vessel_fn() as has_vessel
                 --public.has_vessel_metadata_fn() as has_vessel_metadata,
-                a.public_id
             from auth.accounts a
             where email = current_setting('user.email')
-		) row;
+               ) row;
     END;
 $user_settings$ language plpgsql security definer;
 -- Description
@@ -287,15 +295,16 @@ COMMENT ON FUNCTION
     IS 'Update/Add logbook observations jsonb key pair value';
 
 CREATE TYPE public_type AS ENUM ('public_logs', 'public_logs_list', 'public_timelapse', 'public_monitoring', 'public_stats');
-CREATE FUNCTION api.ispublic_fn(IN id INTEGER, IN _type public_type) RETURNS BOOLEAN AS $ispublic$
+CREATE or replace FUNCTION api.ispublic_fn(IN boat TEXT, IN _type TEXT, IN _id INTEGER DEFAULT NULL) RETURNS BOOLEAN AS $ispublic$
 DECLARE
-    _id INTEGER := id;
-    rec record;
+    vessel TEXT := '^' || boat || '$';
+    anonymous BOOLEAN := False;
     valid_public_type BOOLEAN := False;
+    public_logs BOOLEAN := False;
 BEGIN
-    -- If _id is is not NULL and > 0
-    IF _id IS NULL OR _id < 1 THEN
-        RAISE WARNING '-> ispublic_fn invalid input %', _id;
+    -- If boat is not NULL
+    IF boat IS NULL THEN
+        RAISE WARNING '-> ispublic_fn invalid input %', boat;
         RETURN False;
     END IF;
     -- Check if public_type is valid enum
@@ -306,32 +315,35 @@ BEGIN
         RETURN False;
     END IF;
 
-    IF _type = 'public_logs' THEN
+    IF _type ~ '^public_(logs|timelapse)$' AND _id IS NOT NULL THEN
         WITH log as (
-            select vessel_id from api.logbook l where l.id = _id::INTEGER
+            SELECT vessel_id from api.logbook l where l.id = _id
         )
         SELECT EXISTS (
             SELECT l.vessel_id
             FROM auth.accounts a, auth.vessels v, jsonb_each_text(a.preferences) as prefs, log l
             WHERE v.vessel_id = l.vessel_id
                     AND a.email = v.owner_email
-                    AND prefs.key = 'public_logs'::TEXT
+                    AND a.preferences->>'public_vessel'::text ~* vessel
+                    AND prefs.key = _type::TEXT
                     AND prefs.value::BOOLEAN = true
-            ) into rec;
-        IF FOUND THEN
-            RETURN True;
-        END IF;
+            ) into anonymous;
+        RAISE WARNING '-> ispublic_fn public_logs output boat:[%], type:[%], result:[%]', boat, _type, anonymous;
+	    IF anonymous IS True THEN
+	        RETURN True;
+	    END IF;
     ELSE
-        SELECT EXISTS (
-            SELECT a.email, a.preferences
-                FROM auth.accounts a, jsonb_each_text(a.preferences) as prefs
-                WHERE a.public_id = _id
-                        AND prefs.key = '|| _type ||'::TEXT
-                        AND prefs.value::BOOLEAN = true
-            ) into rec;
-        IF FOUND THEN
-            RETURN True;
-        END IF;
+	    SELECT EXISTS (
+	        SELECT a.email
+	            FROM auth.accounts a, jsonb_each_text(a.preferences) as prefs
+	            WHERE a.preferences->>'public_vessel'::text ~* vessel
+	                    AND prefs.key = _type::TEXT
+	                    AND prefs.value::BOOLEAN = true
+	        ) into anonymous;
+	    RAISE WARNING '-> ispublic_fn output boat:[%], type:[%], result:[%]', boat, _type, anonymous;
+	    IF anonymous IS True THEN
+	        RETURN True;
+	    END IF;
     END IF;
     RETURN False;
 END
@@ -339,4 +351,4 @@ $ispublic$ language plpgsql security definer;
 -- Description
 COMMENT ON FUNCTION
     api.ispublic_fn
-    IS 'Is web page publicly accessible?';
+    IS 'Is web page publicly accessible by register boat name and/or logbook id';

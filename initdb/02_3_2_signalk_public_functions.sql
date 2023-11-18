@@ -1568,11 +1568,13 @@ CREATE OR REPLACE FUNCTION public.check_jwt() RETURNS void AS $$
 DECLARE
   _role name;
   _email text;
-  _mmsi name;
+  anonymous record;
   _path name;
   _vid text;
   _vname text;
+  boat TEXT;
   _pid INTEGER := 0; -- public_id
+  _pvessel TEXT := NULL; -- public_type
   _ptype TEXT := NULL; -- public_type
   _ppath BOOLEAN := False; -- public_path
   _pvalid BOOLEAN := False; -- public_valid
@@ -1605,16 +1607,19 @@ BEGIN
     END IF;
     -- Set session variables
     PERFORM set_config('user.id', account_rec.user_id, false);
-    --RAISE WARNING 'req path %', current_setting('request.path', true);
-    -- Function allow without defined vessel
-    -- openapi doc, user settings, otp code and vessel registration
     SELECT current_setting('request.path', true) into _path;
+    --RAISE WARNING 'req path %', current_setting('request.path', true);
+    -- Function allow without defined vessel like for anonymous role
+    IF _path ~ '^\/rpc\/(login|signup|recover|reset)$' THEN
+        RETURN;
+    END IF;
+    -- Function allow without defined vessel as user role
+    -- openapi doc, user settings, otp code and vessel registration
     IF _path = '/rpc/settings_fn'
         OR _path = '/rpc/register_vessel'
         OR _path = '/rpc/update_user_preferences_fn'
         OR _path = '/rpc/versions_fn'
         OR _path = '/rpc/email_fn'
-        OR _path = '/rpc/login'
         OR _path = '/' THEN
         RETURN;
     END IF;
@@ -1626,10 +1631,10 @@ BEGIN
     -- check if boat exist yet?
     IF vessel_rec.owner_email IS NULL THEN
         -- Return http status code 551 with message
-		RAISE sqlstate 'PT551' using
-		  message = 'Vessel Required',
-		  detail = 'Invalid vessel',
-		  hint = 'Unknown vessel';
+        RAISE sqlstate 'PT551' using
+            message = 'Vessel Required',
+            detail = 'Invalid vessel',
+            hint = 'Unknown vessel';
         --RETURN; -- ignore if not exist
     END IF;
     -- Redundant?
@@ -1662,80 +1667,85 @@ BEGIN
   ELSIF _role = 'api_anonymous' THEN
     RAISE WARNING 'public.check_jwt() api_anonymous';
     -- Check if path is the a valid allow anonymous path
-    SELECT current_setting('request.path', true) ~ '/(logs_view|log_view|rpc/timelapse_fn|monitoring_view|stats_logs_view|stats_moorages_view|rpc/stats_logs_fn)$' INTO _ppath;
+    SELECT current_setting('request.path', true) ~ '^/(logs_view|log_view|rpc/timelapse_fn|monitoring_view|stats_logs_view|stats_moorages_view|rpc/stats_logs_fn)$' INTO _ppath;
     if _ppath is True then
         -- Check is custom header is present and valid
-        select current_setting('request.headers', true)::json->>'x-is-public' into _pheader;
+        SELECT current_setting('request.headers', true)::json->>'x-is-public' into _pheader;
         RAISE WARNING 'public.check_jwt() api_anonymous _pheader [%]', _pheader;
         if _pheader is null then
             RAISE EXCEPTION 'Invalid public_header'
                 USING HINT = 'Stop being so evil and maybe you can log in';
         end if;
-        select convert_from(decode(_pheader, 'base64'), 'utf-8')
-                            ~ '\d+,public_(logs|logs_list|stats|timelapse|monitoring)$' into _pvalid;
+        SELECT convert_from(decode(_pheader, 'base64'), 'utf-8')
+                            ~ '\w+,public_(logs|logs_list|stats|timelapse|monitoring),\d+$' into _pvalid;
         RAISE WARNING 'public.check_jwt() api_anonymous _pvalid [%]', _pvalid;
         if _pvalid is null or _pvalid is False then
             RAISE EXCEPTION 'Invalid public_valid'
                 USING HINT = 'Stop being so evil and maybe you can log in';
         end if;
         WITH regex AS (
-            select regexp_match(
+            SELECT regexp_match(
                         convert_from(
                             decode(_pheader, 'base64'), 'utf-8'),
-                        '(\d+),(public_(logs|logs_list|stats|timelapse|monitoring))$') AS match
+                        '(\w+),(public_(logs|logs_list|stats|timelapse|monitoring)),(\d+)$') AS match
             )
-        SELECT match[1], match[2] into _pid, _ptype
+        SELECT match[1], match[2], match[4] into _pvessel, _ptype, _pid
             FROM regex;
-        RAISE WARNING 'public.check_jwt() api_anonymous [%] [%]', _pid, _ptype;
-        if _pid is not null and _pid > 0 then
-            -- Everything seem fine, get the vessel_id base on the id.
+        RAISE WARNING 'public.check_jwt() api_anonymous [%] [%] [%]', _pvessel, _ptype, _pid;
+        if _pvessel is not null and _ptype is not null then
+            -- Everything seem fine, get the vessel_id base on the vessel name.
             SELECT _ptype::name = any(enum_range(null::public_type)::name[]) INTO valid_public_type;
             IF valid_public_type IS False THEN
                 -- Ignore entry if type is invalid
                 RAISE EXCEPTION 'Invalid public_type'
                     USING HINT = 'Stop being so evil and maybe you can log in';
             END IF;
-            IF _ptype = 'public_logs' THEN
+            -- Check if boat name match public_vessel name
+            boat := '^' || _pvessel || '$';
+            IF _ptype ~ '^public_(logs|timelapse)$' AND _pid IS NOT NULL THEN
                 WITH log as (
-                    select vessel_id from api.logbook l where l.id = _pid::INTEGER
+                    SELECT vessel_id from api.logbook l where l.id = _pid
                 )
-                SELECT l.vessel_id into _vid
+                SELECT v.vessel_id, v.name into anonymous
                     FROM auth.accounts a, auth.vessels v, jsonb_each_text(a.preferences) as prefs, log l
                     WHERE v.vessel_id = l.vessel_id
-                            AND a.email = v.owner_email
-                            AND prefs.key = 'public_logs'::TEXT
-                            AND prefs.value::BOOLEAN = true;
-                IF FOUND THEN
-                    -- Set session variables
-                    PERFORM set_config('vessel.id', _vid, false);
+                        AND a.email = v.owner_email
+                        AND a.preferences->>'public_vessel'::text ~* boat
+                        AND prefs.key = _ptype::TEXT
+                        AND prefs.value::BOOLEAN = true;
+                RAISE WARNING '-> ispublic_fn public_logs output boat:[%], type:[%], result:[%]', _pvessel, _ptype, anonymous;
+                IF anonymous.vessel_id IS NOT NULL THEN
+                    PERFORM set_config('vessel.id', anonymous.vessel_id, false);
+                    PERFORM set_config('vessel.name', anonymous.name, false);
                     RETURN;
                 END IF;
             ELSE
-                SELECT v.vessel_id, v.name into _vid, _vname
-                    FROM auth.accounts a, auth.vessels v, jsonb_each_text(a.preferences) as prefs
-                    WHERE a.public_id = _pid::INTEGER
-                            AND a.email = v.owner_email
+                SELECT v.vessel_id, v.name into anonymous
+                        FROM auth.accounts a, auth.vessels v, jsonb_each_text(a.preferences) as prefs
+                        WHERE a.email = v.owner_email
+                            AND a.preferences->>'public_vessel'::text ~* boat
                             AND prefs.key = _ptype::TEXT
                             AND prefs.value::BOOLEAN = true;
-                IF FOUND THEN
-                    -- Set session variables
-                    PERFORM set_config('vessel.id', _vid, false);
-                    PERFORM set_config('vessel.name', _vname, false);
+                RAISE WARNING '-> ispublic_fn output boat:[%], type:[%], result:[%]', _pvessel, _ptype, anonymous;
+                IF anonymous.vessel_id IS NOT NULL THEN
+                    PERFORM set_config('vessel.id', anonymous.vessel_id, false);
+                    PERFORM set_config('vessel.name', anonymous.name, false);
                     RETURN;
                 END IF;
             END IF;
-            -- Reached if the user did not allow public access for '_ptype', return HTTP/401
-            --RAISE EXCEPTION 'Invalid anonymous access'
-            --    USING HINT = 'Stop being so evil and maybe you can log in';
-            RAISE insufficient_privilege USING MESSAGE = 'Invalid anonymous access';
-        end if; -- end anonymous path
-    end if;
+            RAISE sqlstate 'PT404' using message = 'unknown resource';
+        END IF; -- end anonymous path
+    END IF;
   ELSIF _role <> 'api_anonymous' THEN
     RAISE EXCEPTION 'Invalid role'
       USING HINT = 'Stop being so evil and maybe you can log in';
   END IF;
 END
 $$ language plpgsql security definer;
+-- Description
+COMMENT ON FUNCTION
+    public.check_jwt
+    IS 'PostgREST API db-pre-request check, set_config according to role (api_anonymous,vessel_role,user_role)';
 
 ---------------------------------------------------------------------------
 -- Function to trigger cron_jobs using API for tests.
