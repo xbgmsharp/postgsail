@@ -18,7 +18,7 @@ select current_database();
 \c signalk
 
 CREATE TABLE public.ne_10m_geography_marine_polys (
-	gid serial4 NOT NULL,
+	gid INT GENERATED ALWAYS AS IDENTITY NOT NULL,
 	featurecla TEXT NULL,
 	"name" TEXT NULL,
 	namealt TEXT NULL,

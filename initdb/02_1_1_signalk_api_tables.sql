@@ -8,7 +8,7 @@
 ---------------------------------------------------------------------------
 -- Metadata from signalk
 CREATE TABLE IF NOT EXISTS api.metadata(
-  id SERIAL PRIMARY KEY,
+  id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   name TEXT NULL,
   mmsi NUMERIC NULL,
   client_id TEXT NULL,
@@ -95,7 +95,7 @@ SELECT create_hypertable('api.metrics', 'time', chunk_time_interval => INTERVAL 
 -- Check unused index
 
 CREATE TABLE IF NOT EXISTS api.logbook(
-  id SERIAL PRIMARY KEY,
+  id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   vessel_id TEXT NOT NULL REFERENCES api.metadata(vessel_id) ON DELETE RESTRICT,
   active BOOLEAN DEFAULT false,
   name TEXT,
@@ -143,7 +143,7 @@ COMMENT ON COLUMN api.logbook.track_geojson IS 'store generated geojson with tra
 -- Stays
 -- virtual logbook by boat? 
 CREATE TABLE IF NOT EXISTS api.stays(
-  id SERIAL PRIMARY KEY,
+  id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   vessel_id TEXT NOT NULL REFERENCES api.metadata(vessel_id) ON DELETE RESTRICT,
   active BOOLEAN DEFAULT false,
   moorage_id INT NULL,
@@ -174,7 +174,7 @@ COMMENT ON COLUMN api.stays.duration IS 'Best to use standard ISO 8601';
 -- Moorages
 -- virtual logbook by boat? 
 CREATE TABLE IF NOT EXISTS api.moorages(
-  id SERIAL PRIMARY KEY,
+  id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   vessel_id TEXT NOT NULL REFERENCES api.metadata(vessel_id) ON DELETE RESTRICT,
   name TEXT,
   country TEXT,

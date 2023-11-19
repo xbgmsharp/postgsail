@@ -150,7 +150,7 @@ INSERT INTO public.email_templates VALUES
 
 -- table way
 CREATE TABLE IF NOT EXISTS public.process_queue (
-    id SERIAL PRIMARY KEY,
+    id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     channel TEXT NOT NULL,
     payload TEXT NOT NULL,
     ref_id TEXT NOT NULL,
