@@ -8,15 +8,15 @@ module.exports = {
     },
 
     rules: {
-      //"name-casing": ["error", "snake"],
+      "name-casing": ["error", "snake"],
       "prefer-jsonb-to-json": ["error"],
       "prefer-text-to-varchar": ["error"],
-      //"prefer-timestamptz-to-timestamp": ["error"],
-      //"prefer-identity-to-serial": ["error"],
+      "prefer-timestamptz-to-timestamp": ["error"],
+      "prefer-identity-to-serial": ["error"],
       //"name-inflection": ["error", "singular"],
     },
 
-    schemas: [{ name: "public" }, { name: "api" }],
+    schemas: [{ name: "public" }, { name: "api" },{ name: "auth" }],
 
     ignores: [],
   };
