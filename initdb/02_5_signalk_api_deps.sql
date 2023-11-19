@@ -107,9 +107,9 @@ AS $vessel$
             jsonb_build_object(
                 'name', coalesce(m.name, null),
                 'mmsi', coalesce(m.mmsi, null),
-                'created_at', v.created_at::timestamp(0),
-                'first_contact', coalesce(m.created_at::timestamp(0), null),
-                'last_contact', coalesce(m.time::timestamp(0), null),
+                'created_at', v.created_at,
+                'first_contact', coalesce(m.created_at, null),
+                'last_contact', coalesce(m.time, null),
                 'geojson', coalesce(ST_AsGeoJSON(geojson_t.*)::json, null)
             )::jsonb || api.vessel_details_fn()::jsonb
             INTO vessel
