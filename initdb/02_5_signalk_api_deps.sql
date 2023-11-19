@@ -46,7 +46,7 @@ CREATE OR REPLACE VIEW api.vessels_view WITH (security_invoker=true,security_bar
     SELECT
         v.name as name,
         v.mmsi as mmsi,
-        v.created_at::timestamp(0) as created_at,
+        v.created_at as created_at,
         m.last_contact as last_contact,
         ((NOW() AT TIME ZONE 'UTC' - m.last_contact::TIMESTAMPTZ) > INTERVAL '70 MINUTES') as offline,
         (NOW() AT TIME ZONE 'UTC' - m.last_contact::TIMESTAMPTZ) as duration
