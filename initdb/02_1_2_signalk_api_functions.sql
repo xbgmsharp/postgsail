@@ -41,8 +41,8 @@ CREATE OR REPLACE FUNCTION api.timelapse_fn(
             WITH logbook as (
                 SELECT track_geom
                     FROM api.logbook
-                    WHERE _from_time >= start_log::TIMESTAMP WITHOUT TIME ZONE
-                        AND _to_time <= end_date::TIMESTAMP WITHOUT TIME ZONE + interval '23 hours 59 minutes'
+                    WHERE _from_time >= start_log::TIMESTAMPTZ
+                        AND _to_time <= end_date::TIMESTAMPTZ + interval '23 hours 59 minutes'
                         AND track_geom IS NOT NULL
                     ORDER BY _from_time ASC
                 )
@@ -554,6 +554,7 @@ COMMENT ON FUNCTION
 DROP FUNCTION IF EXISTS api.export_moorages_gpx_fn;
 CREATE FUNCTION api.export_moorages_gpx_fn() RETURNS pg_catalog.xml AS $export_moorages_gpx$
     DECLARE
+        app_settings jsonb;
     BEGIN
         -- Gather url from app settings
         app_settings := get_app_url_fn();
@@ -605,13 +606,13 @@ CREATE OR REPLACE FUNCTION api.stats_logs_fn(
     IN end_date TEXT DEFAULT NULL,
     OUT stats JSON) RETURNS JSON AS $stats_logs$
     DECLARE
-        _start_date TIMESTAMP WITHOUT TIME ZONE DEFAULT '1970-01-01';
-        _end_date TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW();
+        _start_date TIMESTAMPTZ DEFAULT '1970-01-01';
+        _end_date TIMESTAMPTZ DEFAULT NOW();
     BEGIN
         IF start_date IS NOT NULL AND public.isdate(start_date::text) AND public.isdate(end_date::text) THEN
             RAISE WARNING '--> stats_fn, filter result stats by date [%]', start_date;
-            _start_date := start_date::TIMESTAMP WITHOUT TIME ZONE;
-            _end_date := end_date::TIMESTAMP WITHOUT TIME ZONE;
+            _start_date := start_date::TIMESTAMPTZ;
+            _end_date := end_date::TIMESTAMPTZ;
         END IF;
         RAISE NOTICE '--> stats_fn, _start_date [%], _end_date [%]', _start_date, _end_date;
         WITH
@@ -620,8 +621,8 @@ CREATE OR REPLACE FUNCTION api.stats_logs_fn(
             logs_view AS (
                 SELECT *
                     FROM api.logbook l
-                    WHERE _from_time >= _start_date::TIMESTAMP WITHOUT TIME ZONE
-                        AND _to_time <= _end_date::TIMESTAMP WITHOUT TIME ZONE + interval '23 hours 59 minutes'
+                    WHERE _from_time >= _start_date::TIMESTAMPTZ
+                        AND _to_time <= _end_date::TIMESTAMPTZ + interval '23 hours 59 minutes'
                 ),
             first_date AS (
                 SELECT _from_time as first_date from logs_view ORDER BY first_date ASC LIMIT 1
@@ -673,21 +674,21 @@ CREATE OR REPLACE FUNCTION api.stats_stays_fn(
     IN end_date TEXT DEFAULT NULL,
     OUT stats JSON) RETURNS JSON AS $stats_stays$
     DECLARE
-        _start_date TIMESTAMP WITHOUT TIME ZONE DEFAULT '1970-01-01';
-        _end_date TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW();
+        _start_date TIMESTAMPTZ DEFAULT '1970-01-01';
+        _end_date TIMESTAMPTZ DEFAULT NOW();
     BEGIN
         IF start_date IS NOT NULL AND public.isdate(start_date::text) AND public.isdate(end_date::text) THEN
             RAISE NOTICE '--> stats_stays_fn, custom filter result stats by date [%]', start_date;
-            _start_date := start_date::TIMESTAMP WITHOUT TIME ZONE;
-            _end_date := end_date::TIMESTAMP WITHOUT TIME ZONE;
+            _start_date := start_date::TIMESTAMPTZ;
+            _end_date := end_date::TIMESTAMPTZ;
         END IF;
         RAISE NOTICE '--> stats_stays_fn, _start_date [%], _end_date [%]', _start_date, _end_date;
         WITH
             moorages_log AS (
                 SELECT s.id as stays_id, m.id as moorages_id, *
                     FROM api.stays s, api.moorages m
-                    WHERE arrived >= _start_date::TIMESTAMP WITHOUT TIME ZONE
-                        AND departed <= _end_date::TIMESTAMP WITHOUT TIME ZONE + interval '23 hours 59 minutes'
+                    WHERE arrived >= _start_date::TIMESTAMPTZ
+                        AND departed <= _end_date::TIMESTAMPTZ + interval '23 hours 59 minutes'
                         AND s.id = m.stay_id
                 ),
 	        home_ports AS (
@@ -766,7 +767,7 @@ CREATE OR REPLACE FUNCTION api.delete_logbook_fn(IN _id integer) RETURNS BOOLEAN
         -- Update previous stays with the departed time from current stays
         --  and set the active state from current stays
         UPDATE api.stays
-            SET departed = current_stays_departed::timestamp without time zone,
+            SET departed = current_stays_departed::TIMESTAMPTZ,
                 active = current_stays_active
             WHERE vessel_id = current_setting('vessel.id', false)
                 AND id = previous_stays_id;

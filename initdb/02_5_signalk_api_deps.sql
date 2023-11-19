@@ -48,8 +48,8 @@ CREATE OR REPLACE VIEW api.vessels_view WITH (security_invoker=true,security_bar
         v.mmsi as mmsi,
         v.created_at::timestamp(0) as created_at,
         m.last_contact as last_contact,
-        ((NOW() AT TIME ZONE 'UTC' - m.last_contact::timestamp without time zone) > INTERVAL '70 MINUTES') as offline,
-        (NOW() AT TIME ZONE 'UTC' - m.last_contact::timestamp without time zone) as duration
+        ((NOW() AT TIME ZONE 'UTC' - m.last_contact::TIMESTAMPTZ) > INTERVAL '70 MINUTES') as offline,
+        (NOW() AT TIME ZONE 'UTC' - m.last_contact::TIMESTAMPTZ) as duration
     FROM auth.vessels v, metadata m
     WHERE v.owner_email = current_setting('user.email');
 -- Description

@@ -79,9 +79,9 @@ COMMENT ON FUNCTION
 
 CREATE OR REPLACE FUNCTION public.istimestamptz(text) RETURNS BOOLEAN AS
 $isdate$
-DECLARE x TIMESTAMP WITHOUT TIME ZONE;
+DECLARE x TIMESTAMPTZ;
 BEGIN
-    x = $1::TIMESTAMP WITHOUT TIME ZONE;
+    x = $1::TIMESTAMPTZ;
     RETURN TRUE;
 EXCEPTION WHEN others THEN
     RETURN FALSE;
@@ -92,7 +92,7 @@ LANGUAGE plpgsql IMMUTABLE;
 -- Description
 COMMENT ON FUNCTION
     public.istimestamptz
-    IS 'Check typeof value is TIMESTAMP WITHOUT TIME ZONE';
+    IS 'Check typeof value is TIMESTAMPTZ';
 
 ---------------------------------------------------------------------------
 -- JSON helpers

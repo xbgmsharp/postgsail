@@ -20,10 +20,10 @@ CREATE TABLE IF NOT EXISTS api.metadata(
   ship_type NUMERIC NULL,
   plugin_version TEXT NOT NULL,
   signalk_version TEXT NOT NULL,
-  time TIMESTAMP WITHOUT TIME ZONE NOT NULL, -- should be rename to last_update !?
+  time TIMESTAMPTZ NOT NULL, -- should be rename to last_update !?
   active BOOLEAN DEFAULT True, -- trigger monitor online/offline
-  created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 -- Description
 COMMENT ON TABLE
@@ -42,7 +42,7 @@ CREATE INDEX metadata_name_idx ON api.metadata (name);
 CREATE TYPE status AS ENUM ('sailing', 'motoring', 'moored', 'anchored');
 -- Table api.metrics
 CREATE TABLE IF NOT EXISTS api.metrics (
-  time TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+  time TIMESTAMPTZ NOT NULL,
   client_id TEXT NULL,
   vessel_id TEXT NOT NULL REFERENCES api.metadata(vessel_id) ON DELETE RESTRICT,
   latitude DOUBLE PRECISION NULL,
@@ -111,8 +111,8 @@ CREATE TABLE IF NOT EXISTS api.logbook(
   track_geom geometry(LINESTRING,4326) NULL,
   track_geog geography(LINESTRING) NULL,
   track_geojson JSONB NULL,
-  _from_time TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-  _to_time TIMESTAMP WITHOUT TIME ZONE NULL,
+  _from_time TIMESTAMPTZ NOT NULL,
+  _to_time TIMESTAMPTZ NULL,
   distance NUMERIC, -- meters?
   duration INTERVAL, -- duration in days and hours?
   avg_speed DOUBLE PRECISION NULL,
@@ -151,8 +151,8 @@ CREATE TABLE IF NOT EXISTS api.stays(
   latitude DOUBLE PRECISION NULL,
   longitude DOUBLE PRECISION NULL,
   geog GEOGRAPHY(POINT) NULL,
-  arrived TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-  departed TIMESTAMP WITHOUT TIME ZONE,
+  arrived TIMESTAMPTZ NOT NULL,
+  departed TIMESTAMPTZ,
   duration INTERVAL, -- duration in days and hours?
   stay_code INT DEFAULT 1, -- REFERENCES api.stays_at(stay_code),
   notes TEXT NULL

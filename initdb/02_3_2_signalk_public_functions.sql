@@ -27,8 +27,8 @@ CREATE OR REPLACE FUNCTION public.logbook_metrics_dwithin_fn(
             WHERE
                 m.latitude IS NOT NULL
                 AND m.longitude IS NOT NULL
-                AND m.time >= _start::TIMESTAMP WITHOUT TIME ZONE
-                AND m.time <= _end::TIMESTAMP WITHOUT TIME ZONE
+                AND m.time >= _start::TIMESTAMPTZ
+                AND m.time <= _end::TIMESTAMPTZ
                 AND vessel_id = current_setting('vessel.id', false)
                 AND ST_DWithin(
                     Geography(ST_MakePoint(m.longitude, m.latitude)),
@@ -60,8 +60,8 @@ CREATE OR REPLACE FUNCTION public.logbook_update_avg_fn(
             FROM api.metrics m
             WHERE m.latitude IS NOT NULL
                 AND m.longitude IS NOT NULL
-                AND m.time >= _start::TIMESTAMP WITHOUT TIME ZONE
-                AND m.time <= _end::TIMESTAMP WITHOUT TIME ZONE
+                AND m.time >= _start::TIMESTAMPTZ
+                AND m.time <= _end::TIMESTAMPTZ
                 AND vessel_id = current_setting('vessel.id', false);
         RAISE NOTICE '-> logbook_update_avg_fn avg for logbook id=%, avg_speed:%, max_speed:%, max_wind_speed:%, count:%', _id, avg_speed, max_speed, max_wind_speed, count_metric;
     END;
@@ -87,8 +87,8 @@ CREATE FUNCTION public.logbook_update_geom_distance_fn(IN _id integer, IN _start
                     FROM api.metrics m
                     WHERE m.latitude IS NOT NULL
                         AND m.longitude IS NOT NULL
-                        AND m.time >= _start::TIMESTAMP WITHOUT TIME ZONE
-                        AND m.time <= _end::TIMESTAMP WITHOUT TIME ZONE
+                        AND m.time >= _start::TIMESTAMPTZ
+                        AND m.time <= _end::TIMESTAMPTZ
                         AND vessel_id = current_setting('vessel.id', false)
                     ORDER BY m.time ASC
             )
@@ -151,8 +151,8 @@ CREATE FUNCTION public.logbook_update_geojson_fn(IN _id integer, IN _start text,
                 FROM api.metrics m
                 WHERE m.latitude IS NOT NULL
                     AND m.longitude IS NOT NULL
-                    AND time >= _start::TIMESTAMP WITHOUT TIME ZONE
-                    AND time <= _end::TIMESTAMP WITHOUT TIME ZONE
+                    AND time >= _start::TIMESTAMPTZ
+                    AND time <= _end::TIMESTAMPTZ
                     AND vessel_id = current_setting('vessel.id', false)
                 ORDER BY m.time ASC
             )
@@ -231,8 +231,8 @@ AS $logbook_update_gpx$
             FROM api.metrics m
             WHERE m.latitude IS NOT NULL
                 AND m.longitude IS NOT NULL
-                AND m.time >= log_rec._from_time::TIMESTAMP WITHOUT TIME ZONE
-                AND m.time <= log_rec._to_time::TIMESTAMP WITHOUT TIME ZONE
+                AND m.time >= log_rec._from_time::TIMESTAMPTZ
+                AND m.time <= log_rec._to_time::TIMESTAMPTZ
                 AND vessel_id = log_rec.vessel_id
             GROUP BY m.time
             ORDER BY m.time ASC;
@@ -256,7 +256,7 @@ AS $logbook_get_extra_json$
 				FROM api.metrics m,
 				     jsonb_each_text(m.metrics)
                 WHERE key ILIKE search
-                 AND time = _start::timestamp without time zone
+                 AND time = _start::TIMESTAMPTZ
                  AND vessel_id = current_setting('vessel.id', false)
         LOOP
             -- Engine Hours in seconds
@@ -268,7 +268,7 @@ AS $logbook_get_extra_json$
                         FROM api.metrics m,
                             jsonb_each_text(m.metrics)
                         WHERE key ILIKE metric_rec.key
-                            AND time = _end::timestamp without time zone
+                            AND time = _end::TIMESTAMPTZ
                             AND vessel_id = current_setting('vessel.id', false)
                 ),
                 metric AS (
@@ -304,7 +304,7 @@ CREATE FUNCTION logbook_update_extra_json_fn(IN _id integer, IN _start text, IN 
 				FROM api.metrics m,
 				     jsonb_each_text(m.metrics)
 				WHERE key ILIKE 'navigation.log'
-                    AND time = _start::timestamp without time zone
+                    AND time = _start::TIMESTAMPTZ
                     AND vessel_id = current_setting('vessel.id', false)
 			),
 			end_trip as (
@@ -313,7 +313,7 @@ CREATE FUNCTION logbook_update_extra_json_fn(IN _id integer, IN _start text, IN 
 				FROM api.metrics m,
 				     jsonb_each_text(m.metrics)
 				WHERE key ILIKE 'navigation.log'
-                    AND time = _end::timestamp without time zone
+                    AND time = _end::TIMESTAMPTZ
                     AND vessel_id = current_setting('vessel.id', false)
 			),
 			nm as (
@@ -330,7 +330,7 @@ CREATE FUNCTION logbook_update_extra_json_fn(IN _id integer, IN _start text, IN 
 				FROM api.metrics m,
 				     jsonb_each_text(m.metrics)
                 WHERE key ILIKE 'propulsion.%.runTime'
-                 AND time = _start::timestamp without time zone
+                 AND time = _start::TIMESTAMPTZ
                  AND vessel_id = current_setting('vessel.id', false)
         LOOP
 			-- Engine Hours in seconds
@@ -342,7 +342,7 @@ CREATE FUNCTION logbook_update_extra_json_fn(IN _id integer, IN _start text, IN 
 					FROM api.metrics m,
 					     jsonb_each_text(m.metrics)
 					WHERE key ILIKE metric_rec.key
-                        AND time = _end::timestamp without time zone
+                        AND time = _end::TIMESTAMPTZ
                         AND vessel_id = current_setting('vessel.id', false)
 			),
 			runtime AS (
@@ -425,11 +425,11 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
 
         -- Avoid/ignore/delete logbook stationary movement or time sync issue
         -- Check time start vs end
-        SELECT logbook_rec._to_time::timestamp without time zone < logbook_rec._from_time::timestamp without time zone INTO _invalid_time;
+        SELECT logbook_rec._to_time::TIMESTAMPTZ < logbook_rec._from_time::TIMESTAMPTZ INTO _invalid_time;
         -- Is distance is less than 0.010
         SELECT geo_rec._track_distance < 0.010 INTO _invalid_distance;
         -- Is duration is less than 100sec
-        SELECT (logbook_rec._to_time::timestamp without time zone - logbook_rec._from_time::timestamp without time zone) < (100::text||' secs')::interval INTO _invalid_interval;
+        SELECT (logbook_rec._to_time::TIMESTAMPTZ - logbook_rec._from_time::TIMESTAMPTZ) < (100::text||' secs')::interval INTO _invalid_interval;
         -- if stationary fix data metrics,logbook,stays,moorage
         IF _invalid_time IS True OR _invalid_distance IS True
             OR _invalid_interval IS True OR count_metric = avg_rec.count_metric THEN
@@ -438,8 +438,8 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
             -- Update metrics status to moored
             UPDATE api.metrics
                 SET status = 'moored'
-                WHERE time >= logbook_rec._from_time::TIMESTAMP WITHOUT TIME ZONE
-                    AND time <= logbook_rec._to_time::TIMESTAMP WITHOUT TIME ZONE
+                WHERE time >= logbook_rec._from_time::TIMESTAMPTZ
+                    AND time <= logbook_rec._to_time::TIMESTAMPTZ
                     AND vessel_id = current_setting('vessel.id', false);
             -- Update logbook
             UPDATE api.logbook
@@ -464,7 +464,7 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
             -- Update previous stays with the departed time from current stays
             --  and set the active state from current stays
             UPDATE api.stays
-                SET departed = current_stays_departed::timestamp without time zone,
+                SET departed = current_stays_departed::TIMESTAMPTZ,
                     active = current_stays_active
                 WHERE vessel_id = current_setting('vessel.id', false)
                     AND id = previous_stays_id;
@@ -498,7 +498,7 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         RAISE NOTICE 'Updating valid logbook entry [%] [%] [%]', logbook_rec.id, logbook_rec._from_time, logbook_rec._to_time;
         UPDATE api.logbook
             SET
-                duration = (logbook_rec._to_time::timestamp without time zone - logbook_rec._from_time::timestamp without time zone),
+                duration = (logbook_rec._to_time::TIMESTAMPTZ - logbook_rec._from_time::TIMESTAMPTZ),
                 avg_speed = avg_rec.avg_speed,
                 max_speed = avg_rec.max_speed,
                 max_wind_speed = avg_rec.max_wind_speed,
@@ -576,7 +576,7 @@ CREATE OR REPLACE FUNCTION process_stay_queue_fn(IN _id integer) RETURNS void AS
         UPDATE api.stays
             SET
                 name = concat(
-                            ROUND( EXTRACT(epoch from (stay_rec.departed::timestamp without time zone - stay_rec.arrived::timestamp without time zone)::INTERVAL / 86400) ),
+                            ROUND( EXTRACT(epoch from (stay_rec.departed::TIMESTAMPTZ - stay_rec.arrived::TIMESTAMPTZ)::INTERVAL / 86400) ),
                             ' days stay at ',
                             moorage.moorage_name,
                             ' in ',
@@ -585,7 +585,7 @@ CREATE OR REPLACE FUNCTION process_stay_queue_fn(IN _id integer) RETURNS void AS
                             TO_CHAR(stay_rec.departed, 'YYYY')
                         ),
                 moorage_id = moorage.moorage_id,
-                duration = (stay_rec.departed::timestamp without time zone - stay_rec.arrived::timestamp without time zone)::INTERVAL,
+                duration = (stay_rec.departed::TIMESTAMPTZ - stay_rec.arrived::TIMESTAMPTZ)::INTERVAL,
                 stay_code = moorage.moorage_type,
                 geog = Geography(ST_MakePoint(stay_rec.longitude, stay_rec.latitude))
             WHERE id = stay_rec.id;
@@ -677,7 +677,7 @@ CREATE OR REPLACE FUNCTION process_moorage_queue_fn(IN _id integer) RETURNS void
                     reference_count = moorage_rec.reference_count + 1,
                     stay_duration =
                         moorage_rec.stay_duration + 
-                        (stay_rec.departed::timestamp without time zone - stay_rec.arrived::timestamp without time zone)
+                        (stay_rec.departed::TIMESTAMPTZ - stay_rec.arrived::TIMESTAMPTZ)
                 WHERE id = moorage_rec.id;
         ELSE
             RAISE NOTICE 'Insert new moorage entry from stay %', stay_rec;
@@ -696,7 +696,7 @@ CREATE OR REPLACE FUNCTION process_moorage_queue_fn(IN _id integer) RETURNS void
                         coalesce(moorage_rec.country, null),
                         stay_rec.id,
                         stay_rec.stay_code,
-                        (stay_rec.departed::timestamp without time zone - stay_rec.arrived::timestamp without time zone),
+                        (stay_rec.departed::TIMESTAMPTZ - stay_rec.arrived::TIMESTAMPTZ),
                         1, -- default reference_count
                         stay_rec.latitude,
                         stay_rec.longitude,
@@ -1381,11 +1381,11 @@ CREATE OR REPLACE FUNCTION public.process_logbook_valid_fn(IN _id integer) RETUR
 
         -- Avoid/ignore/delete logbook stationary movement or time sync issue
         -- Check time start vs end
-        SELECT logbook_rec._to_time::timestamp without time zone < logbook_rec._from_time::timestamp without time zone INTO _invalid_time;
+        SELECT logbook_rec._to_time::TIMESTAMPTZ < logbook_rec._from_time::TIMESTAMPTZ INTO _invalid_time;
         -- Is distance is less than 0.010
         SELECT geo_rec._track_distance < 0.010 INTO _invalid_distance;
         -- Is duration is less than 100sec
-        SELECT (logbook_rec._to_time::timestamp without time zone - logbook_rec._from_time::timestamp without time zone) < (100::text||' secs')::interval INTO _invalid_interval;
+        SELECT (logbook_rec._to_time::TIMESTAMPTZ - logbook_rec._from_time::TIMESTAMPTZ) < (100::text||' secs')::interval INTO _invalid_interval;
         -- if stationary fix data metrics,logbook,stays,moorage
         IF _invalid_time IS True OR _invalid_distance IS True
             OR _invalid_interval IS True OR count_metric = avg_rec.count_metric THEN
@@ -1394,8 +1394,8 @@ CREATE OR REPLACE FUNCTION public.process_logbook_valid_fn(IN _id integer) RETUR
             -- Update metrics status to moored
             UPDATE api.metrics
                 SET status = 'moored'
-                WHERE time >= logbook_rec._from_time::TIMESTAMP WITHOUT TIME ZONE
-                    AND time <= logbook_rec._to_time::TIMESTAMP WITHOUT TIME ZONE
+                WHERE time >= logbook_rec._from_time::TIMESTAMPTZ
+                    AND time <= logbook_rec._to_time::TIMESTAMPTZ
                     AND vessel_id = current_setting('vessel.id', false);
             -- Update logbook
             UPDATE api.logbook
@@ -1421,7 +1421,7 @@ CREATE OR REPLACE FUNCTION public.process_logbook_valid_fn(IN _id integer) RETUR
             -- Update previous stays with the departed time from current stays
             --  and set the active state from current stays
             UPDATE api.stays
-                SET departed = current_stays_departed::timestamp without time zone,
+                SET departed = current_stays_departed::TIMESTAMPTZ,
                     active = current_stays_active
                 WHERE vessel_id = current_setting('vessel.id', false)
                     AND id = previous_stays_id;

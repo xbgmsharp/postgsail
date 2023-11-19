@@ -28,9 +28,9 @@ CREATE TABLE IF NOT EXISTS auth.accounts (
   pass          TEXT NOT NULL CHECK (length(pass) < 512),
   role          name NOT NULL CHECK (length(role) < 512),
   preferences   JSONB NULL DEFAULT '{"email_notifications":true}',
-  created_at    TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
-  updated_at    TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
-  connected_at  TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  connected_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT valid_email CHECK (length(email) > 5), -- Enforce at least 5 char, eg: a@b.io
   CONSTRAINT valid_first CHECK (length(first) > 1),
   CONSTRAINT valid_last CHECK (length(last) > 1),
@@ -64,8 +64,8 @@ CREATE TABLE IF NOT EXISTS auth.vessels (
   name        TEXT NOT NULL CHECK (length(name) >= 3 AND length(name) < 512),
 --  pass        text not null check (length(pass) < 512), -- unused
   role        name not null check (length(role) < 512),
-  created_at  TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
-  updated_at  TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 --  CONSTRAINT valid_length_mmsi CHECK (length(mmsi) < 10 OR length(mmsi) = 0)
   CONSTRAINT valid_range_mmsi CHECK (mmsi > 100000000 AND mmsi < 800000000)
 );

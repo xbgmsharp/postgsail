@@ -12,8 +12,8 @@ DROP TABLE IF EXISTS auth.otp;
 CREATE TABLE IF NOT EXISTS auth.otp (
   -- update email type to CITEXT, https://www.postgresql.org/docs/current/citext.html
   user_email CITEXT NOT NULL PRIMARY KEY REFERENCES auth.accounts(email) ON DELETE RESTRICT,
-  otp_pass VARCHAR(10) NOT NULL,
-  otp_timestamp TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
+  otp_pass TEXT NOT NULL,
+  otp_timestamp TIMESTAMPTZ DEFAULT NOW(),
   otp_tries SMALLINT NOT NULL DEFAULT '0'
 );
 -- Description

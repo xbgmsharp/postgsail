@@ -90,7 +90,7 @@ INSERT INTO public.email_templates VALUES
     E'Congratulations!\nYou have just connect your account to Pushover.\n'),
 ('email_otp',
     'Email verification',
-    E'Hello,\nPlease active your account using the following code: __OTP_CODE__.\nThe code is valid 15 minutes.\nSee more details at __APP_URL__/activate\nThe PostgSail Team',
+    E'Hello,\nPlease active your account using the following code: __OTP_CODE__.\nThe code is valid 15 minutes.\nThe PostgSail Team',
     'Email verification',
     E'Congratulations!\nPlease validate your account. Check your email!'),
 ('email_valid',
@@ -154,8 +154,8 @@ CREATE TABLE IF NOT EXISTS public.process_queue (
     channel TEXT NOT NULL,
     payload TEXT NOT NULL,
     ref_id TEXT NOT NULL,
-    stored TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    processed TIMESTAMP WITHOUT TIME ZONE DEFAULT NULL
+    stored TIMESTAMPTZ NOT NULL,
+    processed TIMESTAMPTZ DEFAULT NULL
 );
 -- Description
 COMMENT ON TABLE
