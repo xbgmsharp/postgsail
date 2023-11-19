@@ -9,7 +9,6 @@ Expanded display is on.
 vessel_id | t
 
 Insert new api.logbook for badges
-INSERT 0 2
 Set config
 -[ RECORD 1 ]----------------------------
 set_config | demo+kapla@openplotter.cloud
@@ -28,36 +27,24 @@ badges_geom_fn |
 badges_geom_fn | 
 
 Check badges for user
--[ RECORD 1 ]-----+------------------
+-[ RECORD 1 ]-----+----------------
 jsonb_object_keys | Helmsman
--[ RECORD 2 ]-----+------------------
+-[ RECORD 2 ]-----+----------------
 jsonb_object_keys | Wake Maker
--[ RECORD 3 ]-----+------------------
+-[ RECORD 3 ]-----+----------------
 jsonb_object_keys | Balearic Sea
--[ RECORD 4 ]-----+------------------
+-[ RECORD 4 ]-----+----------------
 jsonb_object_keys | Stormtrooper
--[ RECORD 5 ]-----+------------------
+-[ RECORD 5 ]-----+----------------
 jsonb_object_keys | Gulf of Finland
--[ RECORD 6 ]-----+------------------
+-[ RECORD 6 ]-----+----------------
 jsonb_object_keys | Helmsman
--[ RECORD 7 ]-----+------------------
+-[ RECORD 7 ]-----+----------------
 jsonb_object_keys | Wake Maker
--[ RECORD 8 ]-----+------------------
-jsonb_object_keys | Club Alaska
--[ RECORD 9 ]-----+------------------
+-[ RECORD 8 ]-----+----------------
 jsonb_object_keys | Stormtrooper
--[ RECORD 10 ]----+------------------
-jsonb_object_keys | Captain Award
--[ RECORD 11 ]----+------------------
-jsonb_object_keys | Caribbean Sea
--[ RECORD 12 ]----+------------------
-jsonb_object_keys | Gulf of Alaska
--[ RECORD 13 ]----+------------------
+-[ RECORD 9 ]-----+----------------
 jsonb_object_keys | Gulf of Finland
--[ RECORD 14 ]----+------------------
-jsonb_object_keys | Navigator Award
--[ RECORD 15 ]----+------------------
-jsonb_object_keys | Tropical Traveler
 
 Check details from vessel_id kapla
 -[ RECORD 1 ]-+-----------------------------------------------------------------------------------------------------------------
@@ -65,7 +52,6 @@ user_settings | {"boat" : "kapla", "recipient" : "First_kapla", "email" : "demo+
 
 Insert new api.moorages for badges
 INSERT 0 2
-ALTER SEQUENCE
 Set config
 -[ RECORD 1 ]---------------------------
 set_config | demo+aava@openplotter.cloud
