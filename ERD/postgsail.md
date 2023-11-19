@@ -5,12 +5,12 @@ erDiagram
         double_precision _from_lat
         double_precision _from_lng
         integer _from_moorage_id "Link api.moorages with api.logbook via FOREIGN KEY and REFERENCES"
-        timestamp_without_time_zone _from_time "{NOT_NULL}"
+        timestamp_with_time_zone _from_time "{NOT_NULL}"
         text _to
         double_precision _to_lat
         double_precision _to_lng
         integer _to_moorage_id "Link api.moorages with api.logbook via FOREIGN KEY and REFERENCES"
-        timestamp_without_time_zone _to_time
+        timestamp_with_time_zone _to_time
         boolean active
         double_precision avg_speed
         numeric distance "in NM"
@@ -32,7 +32,7 @@ erDiagram
         boolean active
         double_precision beam
         text client_id
-        timestamp_without_time_zone created_at "{NOT_NULL}"
+        timestamp_with_time_zone created_at "{NOT_NULL}"
         double_precision height
         integer id "{NOT_NULL}"
         double_precision length
@@ -41,8 +41,8 @@ erDiagram
         text plugin_version "{NOT_NULL}"
         numeric ship_type
         text signalk_version "{NOT_NULL}"
-        timestamp_without_time_zone time "{NOT_NULL}"
-        timestamp_without_time_zone updated_at "{NOT_NULL}"
+        timestamp_with_time_zone time "{NOT_NULL}"
+        timestamp_with_time_zone updated_at "{NOT_NULL}"
         text vessel_id "Link auth.vessels with api.metadata via FOREIGN KEY and REFERENCES {NOT_NULL}"
         text vessel_id "{NOT_NULL}"
     }
@@ -56,7 +56,7 @@ erDiagram
         jsonb metrics
         double_precision speedoverground
         status status "<sailing,motoring,moored,anchored>"
-        timestamp_without_time_zone time "{NOT_NULL}"
+        timestamp_with_time_zone time "{NOT_NULL}"
         text vessel_id "{NOT_NULL}"
         double_precision windspeedapparent
     }
@@ -80,8 +80,8 @@ erDiagram
 
     api_stays {
         boolean active
-        timestamp_without_time_zone arrived "{NOT_NULL}"
-        timestamp_without_time_zone departed
+        timestamp_with_time_zone arrived "{NOT_NULL}"
+        timestamp_with_time_zone departed
         interval duration "Best to use standard ISO 8601"
         geography geog "postgis geography type default SRID 4326 Unit: degres"
         integer id "{NOT_NULL}"
@@ -100,32 +100,32 @@ erDiagram
     }
 
     auth_accounts {
-        timestamp_without_time_zone connected_at "{NOT_NULL}"
-        timestamp_without_time_zone created_at "{NOT_NULL}"
+        timestamp_with_time_zone connected_at "{NOT_NULL}"
+        timestamp_with_time_zone created_at "{NOT_NULL}"
         citext email "{NOT_NULL}"
         text first "User first name with CONSTRAINT CHECK {NOT_NULL}"
         text last "User last name with CONSTRAINT CHECK {NOT_NULL}"
         text pass "{NOT_NULL}"
         jsonb preferences
         name role "{NOT_NULL}"
-        timestamp_without_time_zone updated_at "{NOT_NULL}"
+        timestamp_with_time_zone updated_at "{NOT_NULL}"
         text user_id "{NOT_NULL}"
     }
 
     auth_otp {
-        character_varying otp_pass "{NOT_NULL}"
-        timestamp_without_time_zone otp_timestamp
+        text otp_pass "{NOT_NULL}"
+        timestamp_with_time_zone otp_timestamp
         smallint otp_tries "{NOT_NULL}"
         citext user_email "{NOT_NULL}"
     }
 
     auth_vessels {
-        timestamp_without_time_zone created_at "{NOT_NULL}"
+        timestamp_with_time_zone created_at "{NOT_NULL}"
         numeric mmsi
         text name "{NOT_NULL}"
         citext owner_email "{NOT_NULL}"
         name role "{NOT_NULL}"
-        timestamp_without_time_zone updated_at "{NOT_NULL}"
+        timestamp_with_time_zone updated_at "{NOT_NULL}"
         text vessel_id "{NOT_NULL}"
     }
 
@@ -217,9 +217,9 @@ erDiagram
         text channel "{NOT_NULL}"
         integer id "{NOT_NULL}"
         text payload "{NOT_NULL}"
-        timestamp_without_time_zone processed
+        timestamp_with_time_zone processed
         text ref_id "either user_id or vessel_id {NOT_NULL}"
-        timestamp_without_time_zone stored "{NOT_NULL}"
+        timestamp_with_time_zone stored "{NOT_NULL}"
     }
 
     public_spatial_ref_sys {
