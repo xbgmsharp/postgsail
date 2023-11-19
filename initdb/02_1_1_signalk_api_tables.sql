@@ -327,13 +327,13 @@ COMMENT ON TRIGGER
 DROP FUNCTION IF EXISTS metrics_trigger_fn;
 CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
     DECLARE
-        previous_status varchar;
-        previous_time TIMESTAMP WITHOUT TIME ZONE;
-        stay_code integer;
-        logbook_id integer;
-        stay_id integer;
-        valid_status BOOLEAN;
+        previous_metric record;
+        stay_code INTEGER;
+        logbook_id INTEGER;
+        stay_id INTEGER;
+        valid_status BOOLEAN := False;
         _vessel_id TEXT;
+        distance BOOLEAN := False;
     BEGIN
         --RAISE NOTICE 'metrics_trigger_fn';
         --RAISE WARNING 'metrics_trigger_fn [%] [%]', current_setting('vessel.id', true), NEW;
@@ -344,20 +344,20 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
         END IF;
         -- Boat metadata are check using api.metrics REFERENCES to api.metadata
         -- Fetch the latest entry to compare status against the new status to be insert
-        SELECT coalesce(m.status, 'moored'), m.time INTO previous_status, previous_time
+        SELECT * INTO previous_metric
             FROM api.metrics m 
             WHERE m.vessel_id IS NOT NULL
                 AND m.vessel_id = current_setting('vessel.id', true)
             ORDER BY m.time DESC LIMIT 1;
-        --RAISE NOTICE 'Metrics Status, New:[%] Previous:[%]', NEW.status, previous_status;
-        IF previous_time = NEW.time THEN
+        --RAISE NOTICE 'Metrics Status, New:[%] Previous:[%]', NEW.status, previous_metric.status;
+        IF previous_metric.time = NEW.time THEN
             -- Ignore entry if same time
-            RAISE WARNING 'Metrics Ignoring metric, vessel_id [%], duplicate time [%] = [%]', NEW.vessel_id, previous_time, NEW.time;
+            RAISE WARNING 'Metrics Ignoring metric, vessel_id [%], duplicate time [%] = [%]', NEW.vessel_id, previous_metric.time, NEW.time;
             RETURN NULL;
         END IF;
-        IF previous_time > NEW.time THEN
+        IF previous_metric.time > NEW.time THEN
             -- Ignore entry if new time is later than previous time
-            RAISE WARNING 'Metrics Ignoring metric, vessel_id [%], new time is older than previous_time [%] > [%]', NEW.vessel_id, previous_time, NEW.time;
+            RAISE WARNING 'Metrics Ignoring metric, vessel_id [%], new time is older than previous_metric.time [%] > [%]', NEW.vessel_id, previous_metric.time, NEW.time;
             RETURN NULL;
         END IF;
         -- Check if latitude or longitude are type double
@@ -390,6 +390,14 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
             RAISE WARNING 'Metrics Ignoring metric, vessel_id [%], latitude and longitude are equal [%] [%]', NEW.vessel_id, NEW.latitude, NEW.longitude;
             RETURN NULL;
         END IF;
+        -- Check distance with previous point is > 10km
+        --SELECT ST_Distance(
+        --    ST_MakePoint(NEW.latitude,NEW.longitude)::geography,
+        --    ST_MakePoint(previous_metric.latitude,previous_metric.longitude)::geography) > 10000 INTO distance;
+        --IF distance IS True THEN
+        --    RAISE WARNING 'Metrics Ignoring metric, distance between previous metric and new metric is too large, vessel_id [%] distance[%]', NEW.vessel_id, distance;
+        --    RETURN NULL;
+        --END IF;
         -- Check if status is null but speed is over 3knots set status to sailing
         IF NEW.status IS NULL AND NEW.speedoverground >= 3 THEN
             RAISE WARNING 'Metrics Unknown NEW.status, vessel_id [%], null status, set to sailing because of speedoverground is +3 from [%]', NEW.vessel_id, NEW.status;
@@ -399,13 +407,13 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
             RAISE WARNING 'Metrics Unknown NEW.status, vessel_id [%], null status, set to default moored from [%]', NEW.vessel_id, NEW.status;
             NEW.status := 'moored';
         END IF;
-        IF previous_status IS NULL THEN
+        IF previous_metric.status IS NULL THEN
             IF NEW.status = 'anchored' THEN
-                RAISE WARNING 'Metrics Unknown previous_status from vessel_id [%], [%] set to default current status [%]', NEW.vessel_id, previous_status, NEW.status;
-                previous_status := NEW.status;
+                RAISE WARNING 'Metrics Unknown previous_metric.status from vessel_id [%], [%] set to default current status [%]', NEW.vessel_id, previous_metric.status, NEW.status;
+                previous_metric.status := NEW.status;
             ELSE
-                RAISE WARNING 'Metrics Unknown previous_status from vessel_id [%], [%] set to default status moored vs [%]', NEW.vessel_id, previous_status, NEW.status;
-                previous_status := 'moored';
+                RAISE WARNING 'Metrics Unknown previous_metric.status from vessel_id [%], [%] set to default status moored vs [%]', NEW.vessel_id, previous_metric.status, NEW.status;
+                previous_metric.status := 'moored';
             END IF;
             -- Add new stay as no previous entry exist
             INSERT INTO api.stays 
@@ -433,10 +441,10 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
 
         -- Check the state and if any previous/current entry
         -- If change of state and new status is sailing or motoring
-        IF previous_status::TEXT <> NEW.status::TEXT AND
-            ( (NEW.status::TEXT = 'sailing' AND previous_status::TEXT <> 'motoring')
-             OR (NEW.status::TEXT = 'motoring' AND previous_status::TEXT <> 'sailing') ) THEN
-            RAISE WARNING 'Metrics Update status, try new logbook, New:[%] Previous:[%]', NEW.status, previous_status;
+        IF previous_metric.status::TEXT <> NEW.status::TEXT AND
+            ( (NEW.status::TEXT = 'sailing' AND previous_metric.status::TEXT <> 'motoring')
+             OR (NEW.status::TEXT = 'motoring' AND previous_metric.status::TEXT <> 'sailing') ) THEN
+            RAISE WARNING 'Metrics Update status, try new logbook, New:[%] Previous:[%]', NEW.status, previous_metric.status;
             -- Start new log
             logbook_id := public.trip_in_progress_fn(current_setting('vessel.id', true)::TEXT);
             IF logbook_id IS NULL THEN
@@ -453,7 +461,7 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                         _to_lat = NEW.latitude,
                         _to_lng = NEW.longitude
                     WHERE id = logbook_id;
-                RAISE WARNING 'Metrics Existing Logbook logbook_id [%] [%] [%]', logbook_id, NEW.status, NEW.time;
+                RAISE WARNING 'Metrics Existing logbook logbook_id [%] [%] [%]', logbook_id, NEW.status, NEW.time;
             END IF;
 
             -- End current stay
@@ -464,17 +472,20 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                         active = false,
                         departed = NEW.time
                     WHERE id = stay_id;
+                -- Add stay entry to process queue for further processing
+                INSERT INTO process_queue (channel, payload, stored, ref_id)
+                    VALUES ('new_stay', stay_id, now(), current_setting('vessel.id', true));
                 RAISE WARNING 'Metrics Updating Stay end current stay_id [%] [%] [%]', stay_id, NEW.status, NEW.time;
             ELSE
                 RAISE WARNING 'Metrics Invalid stay_id [%] [%]', stay_id, NEW.time;
             END IF;
 
         -- If change of state and new status is moored or anchored
-        ELSIF previous_status::TEXT <> NEW.status::TEXT AND
-            ( (NEW.status::TEXT = 'moored' AND previous_status::TEXT <> 'anchored')
-             OR (NEW.status::TEXT = 'anchored' AND previous_status::TEXT <> 'moored') ) THEN
+        ELSIF previous_metric.status::TEXT <> NEW.status::TEXT AND
+            ( (NEW.status::TEXT = 'moored' AND previous_metric.status::TEXT <> 'anchored')
+             OR (NEW.status::TEXT = 'anchored' AND previous_metric.status::TEXT <> 'moored') ) THEN
             -- Start new stays
-            RAISE WARNING 'Metrics Update status, try new stay, New:[%] Previous:[%]', NEW.status, previous_status;
+            RAISE WARNING 'Metrics Update status, try new stay, New:[%] Previous:[%]', NEW.status, previous_metric.status;
             stay_id := public.stay_in_progress_fn(current_setting('vessel.id', true)::TEXT);
             IF stay_id IS NULL THEN
                 RAISE WARNING 'Metrics Inserting new stay [%]', NEW.status;
@@ -488,16 +499,14 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                     (vessel_id, active, arrived, latitude, longitude, stay_code)
                     VALUES (current_setting('vessel.id', true), true, NEW.time, NEW.latitude, NEW.longitude, stay_code)
                     RETURNING id INTO stay_id;
-                -- Add stay entry to process queue for further processing
-                INSERT INTO process_queue (channel, payload, stored, ref_id)
-                    VALUES ('new_stay', stay_id, now(), current_setting('vessel.id', true));
-                RAISE WARNING 'Metrics Insert new stay, stay_id stay_id [%] [%] [%]', stay_id, NEW.status, NEW.time;
+                RAISE WARNING 'Metrics Insert new stay, stay_id [%] [%] [%]', stay_id, NEW.status, NEW.time;
             ELSE
                 RAISE WARNING 'Metrics Invalid stay_id [%] [%]', stay_id, NEW.time;
                 UPDATE api.stays
                     SET
                         active = false,
-                        departed = NEW.time
+                        departed = NEW.time,
+                        notes = 'Invalid stay?'
                     WHERE id = stay_id;
             END IF;
 
