@@ -18,7 +18,7 @@ SELECT set_config('vessel.id', :'vessel_id', false) IS NOT NULL as vessel_id;
 \echo 'Insert new api.logbook for badges'
 INSERT INTO api.logbook
     (id, active, "name", "_from", "_from_lat", "_from_lng", "_to", "_to_lat", "_to_lng", track_geom, track_geog, track_geojson, "_from_time", "_to_time", distance, duration, avg_speed, max_speed, max_wind_speed, notes, vessel_id)
-    VALUES
+    OVERRIDING SYSTEM VALUE VALUES
     (nextval('api.logbook_id_seq'), false, 'Tropics Zone', NULL, NULL, NULL, NULL, NULL, NULL, 'SRID=4326;LINESTRING (-63.151124640791096 14.01074681627324, -77.0912026418618 12.870995731013664)'::public.geometry, NULL, NULL, NOW(), NOW(), 123, NULL, NULL, NULL, NULL, NULL, current_setting('vessel.id', false)),
     (nextval('api.logbook_id_seq'), false, 'Alaska Zone', NULL, NULL, NULL, NULL, NULL, NULL, 'SRID=4326;LINESTRING (-143.5773697471158 59.4404631255976, -152.35402122385003 56.58243132943173)'::public.geometry, NULL, NULL, NOW(), NOW(), 1234, NULL, NULL, NULL, NULL, NULL, current_setting('vessel.id', false));
 
