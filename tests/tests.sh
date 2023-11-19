@@ -175,7 +175,8 @@ fi
 
 # Generate and update mermaid schema documentation
 /root/go/bin/mermerd --runConfig ../ERD/mermerdConfig.yaml
-#echo 0
+echo $?
+echo 0
 if [ $? -eq 0 ]; then
     cp postgsail.md ../ERD/postgsail.md
     echo postgsail.md OK
