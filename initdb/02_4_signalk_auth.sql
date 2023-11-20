@@ -103,12 +103,26 @@ create constraint trigger ensure_user_role_exists
   after insert or update on auth.accounts
   for each row
   execute procedure auth.check_role_exists();
+-- Description
+COMMENT ON TRIGGER ensure_user_role_exists
+  ON auth.accounts
+  IS 'ensure user role exists';
+
 -- trigger add queue new account
 CREATE TRIGGER new_account_entry AFTER INSERT ON auth.accounts
     FOR EACH ROW EXECUTE FUNCTION public.new_account_entry_fn();
+-- Description
+COMMENT ON TRIGGER new_account_entry
+  ON auth.accounts
+  IS 'Add new account in process_queue for further processing';
+
 -- trigger add queue new account OTP validation
 CREATE TRIGGER new_account_otp_validation_entry AFTER INSERT ON auth.accounts
     FOR EACH ROW EXECUTE FUNCTION public.new_account_otp_validation_entry_fn();
+-- Description
+COMMENT ON TRIGGER new_account_otp_validation_entry
+  ON auth.accounts
+  IS 'Add new account OTP validation in process_queue for further processing';
 
 -- trigger check role on vessel
 drop trigger if exists ensure_vessel_role_exists on auth.vessels;
@@ -119,6 +133,18 @@ create constraint trigger ensure_vessel_role_exists
 -- trigger add queue new vessel
 CREATE TRIGGER new_vessel_entry AFTER INSERT ON auth.vessels
     FOR EACH ROW EXECUTE FUNCTION public.new_vessel_entry_fn();
+-- Description
+COMMENT ON TRIGGER new_vessel_entry
+  ON auth.vessels
+  IS 'Add new vessel in process_queue for further processing';
+
+-- trigger add new vessel name as public_vessel user configuration
+CREATE TRIGGER new_vessel_public AFTER INSERT ON auth.vessels
+    FOR EACH ROW EXECUTE FUNCTION public.new_vessel_public_fn();
+-- Description
+COMMENT ON TRIGGER new_vessel_public
+  ON auth.vessels
+  IS 'Add new vessel name as public_vessel user configuration';
 
 create or replace function
 auth.encrypt_pass() returns trigger as $$
@@ -266,8 +292,6 @@ begin
     vessel_rec.role := 'vessel_role';
     vessel_rec.owner_email = vessel_email;
     vessel_rec.vessel_id = _vessel_id;
-    -- Update user settings with a public vessel name
-    PERFORM api.update_user_preferences_fn('{public_vessel}', vessel_name);
   END IF;
 
   -- Get app_jwt_secret

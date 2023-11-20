@@ -190,6 +190,14 @@ begin
 END;
 $new_vessel_entry$ language plpgsql;
 
+create function new_vessel_public_fn() returns trigger as $new_vessel_public$
+begin
+    -- Update user settings with a public vessel name
+    perform api.update_user_preferences_fn('{public_vessel}', NEW.name);
+    return NEW;
+END;
+$new_vessel_public$ language plpgsql;
+
 ---------------------------------------------------------------------------
 -- Tables Application Settings
 -- https://dba.stackexchange.com/questions/27296/storing-application-settings-with-different-datatypes#27297
