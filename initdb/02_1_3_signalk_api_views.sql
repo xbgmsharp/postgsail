@@ -51,7 +51,8 @@ CREATE OR REPLACE VIEW api.logs_view WITH (security_invoker=true,security_barrie
             duration as "duration",
             _from_moorage_id,_to_moorage_id
         FROM api.logbook l
-        WHERE _to_time IS NOT NULL
+        WHERE name IS NOT NULL
+            AND _to_time IS NOT NULL
         ORDER BY _from_time DESC;
 -- Description
 COMMENT ON VIEW
@@ -70,7 +71,8 @@ CREATE MATERIALIZED VIEW api.logs_mat_view AS
             duration as "duration",
             _from_moorage_id,_to_moorage_id
         FROM api.logbook l
-        WHERE _to_time IS NOT NULL
+        WHERE name IS NOT NULL
+            AND _to_time IS NOT NULL
         ORDER BY _from_time DESC;
 -- Description
 COMMENT ON MATERIALIZED VIEW
