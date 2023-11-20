@@ -581,11 +581,11 @@ DROP FUNCTION IF EXISTS moorage_delete_trigger_fn;
 CREATE FUNCTION moorage_delete_trigger_fn() RETURNS trigger AS $moorage_delete$
     DECLARE
     BEGIN
-        RAISE NOTICE 'moorages_delete_trigger_fn [%]', NEW;
-        DELETE FROM api.stays WHERE moorage_id = NEW.id;
-        DELETE FROM api.logbook WHERE _from_moorage_id = NEW.id;
-        DELETE FROM api.logbook WHERE _to_moorage_id = NEW.id;
-        RETURN NULL; -- result is ignored since this is an AFTER trigger
+        RAISE NOTICE 'moorages_delete_trigger_fn [%]', OLD;
+        DELETE FROM api.stays WHERE moorage_id = OLD.id;
+        DELETE FROM api.logbook WHERE _from_moorage_id = OLD.id;
+        DELETE FROM api.logbook WHERE _to_moorage_id = OLD.id;
+        RETURN OLD; -- result is ignored since this is an AFTER trigger
     END;
 $moorage_delete$ LANGUAGE plpgsql;
 -- Description
