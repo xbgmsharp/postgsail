@@ -3,7 +3,7 @@
 Effortless cloud based solution for storing and sharing your SignalK data. Allow you to effortlessly log your sails and monitor your boat with historical data.
 
 [![release](https://img.shields.io/github/release/xbgmsharp/postgsail?include_prereleases=&sort=semver&color=blue)](https://github.com/xbgmsharp/postgsail/releases/latest)
-[![License](https://img.shields.io/badge/License-MIT-blue)](#license)
+[![License](https://img.shields.io/github/license/xbgmsharp/postgsail)](#license)
 [![issues - postgsail](https://img.shields.io/github/issues/xbgmsharp/postgsail)](https://github.com/xbgmsharp/postgsail/issues)
 
 [![Test services db, api](https://github.com/xbgmsharp/postgsail/actions/workflows/db-test.yml/badge.svg)](https://github.com/xbgmsharp/postgsail/actions/workflows/db-test.yml)
@@ -222,4 +222,4 @@ Feel free to contribute.
 
 ### License
 
-This script is free software, Apache License Version 2.0.
+This is a free software, Apache License Version 2.0.
