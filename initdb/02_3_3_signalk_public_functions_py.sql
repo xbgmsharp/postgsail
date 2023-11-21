@@ -357,6 +357,10 @@ AS $urlencode_py$
     import urllib.parse
     return urllib.parse.quote(uri, safe="");
 $urlencode_py$ LANGUAGE plpython3u IMMUTABLE STRICT;
+-- Description
+COMMENT ON FUNCTION
+    public.urlencode_py_fn
+    IS 'python url encode using plpython3u';
 
 ---------------------------------------------------------------------------
 -- python
@@ -382,7 +386,6 @@ AS $reverse_geoip_py$
         plpy.error('Failed to get ip details')
     return '{}'
 $reverse_geoip_py$ LANGUAGE plpython3u;
-
 -- Description
 COMMENT ON FUNCTION
     public.reverse_geoip_py_fn
@@ -478,4 +481,4 @@ $overpass_py$ IMMUTABLE strict TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
 -- Description
 COMMENT ON FUNCTION
     public.overpass_py_fn
-    IS 'Return https://overpass-turbo.eu seamark details within 300m using plpython3u';
+    IS 'Return https://overpass-turbo.eu seamark details within 400m using plpython3u';
