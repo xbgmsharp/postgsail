@@ -255,7 +255,8 @@ CREATE FUNCTION metadata_upsert_trigger_fn() RETURNS trigger AS $metadata_upsert
                     ship_type = NEW.ship_type,
                     plugin_version = NEW.plugin_version,
                     signalk_version = NEW.signalk_version,
-                    time = NEW.time,
+                    -- time = NEW.time, ignore the time sent by the vessel
+                    time = NOW(), -- overwrite the time sent by the vessel
                     active = true
                 WHERE id = metadata_id;
             RETURN NULL; -- Ignore insert
@@ -264,7 +265,9 @@ CREATE FUNCTION metadata_upsert_trigger_fn() RETURNS trigger AS $metadata_upsert
                 -- set vessel_id from jwt if not present in INSERT query
                 NEW.vessel_id := current_setting('vessel.id');
             END IF;
-            -- Insert new vessel metadata and
+            -- Ignore and overwrite the time sent by the vessel
+            NEW.time := NOW();
+            -- Insert new vessel metadata
             RETURN NEW; -- Insert new vessel metadata
         END IF;
     END;
