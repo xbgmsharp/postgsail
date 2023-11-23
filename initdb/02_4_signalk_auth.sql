@@ -21,6 +21,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto"; -- provides cryptographic functions
 
 DROP TABLE IF EXISTS auth.accounts CASCADE;
 CREATE TABLE IF NOT EXISTS auth.accounts (
+  public_id     INT UNIQUE NOT NULL GENERATED ALWAYS AS IDENTITY,
   user_id       TEXT NOT NULL UNIQUE DEFAULT RIGHT(gen_random_uuid()::text, 12),
   email         CITEXT PRIMARY KEY CHECK ( email ~* '^.+@.+\..+$' ),
   first         TEXT NOT NULL CHECK (length(pass) < 512),
