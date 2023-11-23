@@ -127,6 +127,7 @@ COMMENT ON TABLE
     IS 'Stores generated logbook';
 COMMENT ON COLUMN api.logbook.distance IS 'in NM';
 COMMENT ON COLUMN api.logbook.extra IS 'computed signalk metrics of interest, runTime, currentLevel, etc';
+COMMENT ON COLUMN api.logbook.duration IS 'Best to use standard ISO 8601';
 
 -- Index todo!
 CREATE INDEX logbook_vessel_id_idx ON api.logbook (vessel_id);
@@ -255,7 +256,7 @@ CREATE FUNCTION metadata_upsert_trigger_fn() RETURNS trigger AS $metadata_upsert
                     ship_type = NEW.ship_type,
                     plugin_version = NEW.plugin_version,
                     signalk_version = NEW.signalk_version,
-                    -- time = NEW.time, ignore the time sent by the vessel
+                    -- time = NEW.time, ignore the time sent by the vessel as it is out of sync sometimes.
                     time = NOW(), -- overwrite the time sent by the vessel
                     active = true
                 WHERE id = metadata_id;
