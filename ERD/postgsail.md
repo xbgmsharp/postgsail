@@ -14,7 +14,7 @@ erDiagram
         boolean active
         double_precision avg_speed
         numeric distance "in NM"
-        interval duration
+        interval duration "Best to use standard ISO 8601"
         jsonb extra "computed signalk metrics of interest, runTime, currentLevel, etc"
         integer id "{NOT_NULL}"
         double_precision max_speed
@@ -107,6 +107,7 @@ erDiagram
         text last "User last name with CONSTRAINT CHECK {NOT_NULL}"
         text pass "{NOT_NULL}"
         jsonb preferences
+        integer public_id "{NOT_NULL}"
         name role "{NOT_NULL}"
         timestamp_with_time_zone updated_at "{NOT_NULL}"
         text user_id "{NOT_NULL}"
