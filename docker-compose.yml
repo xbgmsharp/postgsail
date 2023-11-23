@@ -45,6 +45,7 @@ services:
       PGRST_DB_ANON_ROLE: api_anonymous
       PGRST_OPENAPI_SERVER_PROXY_URI: http://127.0.0.1:3000
       PGRST_DB_PRE_REQUEST: public.check_jwt
+      PGRST_DB_POOL: 20
       PGRST_DB_URI: ${PGRST_DB_URI}
       PGRST_JWT_SECRET: ${PGRST_JWT_SECRET}
     depends_on:
