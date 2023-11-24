@@ -615,10 +615,10 @@ reverse_geocode_py_fn | {"name": "Spain", "country_code": "es"}
 
 Test geoip reverse_geoip_py_fn
 -[ RECORD 1 ]----------------------------------------------------------------------------------------------------------------------------------------------
-versions_fn | {"api_version" : "0.4.1", "sys_version" : "PostgreSQL 15.5", "timescaledb" : "2.12.2", "postgis" : "3.4.0", "postgrest" : "PostgREST 11.2.2"}
+versions_fn | {"api_version" : "0.5.0", "sys_version" : "PostgreSQL 15.5", "timescaledb" : "2.12.2", "postgis" : "3.4.0", "postgrest" : "PostgREST 11.2.2"}
 
 -[ RECORD 1 ]-----------------
-api_version | 0.4.1
+api_version | 0.5.0
 sys_version | PostgreSQL 15.5
 timescaledb | 2.12.2
 postgis     | 3.4.0
