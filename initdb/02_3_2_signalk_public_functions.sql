@@ -432,9 +432,10 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         SELECT (logbook_rec._to_time::TIMESTAMPTZ - logbook_rec._from_time::TIMESTAMPTZ) < (100::text||' secs')::interval INTO _invalid_interval;
         -- if stationary fix data metrics,logbook,stays,moorage
         IF _invalid_time IS True OR _invalid_distance IS True
-            OR _invalid_interval IS True OR count_metric = avg_rec.count_metric THEN
-            RAISE NOTICE '-> process_logbook_queue_fn invalid logbook data id [%], _invalid_time [%], _invalid_distance [%], _invalid_interval [%], count_metric [%]',
-                logbook_rec.id, _invalid_time, _invalid_distance, _invalid_interval, count_metric;
+            OR _invalid_interval IS True OR count_metric = avg_rec.count_metric
+            OR avg_rec.count_metric <= 2 THEN
+            RAISE NOTICE '-> process_logbook_queue_fn invalid logbook data id [%], _invalid_time [%], _invalid_distance [%], _invalid_interval [%], count_metric_in_zone [%], count_metric_log [%]',
+                logbook_rec.id, _invalid_time, _invalid_distance, _invalid_interval, count_metric, avg_rec.count_metric;
             -- Update metrics status to moored
             UPDATE api.metrics
                 SET status = 'moored'
