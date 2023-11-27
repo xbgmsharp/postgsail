@@ -76,7 +76,7 @@ INSERT INTO public.email_templates VALUES
 ('monitor_online',
     'Boat went Online',
     E'__BOAT__ just came online\nFind more details at __APP_URL__/boats\n',
-    'Boat went Offline',
+    'Boat went Online',
     E'__BOAT__ just came online\nFind more details at __APP_URL__/boats\n'),
 ('new_badge',
     'New Badge!',
@@ -193,7 +193,7 @@ $new_vessel_entry$ language plpgsql;
 create function new_vessel_public_fn() returns trigger as $new_vessel_public$
 begin
     -- Update user settings with a public vessel name
-    perform api.update_user_preferences_fn('{public_vessel}', NEW.name);
+    perform api.update_user_preferences_fn('{public_vessel}', regexp_replace(NEW.name, '\W+', '', 'g'));
     return NEW;
 END;
 $new_vessel_public$ language plpgsql;
