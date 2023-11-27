@@ -59,7 +59,7 @@ COMMENT ON VIEW
     api.logs_view
     IS 'Logs web view';
 
--- Initial try of MATERIALIZED VIEW
+-- Initial try of MATERIALIZED VIEW - does not support RLS
 CREATE MATERIALIZED VIEW api.logs_mat_view AS
     SELECT id,
             name as "name",
@@ -106,7 +106,6 @@ COMMENT ON VIEW
     IS 'Log web view';
 
 -- Stays web view
--- TODO group by month
 DROP VIEW IF EXISTS api.stays_view;
 CREATE OR REPLACE VIEW api.stays_view WITH (security_invoker=true,security_barrier=true) AS
     SELECT s.id,
@@ -125,10 +124,11 @@ CREATE OR REPLACE VIEW api.stays_view WITH (security_invoker=true,security_barri
         _to._from_moorage_id AS "departed_to_moorage_id",
         _to._from AS "departed_to_moorage_name",
         s.notes AS "notes"
-    FROM api.stays s, api.stays_at sa, api.moorages m
-    LEFT JOIN api.logbook As _from ON _from._from_moorage_id = m.id
-    LEFT JOIN api.logbook AS _to ON _to._to_moorage_id = m.id
+    FROM api.stays_at sa, api.moorages m, api.stays s
+    LEFT JOIN api.logbook AS _from ON _from._from_time = s.departed
+    LEFT JOIN api.logbook AS _to ON _to._to_time = s.arrived
     WHERE s.departed IS NOT NULL
+        AND _from._to_moorage_id IS NOT NULL
         AND s.name IS NOT NULL
         AND s.stay_code = sa.stay_code
         AND s.moorage_id = m.id
@@ -156,10 +156,11 @@ CREATE OR REPLACE VIEW api.stay_view WITH (security_invoker=true,security_barrie
         _to._from_moorage_id AS "departed_to_moorage_id",
         _to._from AS "departed_to_moorage_name",
         s.notes AS "notes"
-    FROM api.stays s, api.stays_at sa, api.moorages m
-    LEFT JOIN api.logbook As _from ON _from._from_moorage_id = m.id
-    LEFT JOIN api.logbook AS _to ON _to._to_moorage_id = m.id
+    FROM api.stays_at sa, api.moorages m, api.stays s
+    LEFT JOIN api.logbook AS _from ON _from._from_time = s.departed
+    LEFT JOIN api.logbook AS _to ON _to._to_time = s.arrived
     WHERE s.departed IS NOT NULL
+        AND _from._to_moorage_id IS NOT NULL
         AND s.name IS NOT NULL
         AND s.stay_code = sa.stay_code
         AND s.moorage_id = m.id
@@ -235,14 +236,20 @@ COMMENT ON VIEW
     IS 'Moorage details web view';
 
 DROP VIEW IF EXISTS api.moorages_stays_view;
-CREATE OR REPLACE VIEW api.moorages_stays_view WITH (security_invoker=true,security_barrier=true) AS -- TODO
+CREATE OR REPLACE VIEW api.moorages_stays_view WITH (security_invoker=true,security_barrier=true) AS
     SELECT
-        _to.id AS _to_id,_to._to_time,
-        _from.id AS _from_id,_from._from_time,
-        m.stay_code,m.stay_duration,m.id
-        FROM api.moorages m
-        LEFT JOIN api.logbook As _from ON _from._from_moorage_id = m.id
-        LEFT JOIN api.logbook AS _to ON _to._to_moorage_id = m.id
+        _to.id AS _to_id,
+        _to._to_time,
+        _from.id AS _from_id,
+        _from._from_time,
+        s.stay_code,s.duration,m.id
+	    FROM api.stays_at sa, api.moorages m, api.stays s
+	    LEFT JOIN api.logbook AS _from ON _from._from_time = s.departed
+	    LEFT JOIN api.logbook AS _to ON _to._to_time = s.arrived
+	    WHERE s.departed IS NOT NULL
+	        AND s.name IS NOT NULL
+	        AND s.stay_code = sa.stay_code
+	        AND s.moorage_id = m.id
         ORDER BY _to._to_time DESC;
 -- Description
 COMMENT ON VIEW
@@ -371,13 +378,14 @@ CREATE VIEW api.monitoring_view WITH (security_invoker=true,security_barrier=tru
         metrics-> 'environment.inside.temperature' AS insideTemperature,
         metrics-> 'environment.outside.temperature' AS outsideTemperature,
         metrics-> 'environment.wind.speedOverGround' AS windSpeedOverGround,
-        metrics-> 'environment.wind.directionGround' AS windDirectionGround,
+        metrics-> 'environment.wind.directionTrue' AS windDirectionTrue,
         metrics-> 'environment.inside.relativeHumidity' AS insideHumidity,
         metrics-> 'environment.outside.relativeHumidity' AS outsideHumidity,
         metrics-> 'environment.outside.pressure' AS outsidePressure,
         metrics-> 'environment.inside.pressure' AS insidePressure,
         metrics-> 'electrical.batteries.House.capacity.stateOfCharge' AS batteryCharge,
         metrics-> 'electrical.batteries.House.voltage' AS batteryVoltage,
+        metrics-> 'environment.depth.belowTransducer' AS depth,
         jsonb_build_object(
             'type', 'Feature',
             'geometry', ST_AsGeoJSON(st_makepoint(longitude,latitude))::jsonb,
