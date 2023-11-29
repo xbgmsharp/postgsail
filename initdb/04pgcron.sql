@@ -44,16 +44,20 @@ SELECT cron.schedule('cron_monitor_online', '*/10 * * * *', 'select public.cron_
 
 -- Notification
 -- Create a every 1 minute job cron_process_new_notification_queue_fn, new_account, new_vessel, _new_account_otp
-SELECT cron.schedule('cron_new_notification', '*/2 * * * *', 'select public.cron_process_new_notification_fn()');
+SELECT cron.schedule('cron_new_notification', '*/1 * * * *', 'select public.cron_process_new_notification_fn()');
 --UPDATE cron.job SET database = 'signalk' where jobname = 'cron_new_notification';
 
 -- Maintenance
--- Vacuum database at “At 01:01 on Sunday.”
-SELECT cron.schedule('cron_vacuum', '1 1 * * 0', 'VACUUM (FULL, VERBOSE, ANALYZE, INDEX_CLEANUP) api.logbook,api.stays,api.moorages,api.metadata,api.metrics;');
--- Remove all jobs log at “At 02:02 on Sunday.”
+-- Vacuum database schema api at "At 01:31 on Sunday."
+SELECT cron.schedule('cron_vacuum_api', '31 1 * * 0', 'VACUUM (FULL, VERBOSE, ANALYZE, INDEX_CLEANUP) api.logbook,api.stays,api.moorages,api.metadata,api.metrics;');
+-- Vacuum database schema auth at "At 01:01 on Sunday."
+SELECT cron.schedule('cron_vacuum_auth', '1 1 * * 0', 'VACUUM (FULL, VERBOSE, ANALYZE, INDEX_CLEANUP) auth.accounts,auth.vessels,auth.otp;');
+-- Remove old jobs log at "At 02:02 on Sunday."
 SELECT cron.schedule('job_run_details_cleanup', '2 2 * * 0', 'select public.job_run_details_cleanup_fn()');
--- Rebuilding indexes at “first day of each month at 23:01.”
-SELECT cron.schedule('cron_reindex', '1 23 1 * *', 'REINDEX TABLE api.logbook; REINDEX TABLE api.stays; REINDEX TABLE api.moorages; REINDEX TABLE api.metadata; REINDEX TABLE api.metrics;');
+-- Rebuilding indexes schema api at "first day of each month at 23:15."
+SELECT cron.schedule('cron_reindex_api', '15 23 1 * *', 'REINDEX TABLE api.logbook; REINDEX TABLE api.stays; REINDEX TABLE api.moorages; REINDEX TABLE api.metadata; REINDEX TABLE api.metrics;');
+-- Rebuilding indexes schema auth at "first day of each month at 23:01."
+SELECT cron.schedule('cron_reindex_auth', '1 23 1 * *', 'REINDEX TABLE auth.accounts; REINDEX TABLE auth.vessels; REINDEX TABLE auth.otp;');
 -- Any other maintenance require?
 
 -- OTP
@@ -76,7 +80,7 @@ UPDATE cron.job SET database = 'signalk';
 UPDATE cron.job SET username = 'username'; -- TODO update to scheduler, pending process_queue update
 --UPDATE cron.job SET username = 'username' where jobname = 'cron_vacuum'; -- TODO Update to superuser for vaccuum permissions
 UPDATE cron.job SET nodename = '/var/run/postgresql/'; -- VS default localhost ??
-UPDATE cron.job	SET database = 'postgresql' WHERE jobname = 'job_run_details_cleanup_fn';
+UPDATE cron.job	SET database = 'postgresql' WHERE jobname = 'job_run_details_cleanup';
 -- check job lists
 SELECT * FROM cron.job;
 -- unschedule by job id
