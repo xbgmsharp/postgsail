@@ -5,6 +5,7 @@ Effortless cloud based solution for storing and sharing your SignalK data. Allow
 [![release](https://img.shields.io/github/release/xbgmsharp/postgsail?include_prereleases=&sort=semver&color=blue)](https://github.com/xbgmsharp/postgsail/releases/latest)
 [![License](https://img.shields.io/github/license/xbgmsharp/postgsail)](#license)
 [![issues - postgsail](https://img.shields.io/github/issues/xbgmsharp/postgsail)](https://github.com/xbgmsharp/postgsail/issues)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 
 [![Test services db, api](https://github.com/xbgmsharp/postgsail/actions/workflows/db-test.yml/badge.svg)](https://github.com/xbgmsharp/postgsail/actions/workflows/db-test.yml)
 [![Test services db, api, web](https://github.com/xbgmsharp/postgsail/actions/workflows/frontend-test.yml/badge.svg)](https://github.com/xbgmsharp/postgsail/actions/workflows/frontend-test.yml)
@@ -18,6 +19,8 @@ postgsail-frontend:
 
 postgsail-telegram-bot:
 [![GitHub Release](https://img.shields.io/github/release/xbgmsharp/postgsail-telegram-bot.svg)](https://github.com/xbgmsharp/postgsail-telegram-bot/releases/latest)
+
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8124/badge)](https://www.bestpractices.dev/projects/8124)
 
 ## Features
 
