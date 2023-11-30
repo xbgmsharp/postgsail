@@ -32,9 +32,6 @@ COMMENT ON TABLE
 COMMENT ON COLUMN api.metadata.active IS 'trigger monitor online/offline';
 -- Index
 CREATE INDEX metadata_vessel_id_idx ON api.metadata (vessel_id);
---CREATE INDEX metadata_mmsi_idx ON api.metadata (mmsi);
--- is unused index ?
-CREATE INDEX metadata_name_idx ON api.metadata (name);
 
 ---------------------------------------------------------------------------
 -- Metrics from signalk
@@ -162,6 +159,7 @@ CREATE TABLE IF NOT EXISTS api.stays(
 COMMENT ON TABLE
     api.stays
     IS 'Stores generated stays';
+COMMENT ON COLUMN api.stays.duration IS 'Best to use standard ISO 8601';
 
 -- Index
 CREATE INDEX stays_vessel_id_idx ON api.stays (vessel_id);
@@ -169,7 +167,6 @@ CREATE INDEX stays_moorage_id_idx ON api.stays (moorage_id);
 CREATE INDEX ON api.stays USING GIST ( geog );
 COMMENT ON COLUMN api.stays.geog IS 'postgis geography type default SRID 4326 Unit: degres';
 -- With other SRID ERROR: Only lon/lat coordinate systems are supported in geography.
-COMMENT ON COLUMN api.stays.duration IS 'Best to use standard ISO 8601';
 
 ---------------------------------------------------------------------------
 -- Moorages
