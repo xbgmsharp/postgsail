@@ -442,7 +442,7 @@ CREATE OR REPLACE FUNCTION overpass_py_fn(IN lon NUMERIC, IN lat NUMERIC,
 AS $overpass_py$
     """
     Return https://overpass-turbo.eu seamark details within 400m
-    https://overpass-turbo.eu/s/1D91
+    https://overpass-turbo.eu/s/1E9I
     https://wiki.openstreetmap.org/wiki/Key:seamark:type
     """
     import requests
@@ -452,6 +452,12 @@ AS $overpass_py$
     headers = {'User-Agent': 'PostgSail', 'From': 'xbgmsharp@gmail.com'}
     payload = """
     [out:json][timeout:20];
+    is_in({0},{1})->.result_areas;
+    (
+      area.result_areas["seamark:type"~"(mooring|harbour)"][~"^seamark:.*:category$"~"."];
+      area.result_areas["leisure"="marina"];
+    );
+    out tags;
     nwr(around:400.0,{0},{1})->.all;
     (
         nwr.all["seamark:type"~"(mooring|harbour)"][~"^seamark:.*:category$"~"."];
@@ -459,7 +465,7 @@ AS $overpass_py$
         nwr.all["leisure"="marina"];
         nwr.all["natural"~"(bay|beach)"];
     );
-    out tags qt;
+    out tags;
     """.format(lat, lon)
     data = urllib.parse.quote(payload, safe="");
     url = f'https://overpass-api.de/api/interpreter?data={data}'.format(data)
