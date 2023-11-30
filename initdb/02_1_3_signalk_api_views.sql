@@ -392,7 +392,10 @@ CREATE VIEW api.monitoring_view WITH (security_invoker=true,security_barrier=tru
             'properties', jsonb_build_object(
                 'name', current_setting('vessel.name', false),
                 'latitude', m.latitude,
-                'longitude', m.longitude
+                'longitude', m.longitude,
+                'time', m.time,
+                'speedoverground', m.speedoverground,
+                'windspeedapparent', m.windspeedapparent
                 )::jsonb ) AS geojson,
         current_setting('vessel.name', false) AS name
     FROM api.metrics m
