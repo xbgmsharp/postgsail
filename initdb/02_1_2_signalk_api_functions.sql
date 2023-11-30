@@ -582,8 +582,8 @@ CREATE FUNCTION api.export_moorages_gpx_fn() RETURNS pg_catalog.xml AS $export_m
                             xmlelement(name type, 'WPT'),
                             xmlelement(name link, xmlattributes(concat(app_settings->>'app.url','moorage/', m.id) as href),
                                                         xmlelement(name text, m.name)),
-                            xmlelement(name extensions, xmlelement(name "postgsail:mooorage_id", 1),
-                                                        xmlelement(name "postgsail:link", concat(app_settings->>'app.url','moorage/', m.id)),
+                            xmlelement(name extensions, xmlelement(name "postgsail:mooorage_id", m.id),
+                                                        xmlelement(name "postgsail:link", concat(app_settings->>'app.url','/moorage/', m.id)),
                                                         xmlelement(name "opencpn:guid", uuid_generate_v4()),
                                                         xmlelement(name "opencpn:viz", '1'),
                                                         xmlelement(name "opencpn:scale_min_max", xmlattributes(true as UseScale, 30000 as ScaleMin, 0 as ScaleMax)
@@ -748,6 +748,12 @@ CREATE OR REPLACE FUNCTION api.delete_logbook_fn(IN _id integer) RETURNS BOOLEAN
             SET notes = 'mark for deletion'
             WHERE l.vessel_id = current_setting('vessel.id', false)
                 AND id = logbook_rec.id;
+        -- Update metrics status to moored
+        UPDATE api.metrics
+            SET status = 'moored'
+            WHERE time >= logbook_rec._from_time::TIMESTAMPTZ
+                AND time <= logbook_rec._to_time::TIMESTAMPTZ
+                AND vessel_id = current_setting('vessel.id', false);
         -- Get related stays
         SELECT id,departed,active INTO current_stays_id,current_stays_departed,current_stays_active
             FROM api.stays s
@@ -776,7 +782,11 @@ CREATE OR REPLACE FUNCTION api.delete_logbook_fn(IN _id integer) RETURNS BOOLEAN
         RAISE WARNING '-> delete_logbook_fn delete logbook [%]', logbook_rec.id;
         DELETE FROM api.stays WHERE id = current_stays_id;
         RAISE WARNING '-> delete_logbook_fn delete stays [%]', current_stays_id;
-        -- TODO should we subtract (-1) moorages ref count or reprocess it?!?
+        -- Clean up, Subtract (-1) moorages ref count
+        UPDATE api.moorages
+            SET reference_count = reference_count - 1
+            WHERE vessel_id = current_setting('vessel.id', false)
+                AND id = previous_stays_id;
         RETURN TRUE;
     END;
 $delete_logbook$ LANGUAGE plpgsql;
