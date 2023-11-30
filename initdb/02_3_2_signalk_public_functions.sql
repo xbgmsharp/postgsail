@@ -40,7 +40,7 @@ $logbook_metrics_dwithin$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
     public.logbook_metrics_dwithin_fn
-    IS 'Check if all entries for a logbook are in stationary movement with 15 meters';
+    IS 'Check if all entries for a logbook are in stationary movement with 50 meters';
 
 -- Update a logbook with avg data 
 -- TODO using timescale function
@@ -145,8 +145,9 @@ CREATE FUNCTION public.logbook_update_geojson_fn(IN _id integer, IN _start text,
                 time,
                 courseovergroundtrue,
                 speedoverground,
-                anglespeedapparent,
+                windspeedapparent,
                 longitude,latitude,
+                '' as notes,
                 st_makepoint(longitude,latitude) AS geo_point
                 FROM api.metrics m
                 WHERE m.latitude IS NOT NULL
@@ -383,6 +384,7 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         _invalid_time boolean;
         _invalid_interval boolean;
         _invalid_distance boolean;
+        _invalid_ratio boolean;
         count_metric numeric;
         previous_stays_id numeric;
         current_stays_departed text;
@@ -426,16 +428,18 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         -- Avoid/ignore/delete logbook stationary movement or time sync issue
         -- Check time start vs end
         SELECT logbook_rec._to_time::TIMESTAMPTZ < logbook_rec._from_time::TIMESTAMPTZ INTO _invalid_time;
-        -- Is distance is less than 0.010
-        SELECT geo_rec._track_distance < 0.010 INTO _invalid_distance;
+        -- Is distance is less or equal than 0.010
+        SELECT geo_rec._track_distance <= 0.010 INTO _invalid_distance;
         -- Is duration is less than 100sec
         SELECT (logbook_rec._to_time::TIMESTAMPTZ - logbook_rec._from_time::TIMESTAMPTZ) < (100::text||' secs')::interval INTO _invalid_interval;
+        -- Is within metrics represent more or equal than 60% of the total entry
+        SELECT (count_metric::NUMERIC / avg_rec.count_metric::NUMERIC) >= 0.60 INTO _invalid_ratio;
         -- if stationary fix data metrics,logbook,stays,moorage
         IF _invalid_time IS True OR _invalid_distance IS True
-            OR _invalid_interval IS True OR count_metric = avg_rec.count_metric
+            OR _invalid_interval IS True OR _invalid_ratio IS True
             OR avg_rec.count_metric <= 2 THEN
-            RAISE NOTICE '-> process_logbook_queue_fn invalid logbook data id [%], _invalid_time [%], _invalid_distance [%], _invalid_interval [%], count_metric_in_zone [%], count_metric_log [%]',
-                logbook_rec.id, _invalid_time, _invalid_distance, _invalid_interval, count_metric, avg_rec.count_metric;
+            RAISE NOTICE '-> process_logbook_queue_fn invalid logbook data id [%], _invalid_time [%], _invalid_distance [%], _invalid_interval [%], count_metric_in_zone [%], count_metric_log [%], _invalid_ratio [%]',
+                logbook_rec.id, _invalid_time, _invalid_distance, _invalid_interval, count_metric, avg_rec.count_metric, _invalid_ratio;
             -- Update metrics status to moored
             UPDATE api.metrics
                 SET status = 'moored'
@@ -1490,7 +1494,7 @@ CREATE OR REPLACE FUNCTION process_lat_lon_fn(IN lon NUMERIC, IN lat NUMERIC,
             END IF;
         END LOOP;
 
-        -- if with in 200m use existing name and stay_code
+        -- if with in 300m use existing name and stay_code
         -- else insert new entry
         IF existing_rec.id IS NOT NULL AND existing_rec.id > 0 THEN
             RAISE NOTICE '-> process_lat_lon_fn found close by moorage using existing name and stay_code %', existing_rec;
@@ -1501,7 +1505,7 @@ CREATE OR REPLACE FUNCTION process_lat_lon_fn(IN lon NUMERIC, IN lat NUMERIC,
             RAISE NOTICE '-> process_lat_lon_fn create new moorage';
             -- query overpass api to guess moorage type
             overpass := overpass_py_fn(lon::NUMERIC, lat::NUMERIC);
-            RAISE NOTICE '-> process_lat_lon_fn overpass name:[%] type:[%]', overpass->'name', overpass->'seamark:type';
+            RAISE NOTICE '-> process_lat_lon_fn overpass name:[%] seamark:type:[%]', overpass->'name', overpass->'seamark:type';
             moorage_type = 1; -- Unknown
             IF overpass->>'seamark:type' = 'harbour' AND overpass->>'seamark:harbour:category' = 'marina' then
                 moorage_type = 4; -- Dock
