@@ -22,7 +22,8 @@ COMMENT ON TABLE
     IS 'Stores temporal otp code for up to 15 minutes';
 -- Indexes
 CREATE INDEX otp_pass_idx ON auth.otp (otp_pass);
-CREATE INDEX otp_user_email_idx ON auth.otp (user_email);
+-- Duplicate Indexes
+--CREATE INDEX otp_user_email_idx ON auth.otp (user_email);
 
 DROP FUNCTION IF EXISTS public.generate_uid_fn;
 CREATE OR REPLACE FUNCTION public.generate_uid_fn(size INT) RETURNS TEXT
