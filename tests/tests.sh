@@ -133,6 +133,7 @@ else
     exit 1
 fi
 
+# Monitoring API unit tests
 $mymocha index4.js --reporter ./node_modules/mochawesome --reporter-options reportDir=output/,reportFilename=report4.html
 if [ $? -eq 0 ]; then
     echo OK
@@ -141,15 +142,7 @@ else
     exit 1
 fi
 
-$mymocha index5.js --reporter ./node_modules/mochawesome --reporter-options reportDir=output/,reportFilename=report5.html
-if [ $? -eq 0 ]; then
-    echo OK
-else
-    echo mocha index5.js
-    exit 1
-fi
-
-# Monitoring unit tests
+# Monitoring SQL unit tests
 psql ${PGSAIL_DB_URI} < sql/monitoring.sql > output/monitoring.sql.output
 diff sql/monitoring.sql.output output/monitoring.sql.output > /dev/null
 #diff -u sql/monitoring.sql.output output/monitoring.sql.output | wc -l
@@ -159,6 +152,28 @@ if [ $? -eq 0 ]; then
 else
     echo SQL monitoring.sql FAILED
     diff -u sql/monitoring.sql.output output/monitoring.sql.output
+    exit 1
+fi
+
+# Anonymous API unit tests
+$mymocha index5.js --reporter ./node_modules/mochawesome --reporter-options reportDir=output/,reportFilename=report5.html
+if [ $? -eq 0 ]; then
+    echo OK
+else
+    echo mocha index5.js
+    exit 1
+fi
+
+# Anonymous SQL unit tests
+psql ${PGSAIL_DB_URI} < sql/anonymous.sql > output/anonymous.sql.output
+diff sql/anonymous.sql.output output/anonymous.sql.output > /dev/null
+#diff -u sql/anonymous.sql.output output/anonymous.sql.output | wc -l
+#echo 0
+if [ $? -eq 0 ]; then
+    echo SQL anonymous.sql OK
+else
+    echo SQL anonymous.sql FAILED
+    diff -u sql/anonymous.sql.output output/anonymous.sql.output
     exit 1
 fi
 

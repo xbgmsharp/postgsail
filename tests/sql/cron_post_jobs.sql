@@ -31,7 +31,7 @@ SELECT name,_from_time IS NOT NULL AS _from_time,_to_time IS NOT NULL AS _to_tim
 \echo 'stays'
 SELECT count(*) FROM api.stays WHERE vessel_id = current_setting('vessel.id', false);
 \echo 'stays'
-SELECT active,name,geog,stay_code FROM api.stays WHERE vessel_id = current_setting('vessel.id', false);
+SELECT active,name IS NOT NULL AS name,geog,stay_code FROM api.stays WHERE vessel_id = current_setting('vessel.id', false);
 
 -- Test event logs view for user
 \echo 'eventlogs_view'

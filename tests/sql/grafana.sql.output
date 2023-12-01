@@ -148,7 +148,7 @@ id         | 3
 vessel_id  | t
 moorage_id | 
 active     | t
-name       | 
+name       | f
 latitude   | 59.86
 longitude  | 23.365766666666666
 geog       | 
@@ -162,7 +162,7 @@ id         | 1
 vessel_id  | t
 moorage_id | 1
 active     | f
-name       | patch stay name 3
+name       | t
 latitude   | 60.077666666666666
 longitude  | 23.530866666666668
 geog       | 0101000020E6100000B0DEBBE0E68737404DA938FBF0094E40
@@ -176,7 +176,7 @@ id         | 2
 vessel_id  | t
 moorage_id | 2
 active     | f
-name       | 0 days stay at Norra hamnen in November 2023
+name       | t
 latitude   | 59.97688333333333
 longitude  | 23.4321
 geog       | 0101000020E6100000029A081B9E6E37404A5658830AFD4D40

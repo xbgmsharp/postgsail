@@ -37,9 +37,9 @@ mmsi         |
 created_at   | t
 last_contact | t
 
--[ RECORD 1 ]------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 1 ]------+--------------------------------------------------------
 name               | kapla
-geojson            | {"type": "Feature", "geometry": {"type": "Point", "coordinates": [23.365766667, 59.86]}, "properties": {"name": "kapla", "latitude": 59.86, "longitude": 23.365766666666666}}
+geometry           | {"type": "Point", "coordinates": [23.365766667, 59.86]}
 watertemperature   | 
 insidetemperature  | 
 outsidetemperature | 
@@ -55,9 +55,9 @@ mmsi         | 787654321
 created_at   | t
 last_contact | t
 
--[ RECORD 1 ]------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 1 ]------+------------------------------------------------------------
 name               | aava
-geojson            | {"type": "Feature", "geometry": {"type": "Point", "coordinates": [2.2934791, 41.465333283]}, "properties": {"name": "aava", "latitude": 41.46533328333334, "longitude": 2.2934791}}
+geometry           | {"type": "Point", "coordinates": [2.2934791, 41.465333283]}
 watertemperature   | 280.25
 insidetemperature  | 
 outsidetemperature | 

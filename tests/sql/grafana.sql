@@ -65,7 +65,7 @@ SELECT l.id, l.name, l.from, l.to, l.distance, l.duration, l._from_moorage_id, l
 
 \echo 'api.stays'
 --SELECT * FROM api.stays s;
-SELECT m.id, m.vessel_id IS NOT NULL AS vessel_id, m.moorage_id, m.active, m.name, m.latitude, m.longitude, m.geog, m.arrived IS NOT NULL AS arrived, m.departed IS NOT NULL AS departed, m.duration, m.stay_code, m.notes FROM api.stays AS m;
+SELECT m.id, m.vessel_id IS NOT NULL AS vessel_id, m.moorage_id, m.active, m.name IS NOT NULL AS name, m.latitude, m.longitude, m.geog, m.arrived IS NOT NULL AS arrived, m.departed IS NOT NULL AS departed, m.duration, m.stay_code, m.notes FROM api.stays AS m;
 
 \echo 'stays_view'
 --SELECT * FROM api.stays_view s;

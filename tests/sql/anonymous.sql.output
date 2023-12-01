@@ -16,6 +16,9 @@ ispublic_fn | f
 ispublic_fn | t
 
 -[ RECORD 1 ]--
+ispublic_fn | f
+
+-[ RECORD 1 ]--
 ispublic_fn | t
 
 -[ RECORD 1 ]--

@@ -36,7 +36,7 @@ SET vessel.name = 'kapla';
 --SET vessel.client_id = 'vessels.urn:mrn:imo:mmsi:123456789';
 --SELECT * FROM api.vessels_view v;
 SELECT name, mmsi, created_at IS NOT NULL as created_at, last_contact IS NOT NULL as last_contact FROM api.vessels_view v;
-SELECT name,geojson,watertemperature,insidetemperature,outsidetemperature FROM api.monitoring_view m;
+SELECT name,geojson->'geometry' as geometry,watertemperature,insidetemperature,outsidetemperature FROM api.monitoring_view m;
 
 SET "user.email" = 'demo+aava@openplotter.cloud';
 SELECT set_config('vessel.id', :'vessel_id_aava', false) IS NOT NULL as vessel_id;
@@ -45,4 +45,4 @@ SET vessel.name = 'aava';
 --SET vessel.client_id = 'vessels.urn:mrn:imo:mmsi:787654321';
 --SELECT * FROM api.vessels_view v;
 SELECT name, mmsi, created_at IS NOT NULL as created_at, last_contact IS NOT NULL as last_contact FROM api.vessels_view v;
-SELECT name,geojson,watertemperature,insidetemperature,outsidetemperature FROM api.monitoring_view m;
+SELECT name,geojson->'geometry' as geometry,watertemperature,insidetemperature,outsidetemperature FROM api.monitoring_view m;
