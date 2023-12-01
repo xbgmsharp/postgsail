@@ -535,8 +535,8 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         -- Process badges
         RAISE NOTICE '-> debug process_logbook_queue_fn user_settings [%]', user_settings->>'email'::TEXT;
         PERFORM set_config('user.email', user_settings->>'email'::TEXT, false);
-        PERFORM badges_logbook_fn(logbook_rec);
-        PERFORM badges_geom_fn(logbook_rec);
+        PERFORM badges_logbook_fn(logbook_rec.id, logbook_rec._to_time::TEXT);
+        PERFORM badges_geom_fn(logbook_rec.id, logbook_rec._to_time::TEXT);
     END;
 $process_logbook_queue$ LANGUAGE plpgsql;
 -- Description
@@ -607,6 +607,9 @@ CREATE OR REPLACE FUNCTION process_stay_queue_fn(IN _id integer) RETURNS void AS
                     select sum(departed-arrived) from api.stays where moorage_id = moorage.moorage_id
                 )
             WHERE id = moorage.moorage_id;
+
+        -- Process badges
+        PERFORM badges_moorages_fn();
     END;
 $process_stay_queue$ LANGUAGE plpgsql;
 -- Description
@@ -1067,7 +1070,7 @@ COMMENT ON FUNCTION
 ---------------------------------------------------------------------------
 -- Badges
 --
-CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook record) RETURNS VOID AS $badges_logbook$
+CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook_id INTEGER, IN logbook_time TEXT) RETURNS VOID AS $badges_logbook$
     DECLARE
         _badges jsonb;
         _exist BOOLEAN := null;
@@ -1085,7 +1088,7 @@ CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook record) RETURNS V
             select count(*) into total from api.logbook l where vessel_id = current_setting('vessel.id', false);
             if total >= 1 then
                 -- Add badge
-                badge := '{"Helmsman": {"log": '|| logbook.id ||', "date":"' || logbook._to_time || '"}}';
+                badge := '{"Helmsman": {"log": '|| logbook_id ||', "date":"' || logbook_time || '"}}';
                 -- Get existing badges
                 SELECT preferences->'badges' INTO _badges FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
                 -- Merge badges
@@ -1105,11 +1108,11 @@ CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook record) RETURNS V
         --RAISE WARNING '-> Wake Maker %', _exist;
         if _exist is false then
             -- is 15 knot+ logbook?
-            select l.max_wind_speed into max_wind_speed from api.logbook l where l.id = logbook.id AND l.max_wind_speed >= 15 and vessel_id = current_setting('vessel.id', false);
+            select l.max_wind_speed into max_wind_speed from api.logbook l where l.id = logbook_id AND l.max_wind_speed >= 15 and vessel_id = current_setting('vessel.id', false);
             --RAISE WARNING '-> Wake Maker max_wind_speed %', max_wind_speed;
            if max_wind_speed >= 15 then
                 -- Create badge
-                badge := '{"Wake Maker": {"log": '|| logbook.id ||', "date":"' || logbook._to_time || '"}}';
+                badge := '{"Wake Maker": {"log": '|| logbook_id ||', "date":"' || logbook_time || '"}}';
                 --RAISE WARNING '-> Wake Maker max_wind_speed badge %', badge;
                 -- Get existing badges
                 SELECT preferences->'badges' INTO _badges FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
@@ -1130,11 +1133,11 @@ CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook record) RETURNS V
         SELECT (preferences->'badges'->'Stormtrooper') IS NOT NULL INTO _exist FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
         if _exist is false then
             --RAISE WARNING '-> Stormtrooper %', _exist;
-            select l.max_wind_speed into max_wind_speed from api.logbook l where l.id = logbook.id AND l.max_wind_speed >= 30 and vessel_id = current_setting('vessel.id', false);
+            select l.max_wind_speed into max_wind_speed from api.logbook l where l.id = logbook_id AND l.max_wind_speed >= 30 and vessel_id = current_setting('vessel.id', false);
             --RAISE WARNING '-> Stormtrooper max_wind_speed %', max_wind_speed;
             if max_wind_speed >= 30 then
                 -- Create badge
-                badge := '{"Stormtrooper": {"log": '|| logbook.id ||', "date":"' || logbook._to_time || '"}}';
+                badge := '{"Stormtrooper": {"log": '|| logbook_id ||', "date":"' || logbook_time || '"}}';
                 --RAISE WARNING '-> Stormtrooper max_wind_speed badge %', badge;
                 -- Get existing badges
                 SELECT preferences->'badges' INTO _badges FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
@@ -1154,10 +1157,10 @@ CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook record) RETURNS V
         -- Navigator Award = one logbook with distance over 100NM
         SELECT (preferences->'badges'->'Navigator Award') IS NOT NULL INTO _exist FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
         if _exist is false then
-            select l.distance into distance from api.logbook l where l.id = logbook.id AND l.distance >= 100 and vessel_id = current_setting('vessel.id', false);
+            select l.distance into distance from api.logbook l where l.id = logbook_id AND l.distance >= 100 and vessel_id = current_setting('vessel.id', false);
             if distance >= 100 then
                 -- Create badge
-                badge := '{"Navigator Award": {"log": '|| logbook.id ||', "date":"' || logbook._to_time || '"}}';
+                badge := '{"Navigator Award": {"log": '|| logbook_id ||', "date":"' || logbook_time || '"}}';
                 -- Get existing badges
                 SELECT preferences->'badges' INTO _badges FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
                 -- Merge badges
@@ -1178,7 +1181,7 @@ CREATE OR REPLACE FUNCTION public.badges_logbook_fn(IN logbook record) RETURNS V
             select sum(l.distance) into distance from api.logbook l where vessel_id = current_setting('vessel.id', false);
             if distance >= 1000 then
                 -- Create badge
-                badge := '{"Captain Award": {"log": '|| logbook.id ||', "date":"' || logbook._to_time || '"}}';
+                badge := '{"Captain Award": {"log": '|| logbook_id ||', "date":"' || logbook_time || '"}}';
                 -- Get existing badges
                 SELECT preferences->'badges' INTO _badges FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
                 -- Merge badges
@@ -1285,7 +1288,7 @@ COMMENT ON FUNCTION
     public.badges_moorages_fn
     IS 'check moorages for new badges, eg: Explorer, Mooring Pro, Anchormaster';
 
-CREATE OR REPLACE FUNCTION public.badges_geom_fn(IN logbook record) RETURNS VOID AS $badges_geom$
+CREATE OR REPLACE FUNCTION public.badges_geom_fn(IN logbook_id INTEGER, IN logbook_time TEXT) RETURNS VOID AS $badges_geom$
     DECLARE
         _badges jsonb;
         _exist BOOLEAN := false;
@@ -1300,7 +1303,7 @@ CREATE OR REPLACE FUNCTION public.badges_geom_fn(IN logbook record) RETURNS VOID
 	    FOR marine_rec IN
 	        WITH log AS (
 		            SELECT l.track_geom AS track_geom FROM api.logbook l
-                        WHERE l.id = logbook.id AND vessel_id = current_setting('vessel.id', false)
+                        WHERE l.id = logbook_id AND vessel_id = current_setting('vessel.id', false)
 		            )
 	        SELECT name from log, public.ne_10m_geography_marine_polys
                 WHERE ST_Intersects(
@@ -1314,7 +1317,7 @@ CREATE OR REPLACE FUNCTION public.badges_geom_fn(IN logbook record) RETURNS VOID
             --RAISE WARNING 'geography_marine [%]', _exist;
             if _exist is false then
                 -- Create badge
-                badge := '{"' || marine_rec.name || '": {"log": '|| logbook.id ||', "date":"' || logbook._to_time || '"}}';
+                badge := '{"' || marine_rec.name || '": {"log": '|| logbook_id ||', "date":"' || logbook_time || '"}}';
                 -- Get existing badges
                 SELECT preferences->'badges' INTO _badges FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
                 -- Merge badges
