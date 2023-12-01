@@ -6,10 +6,10 @@
 You are now connected to database "signalk" as user "username".
 Expanded display is on.
 -[ RECORD 1 ]--+-------------------------------
-server_version | 15.5 (Debian 15.5-1.pgdg110+1)
+server_version | 16.1 (Debian 16.1-1.pgdg110+1)
 
 -[ RECORD 1 ]--------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-postgis_full_version | POSTGIS="3.4.0 0874ea3" [EXTENSION] PGSQL="150" GEOS="3.9.0-CAPI-1.16.2" PROJ="7.2.1 NETWORK_ENABLED=OFF URL_ENDPOINT=https://cdn.proj.org USER_WRITABLE_DIRECTORY=/var/lib/postgresql/.local/share/proj DATABASE_PATH=/usr/share/proj/proj.db" LIBXML="2.9.10" LIBJSON="0.15" LIBPROTOBUF="1.3.3" WAGYU="0.5.0 (Internal)"
+postgis_full_version | POSTGIS="3.4.1 ca035b9" [EXTENSION] PGSQL="160" GEOS="3.9.0-CAPI-1.16.2" PROJ="7.2.1 NETWORK_ENABLED=OFF URL_ENDPOINT=https://cdn.proj.org USER_WRITABLE_DIRECTORY=/var/lib/postgresql/.local/share/proj DATABASE_PATH=/usr/share/proj/proj.db" LIBXML="2.9.10" LIBJSON="0.15" LIBPROTOBUF="1.3.3" WAGYU="0.5.0 (Internal)"
 
 -[ RECORD 1 ]--------------------------------------------------------------------------------------
 Name        | citext
@@ -48,12 +48,12 @@ Schema      | pg_catalog
 Description | PL/Python3U untrusted procedural language
 -[ RECORD 8 ]--------------------------------------------------------------------------------------
 Name        | postgis
-Version     | 3.4.0
+Version     | 3.4.1
 Schema      | public
 Description | PostGIS geometry and geography spatial types and functions
 -[ RECORD 9 ]--------------------------------------------------------------------------------------
 Name        | timescaledb
-Version     | 2.12.2
+Version     | 2.13.0
 Schema      | public
 Description | Enables scalable inserts and complex queries for time-series data (Community Edition)
 -[ RECORD 10 ]-------------------------------------------------------------------------------------
@@ -96,24 +96,24 @@ laninline     | 0
 lanvalidator  | 2248
 lanacl        | 
 -[ RECORD 4 ]-+-----------
-oid           | 13542
+oid           | 13545
 lanname       | plpgsql
 lanowner      | 10
 lanispl       | t
 lanpltrusted  | t
-lanplcallfoid | 13539
-laninline     | 13540
-lanvalidator  | 13541
+lanplcallfoid | 13542
+laninline     | 13543
+lanvalidator  | 13544
 lanacl        | 
 -[ RECORD 5 ]-+-----------
-oid           | 18283
+oid           | 18297
 lanname       | plpython3u
 lanowner      | 10
 lanispl       | t
 lanpltrusted  | t
-lanplcallfoid | 18280
-laninline     | 18281
-lanvalidator  | 18282
+lanplcallfoid | 18294
+laninline     | 18295
+lanvalidator  | 18296
 lanacl        | 
 
 -[ RECORD 1 ]+-----------
@@ -614,13 +614,23 @@ Test nominatim reverse_geocode_py_fn
 reverse_geocode_py_fn | {"name": "Spain", "country_code": "es"}
 
 Test geoip reverse_geoip_py_fn
+Test opverpass API overpass_py_fn
+-[ RECORD 1 ]--+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+overpass_py_fn | {"fee": "yes", "vhf": "09", "name": "Port Olímpic", "phone": "+34 933561016", "leisure": "marina", "website": "https://portolimpic.barcelona/", "wikidata": "Q171204", "wikipedia": "ca:Port Olímpic de Barcelona", "addr:street": "Moll de Xaloc", "power_supply": "yes", "seamark:type": "harbour", "addr:postcode": "08005", "internet_access": "wlan", "wikimedia_commons": "Category:Port Olímpic (Barcelona)", "sanitary_dump_station": "yes", "seamark:harbour:category": "marina"}
+
+-[ RECORD 1 ]--+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+overpass_py_fn | {"name": "Port de la Ginesta", "type": "multipolygon", "leisure": "marina", "name:ca": "Port de la Ginesta", "wikidata": "Q16621038", "wikipedia": "ca:Port Ginesta"}
+
+-[ RECORD 1 ]--+----------------------------------------------
+overpass_py_fn | {"name": "Norra hamnen", "leisure": "marina"}
+
 -[ RECORD 1 ]----------------------------------------------------------------------------------------------------------------------------------------------
-versions_fn | {"api_version" : "0.5.1", "sys_version" : "PostgreSQL 15.5", "timescaledb" : "2.12.2", "postgis" : "3.4.0", "postgrest" : "PostgREST 11.2.2"}
+versions_fn | {"api_version" : "0.5.2", "sys_version" : "PostgreSQL 16.1", "timescaledb" : "2.13.0", "postgis" : "3.4.1", "postgrest" : "PostgREST 11.2.2"}
 
 -[ RECORD 1 ]-----------------
-api_version | 0.5.1
-sys_version | PostgreSQL 15.5
-timescaledb | 2.12.2
-postgis     | 3.4.0
+api_version | 0.5.2
+sys_version | PostgreSQL 16.1
+timescaledb | 2.13.0
+postgis     | 3.4.1
 postgrest   | PostgREST 11.2.2
 
