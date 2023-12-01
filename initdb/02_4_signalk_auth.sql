@@ -74,8 +74,8 @@ CREATE TABLE IF NOT EXISTS auth.vessels (
 COMMENT ON TABLE
     auth.vessels
     IS 'vessels table link to accounts email user_id column';
--- Indexes
-CREATE INDEX vessels_vesselid_idx ON auth.vessels (vessel_id);
+-- Duplicate Indexes
+--CREATE INDEX vessels_vesselid_idx ON auth.vessels (vessel_id);
 
 CREATE TRIGGER vessels_moddatetime
 	BEFORE UPDATE ON auth.vessels

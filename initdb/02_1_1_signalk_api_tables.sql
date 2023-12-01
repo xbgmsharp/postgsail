@@ -30,8 +30,8 @@ COMMENT ON TABLE
     api.metadata
     IS 'Stores metadata from vessel';
 COMMENT ON COLUMN api.metadata.active IS 'trigger monitor online/offline';
--- Index
-CREATE INDEX metadata_vessel_id_idx ON api.metadata (vessel_id);
+-- Duplicate Indexes
+--CREATE INDEX metadata_vessel_id_idx ON api.metadata (vessel_id);
 
 ---------------------------------------------------------------------------
 -- Metrics from signalk
