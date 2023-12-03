@@ -55,9 +55,9 @@ SELECT cron.schedule('cron_vacuum_auth', '1 1 * * 0', 'VACUUM (FULL, VERBOSE, AN
 -- Remove old jobs log at "At 02:02 on Sunday."
 SELECT cron.schedule('job_run_details_cleanup', '2 2 * * 0', 'select public.job_run_details_cleanup_fn()');
 -- Rebuilding indexes schema api at "first day of each month at 23:15."
-SELECT cron.schedule('cron_reindex_api', '15 23 1 * *', 'REINDEX TABLE api.logbook; REINDEX TABLE api.stays; REINDEX TABLE api.moorages; REINDEX TABLE api.metadata; REINDEX TABLE api.metrics;');
+SELECT cron.schedule('cron_reindex_api', '15 23 1 * *', 'REINDEX TABLE CONCURRENTLY api.logbook; REINDEX TABLE CONCURRENTLY api.stays; REINDEX TABLE CONCURRENTLY api.moorages; REINDEX TABLE CONCURRENTLY api.metadata;');
 -- Rebuilding indexes schema auth at "first day of each month at 23:01."
-SELECT cron.schedule('cron_reindex_auth', '1 23 1 * *', 'REINDEX TABLE auth.accounts; REINDEX TABLE auth.vessels; REINDEX TABLE auth.otp;');
+SELECT cron.schedule('cron_reindex_auth', '1 23 1 * *', 'REINDEX TABLE CONCURRENTLY auth.accounts; REINDEX TABLE CONCURRENTLY auth.vessels; REINDEX TABLE CONCURRENTLY auth.otp;');
 -- Any other maintenance require?
 
 -- OTP
