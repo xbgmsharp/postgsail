@@ -10,19 +10,23 @@ CREATE EXTENSION IF NOT EXISTS pg_cron; -- provides a simple cron-based job sche
 -- TRUNCATE table jobs
 --TRUNCATE TABLE cron.job CONTINUE IDENTITY RESTRICT;
 
--- Create a every 5 minutes or minute job cron_process_new_logbook_fn ??
-SELECT cron.schedule('cron_new_logbook', '*/5 * * * *', 'select public.cron_process_new_logbook_fn()');
+-- Create a every 5 minutes or minute job cron_process_pre_logbook_fn ??
+SELECT cron.schedule('cron_pre_logbook', '*/5 * * * *', 'select public.cron_process_pre_logbook_fn()');
+--UPDATE cron.job SET database = 'signalk' where jobname = 'cron_pre_logbook';
+
+-- Create a every 6 minutes or minute job cron_process_new_logbook_fn ??
+SELECT cron.schedule('cron_new_logbook', '*/6 * * * *', 'select public.cron_process_new_logbook_fn()');
 --UPDATE cron.job SET database = 'signalk' where jobname = 'cron_new_logbook';
 
--- Create a every 5 minute job cron_process_new_stay_fn
-SELECT cron.schedule('cron_new_stay', '*/6 * * * *', 'select public.cron_process_new_stay_fn()');
+-- Create a every 7 minute job cron_process_new_stay_fn
+SELECT cron.schedule('cron_new_stay', '*/7 * * * *', 'select public.cron_process_new_stay_fn()');
 --UPDATE cron.job SET database = 'signalk' where jobname = 'cron_new_stay';
 
 -- Create a every 6 minute job cron_process_new_moorage_fn, delay from stay to give time to generate geo reverse location, eg: name
 --SELECT cron.schedule('cron_new_moorage', '*/7 * * * *', 'select public.cron_process_new_moorage_fn()');
 --UPDATE cron.job SET database = 'signalk' where jobname = 'cron_new_moorage';
 
--- Create a every 10 minute job cron_process_monitor_offline_fn
+-- Create a every 11 minute job cron_process_monitor_offline_fn
 SELECT cron.schedule('cron_monitor_offline', '*/11 * * * *', 'select public.cron_process_monitor_offline_fn()');
 --UPDATE cron.job SET database = 'signalk' where jobname = 'cron_monitor_offline';
 
@@ -78,9 +82,9 @@ SELECT cron.schedule('cron_no_activity', '5 8 */4 * 0', 'select public.cron_proc
 -- Cron job settings
 UPDATE cron.job SET database = 'signalk';
 UPDATE cron.job SET username = 'username'; -- TODO update to scheduler, pending process_queue update
---UPDATE cron.job SET username = 'username' where jobname = 'cron_vacuum'; -- TODO Update to superuser for vaccuum permissions
+--UPDATE cron.job SET username = 'username' where jobname = 'cron_vacuum'; -- TODO Update to superuser for vacuum permissions
 UPDATE cron.job SET nodename = '/var/run/postgresql/'; -- VS default localhost ??
-UPDATE cron.job	SET database = 'postgresql' WHERE jobname = 'job_run_details_cleanup';
+UPDATE cron.job	SET database = 'postgres' WHERE jobname = 'job_run_details_cleanup';
 -- check job lists
 SELECT * FROM cron.job;
 -- unschedule by job id
