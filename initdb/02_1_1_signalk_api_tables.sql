@@ -304,7 +304,7 @@ COMMENT ON FUNCTION
     IS 'process metadata notification from vessel, monitoring_online';
 
 -- FUNCTION Metadata grafana provisioning for new vessel after insert
-DROP FUNCTION IF EXISTS metadata_grafana_trigger_fn; 
+DROP FUNCTION IF EXISTS metadata_grafana_trigger_fn;
 CREATE FUNCTION metadata_grafana_trigger_fn() RETURNS trigger AS $metadata_grafana$
     DECLARE
     BEGIN
