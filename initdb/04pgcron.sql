@@ -46,6 +46,9 @@ SELECT cron.schedule('cron_monitor_online', '*/10 * * * *', 'select public.cron_
 --SELECT cron.schedule('cron_new_account_otp', '*/6 * * * *', 'select public.cron_process_new_account_otp_validation_fn()');
 --UPDATE cron.job SET database = 'signalk' where jobname = 'cron_new_account_otp';
 
+-- Create a every 5 minute job cron_process_grafana_fn
+SELECT cron.schedule('cron_grafana', '*/5 * * * *', 'select public.cron_process_grafana_fn()');
+
 -- Notification
 -- Create a every 1 minute job cron_process_new_notification_queue_fn, new_account, new_vessel, _new_account_otp
 SELECT cron.schedule('cron_new_notification', '*/1 * * * *', 'select public.cron_process_new_notification_fn()');
