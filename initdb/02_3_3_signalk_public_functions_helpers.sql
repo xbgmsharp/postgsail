@@ -151,3 +151,48 @@ $jsonb_diff_val$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION
     public.jsonb_diff_val
     IS 'Compare two jsonb objects';
+
+---------------------------------------------------------------------------
+-- uuid v7 helpers
+--
+-- https://gist.github.com/kjmph/5bd772b2c2df145aa645b837da7eca74
+CREATE OR REPLACE FUNCTION public.timestamp_from_uuid_v7(_uuid uuid)
+RETURNS timestamp without time zone
+LANGUAGE sql
+-- Based off IETF draft, https://datatracker.ietf.org/doc/draft-peabody-dispatch-new-uuid-format/
+IMMUTABLE PARALLEL SAFE STRICT LEAKPROOF
+AS $$
+  SELECT to_timestamp(('x0000' || substr(_uuid::text, 1, 8) || substr(_uuid::text, 10, 4))::bit(64)::bigint::numeric / 1000);
+$$
+;
+-- Description
+COMMENT ON FUNCTION
+    public.jsonb_diff_val
+    IS 'Generate UUID v7, Based off IETF draft, https://datatracker.ietf.org/doc/draft-peabody-dispatch-new-uuid-format/ ';
+
+create or replace function uuid_generate_v7()
+returns uuid
+as $$
+begin
+  -- use random v4 uuid as starting point (which has the same variant we need)
+  -- then overlay timestamp
+  -- then set version 7 by flipping the 2 and 1 bit in the version 4 string
+  return encode(
+    set_bit(
+      set_bit(
+        overlay(uuid_send(gen_random_uuid())
+                placing substring(int8send(floor(extract(epoch from clock_timestamp()) * 1000)::bigint) from 3)
+                from 1 for 6
+        ),
+        52, 1
+      ),
+      53, 1
+    ),
+    'hex')::uuid;
+end
+$$
+language plpgsql volatile;
+-- Description
+COMMENT ON FUNCTION
+    public.jsonb_diff_val
+    IS 'extract the timestamp from the uuid.';
