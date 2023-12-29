@@ -30,6 +30,7 @@ COMMENT ON TABLE
     api.metadata
     IS 'Stores metadata from vessel';
 COMMENT ON COLUMN api.metadata.active IS 'trigger monitor online/offline';
+COMMENT ON COLUMN api.metadata.vessel_id IS 'vessel_id link auth.vessels with api.metadata';
 -- Duplicate Indexes
 --CREATE INDEX metadata_vessel_id_idx ON api.metadata (vessel_id);
 
@@ -128,6 +129,8 @@ COMMENT ON COLUMN api.logbook.duration IS 'Best to use standard ISO 8601';
 
 -- Index todo!
 CREATE INDEX logbook_vessel_id_idx ON api.logbook (vessel_id);
+CREATE INDEX logbook_from_time_idx ON api.logbook (_from_time);
+CREATE INDEX logbook_to_time_idx ON api.logbook (_to_time);
 CREATE INDEX logbook_from_moorage_id_idx ON api.logbook (_from_moorage_id);
 CREATE INDEX logbook_to_moorage_id_idx ON api.logbook (_to_moorage_id);
 CREATE INDEX ON api.logbook USING GIST ( track_geom );
@@ -300,6 +303,22 @@ COMMENT ON FUNCTION
     public.metadata_notification_trigger_fn
     IS 'process metadata notification from vessel, monitoring_online';
 
+-- FUNCTION Metadata grafana provisioning for new vessel after insert
+DROP FUNCTION IF EXISTS metadata_grafana_trigger_fn; 
+CREATE FUNCTION metadata_grafana_trigger_fn() RETURNS trigger AS $metadata_grafana$
+    DECLARE
+    BEGIN
+        RAISE NOTICE 'metadata_grafana_trigger_fn [%]', NEW;
+        INSERT INTO process_queue (channel, payload, stored, ref_id)
+            VALUES ('grafana', NEW.id, now(), NEW.vessel_id);
+        RETURN NULL;
+    END;
+$metadata_grafana$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.metadata_grafana_trigger_fn
+    IS 'process metadata grafana provisioning from vessel';
+
 ---------------------------------------------------------------------------
 -- Trigger metadata table
 --
@@ -317,7 +336,15 @@ CREATE TRIGGER metadata_notification_trigger AFTER INSERT ON api.metadata
 -- Description
 COMMENT ON TRIGGER 
     metadata_notification_trigger ON api.metadata 
-    IS 'AFTER INSERT ON api.metadata run function metadata_update_trigger_fn for notification on new vessel';
+    IS 'AFTER INSERT ON api.metadata run function metadata_notification_trigger_fn for later notification on new vessel';
+
+-- Metadata trigger AFTER INSERT
+CREATE TRIGGER metadata_grafana_trigger AFTER INSERT ON api.metadata
+    FOR EACH ROW EXECUTE FUNCTION metadata_grafana_trigger_fn();
+-- Description
+COMMENT ON TRIGGER 
+    metadata_grafana_trigger ON api.metadata 
+    IS 'AFTER INSERT ON api.metadata run function metadata_grafana_trigger_fn for later grafana provisioning on new vessel';
 
 ---------------------------------------------------------------------------
 -- Trigger Functions metrics table
@@ -526,7 +553,7 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                     WHERE id = logbook_id;
                 -- Add logbook entry to process queue for later processing
                 INSERT INTO process_queue (channel, payload, stored, ref_id)
-                    VALUES ('new_logbook', logbook_id, now(), current_setting('vessel.id', true));
+                    VALUES ('pre_logbook', logbook_id, NOW(), current_setting('vessel.id', true));
             ELSE
                 RAISE WARNING 'Metrics Invalid logbook_id [%] [%] [%]', logbook_id, NEW.status, NEW.time;
             END IF;
@@ -537,7 +564,7 @@ $metrics$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
     public.metrics_trigger_fn
-    IS 'process metrics from vessel, generate new_logbook and new_stay.';
+    IS 'process metrics from vessel, generate pre_logbook and new_stay.';
 
 --
 -- Triggers logbook update on metrics insert
@@ -600,4 +627,64 @@ CREATE TRIGGER moorage_delete_trigger BEFORE DELETE ON api.moorages
 -- Description
 COMMENT ON TRIGGER moorage_delete_trigger
   ON api.moorages
-  IS 'Automatic update of name and stay_code on logbook and stays reference';
+  IS 'Automatic delete logbook and stays reference when delete a moorage';
+
+-- Function process_new on completed logbook
+DROP FUNCTION IF EXISTS logbook_completed_trigger_fn;
+CREATE FUNCTION logbook_completed_trigger_fn() RETURNS trigger AS $logbook_completed$
+    DECLARE
+    BEGIN
+        RAISE NOTICE 'logbook_completed_trigger_fn [%]', OLD;
+        RAISE NOTICE 'logbook_completed_trigger_fn [%] [%]', OLD._to_time, NEW._to_time;
+        -- Add logbook entry to process queue for later processing
+        --IF ( OLD._to_time <> NEW._to_time ) THEN
+            INSERT INTO process_queue (channel, payload, stored, ref_id)
+                VALUES ('new_logbook', NEW.id, NOW(), current_setting('vessel.id', true));
+        --END IF;
+        RETURN OLD; -- result is ignored since this is an AFTER trigger
+    END;
+$logbook_completed$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.logbook_completed_trigger_fn
+    IS 'Automatic process_queue for completed logbook._to_time';
+
+-- Triggers logbook completed
+--CREATE TRIGGER logbook_completed_trigger AFTER UPDATE ON api.logbook
+--    FOR EACH ROW
+--    WHEN (OLD._to_time IS DISTINCT FROM NEW._to_time)
+--    EXECUTE FUNCTION logbook_completed_trigger_fn();
+-- Description
+--COMMENT ON TRIGGER logbook_completed_trigger
+--  ON api.logbook
+--  IS 'Automatic process_queue for completed logbook';
+
+-- Function process_new on completed Stay
+DROP FUNCTION IF EXISTS stay_completed_trigger_fn;
+CREATE FUNCTION stay_completed_trigger_fn() RETURNS trigger AS $stay_completed$
+    DECLARE
+    BEGIN
+        RAISE NOTICE 'stay_completed_trigger_fn [%]', OLD;
+        RAISE NOTICE 'stay_completed_trigger_fn [%] [%]', OLD.departed, NEW.departed;
+        -- Add stay entry to process queue for later processing
+        --IF ( OLD.departed <> NEW.departed ) THEN
+            INSERT INTO process_queue (channel, payload, stored, ref_id)
+                VALUES ('new_stay', NEW.id, NOW(), current_setting('vessel.id', true));
+        --END IF;
+        RETURN OLD; -- result is ignored since this is an AFTER trigger
+    END;
+$stay_completed$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.stay_completed_trigger_fn
+    IS 'Automatic process_queue for completed stay.departed';
+
+-- Triggers stay completed
+--CREATE TRIGGER stay_completed_trigger AFTER UPDATE ON api.stays
+--    FOR EACH ROW
+--    WHEN (OLD.departed IS DISTINCT FROM NEW.departed)
+--    EXECUTE FUNCTION stay_completed_trigger_fn();
+-- Description
+--COMMENT ON TRIGGER stay_completed_trigger
+--  ON api.stays
+--  IS 'Automatic process_queue for completed stay';
