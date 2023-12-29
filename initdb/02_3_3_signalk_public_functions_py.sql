@@ -434,7 +434,7 @@ IMMUTABLE STRICT;
 -- Description
 COMMENT ON FUNCTION
     public.geojson_py_fn
-    IS 'Parse geojson using plpython3u (should be done in PGSQL)';
+    IS 'Parse geojson using plpython3u (should be done in PGSQL), deprecated';
 
 DROP FUNCTION IF EXISTS overpass_py_fn;
 CREATE OR REPLACE FUNCTION overpass_py_fn(IN lon NUMERIC, IN lat NUMERIC,
@@ -488,3 +488,138 @@ $overpass_py$ IMMUTABLE strict TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
 COMMENT ON FUNCTION
     public.overpass_py_fn
     IS 'Return https://overpass-turbo.eu seamark details within 400m using plpython3u';
+
+---------------------------------------------------------------------------
+-- Provision Grafana SQL
+--
+CREATE OR REPLACE FUNCTION grafana_py_fn(IN _v_name TEXT, IN _v_id TEXT,
+    IN _u_email TEXT, IN app JSONB) RETURNS VOID
+AS $grafana_py$
+	"""
+	https://grafana.com/docs/grafana/latest/developers/http_api/
+	Create organization base on vessel name
+	Create user base on user email
+	Add user to organization
+	Add data_source to organization
+	Add dashboard to organization
+    Update organization preferences
+	"""
+	import requests
+	import json
+	import re
+
+	grafana_uri = None
+	if 'app.grafana_admin_uri' in app and app['app.grafana_admin_uri']:
+		grafana_uri = app['app.grafana_admin_uri']
+	else:
+		plpy.error('Error no grafana_admin_uri defined, check app settings')
+		return None
+
+	# add vessel org
+	headers = {'User-Agent': 'PostgSail', 'From': 'xbgmsharp@gmail.com',
+	'Accept': 'application/json', 'Content-Type': 'application/json'}
+	path = 'api/orgs'
+	url = f'{grafana_uri}/{path}'.format(grafana_uri,path)
+	data_dict = {'name':_v_name}
+	data = json.dumps(data_dict)
+	r = requests.post(url, data=data, headers=headers)
+	#print(r.text)
+	plpy.notice(r.json())
+	if r.status_code == 200 and "orgId" in r.json():
+		org_id = r.json()['orgId']
+	else:
+		plpy.error('Error grafana add vessel org %', r.json())
+		return None
+
+	# add user to vessel org
+	path = 'api/admin/users'
+	url = f'{grafana_uri}/{path}'.format(grafana_uri,path)
+	data_dict = {'orgId':org_id, 'email':_u_email, 'password':'asupersecretpassword'}
+	data = json.dumps(data_dict)
+	r = requests.post(url, data=data, headers=headers)
+	#print(r.text)
+	plpy.notice(r.json())
+	if r.status_code == 200 and "id" in r.json():
+		user_id = r.json()['id']
+	else:
+		plpy.error('Error grafana add user to vessel org')
+		return
+
+	# read data_source
+	path = 'api/datasources/1'
+	url = f'{grafana_uri}/{path}'.format(grafana_uri,path)
+	r = requests.get(url, headers=headers)
+	#print(r.text)
+	plpy.notice(r.json())
+	data_source = r.json()
+	data_source['id'] = 0
+	data_source['orgId'] = org_id
+	data_source['uid'] = "ds_" + _v_id
+	data_source['name'] = "ds_" + _v_id
+	data_source['secureJsonData'] = {}
+	data_source['secureJsonData']['password'] = 'password'
+	data_source['readOnly'] = True
+	del data_source['secureJsonFields']
+
+	# add data_source to vessel org
+	path = 'api/datasources'
+	url = f'{grafana_uri}/{path}'.format(grafana_uri,path)
+	data = json.dumps(data_source)
+	headers['X-Grafana-Org-Id'] = str(org_id)
+	r = requests.post(url, data=data, headers=headers)
+	plpy.notice(r.json())
+	del headers['X-Grafana-Org-Id']
+	if r.status_code != 200 and "id" not in r.json():
+		plpy.error('Error grafana add data_source to vessel org')
+		return
+
+	dashboards_tpl = [ 'pgsail_tpl_electrical', 'pgsail_tpl_logbook', 'pgsail_tpl_monitor', 'pgsail_tpl_rpi', 'pgsail_tpl_solar', 'pgsail_tpl_weather', 'pgsail_tpl_home']
+	for dashboard in dashboards_tpl:
+		# read dashboard template by uid
+		path = 'api/dashboards/uid'
+		url = f'{grafana_uri}/{path}/{dashboard}'.format(grafana_uri,path,dashboard)
+		if 'X-Grafana-Org-Id' in headers:
+			del headers['X-Grafana-Org-Id']
+		r = requests.get(url, headers=headers)
+		plpy.notice(r.json())
+		if r.status_code != 200 and "id" not in r.json():
+			plpy.error('Error grafana read dashboard template')
+			return
+		new_dashboard = r.json()
+		del new_dashboard['meta']
+		new_dashboard['dashboard']['version'] = 0
+		new_dashboard['dashboard']['id'] = 0
+		new_uid = re.sub(r'pgsail_tpl_(.*)', r'postgsail_\1', new_dashboard['dashboard']['uid'])
+		new_dashboard['dashboard']['uid'] = f'{new_uid}_{_v_id}'.format(new_uid,_v_id)
+		# add dashboard to vessel org
+		path = 'api/dashboards/db'
+		url = f'{grafana_uri}/{path}'.format(grafana_uri,path)
+		data = json.dumps(new_dashboard)
+		new_data = data.replace('PCC52D03280B7034C', data_source['uid'])
+		headers['X-Grafana-Org-Id'] = str(org_id)
+		r = requests.post(url, data=new_data, headers=headers)
+		plpy.notice(r.json())
+		if r.status_code != 200 and "id" not in r.json():
+			plpy.error('Error grafana add dashboard to vessel org')
+			return
+
+	# Update Org Prefs
+	path = 'api/org/preferences'
+	url = f'{grafana_uri}/{path}'.format(grafana_uri,path)
+	home_dashboard = {}
+	home_dashboard['timezone'] = 'utc'
+	home_dashboard['homeDashboardUID'] = f'postgsail_home_{_v_id}'.format(_v_id)
+	data = json.dumps(home_dashboard)
+	headers['X-Grafana-Org-Id'] = str(org_id)
+	r = requests.patch(url, data=data, headers=headers)
+	plpy.notice(r.json())
+	if r.status_code != 200:
+		plpy.error('Error grafana update org preferences')
+		return
+
+	plpy.notice('Done')
+$grafana_py$ TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
+-- Description
+COMMENT ON FUNCTION
+    public.grafana_py_fn
+    IS 'Grafana Organization,User,data_source,dashboards provisioning via HTTP API using plpython3u';
