@@ -9,6 +9,11 @@ if [[ -z "${PGSAIL_API_URI}" ]]; then
   exit 1
 fi
 
+# psql
+if [[ ! -x "/usr/bin/psql" ]]; then
+    apt update && apt -y install postgresql-client
+fi
+
 # go install
 if [[ ! -x "/usr/bin/go" || ! -x "/root/go/bin/mermerd" ]]; then
     #wget -q https://go.dev/dl/go1.21.4.linux-arm64.tar.gz && \
@@ -189,11 +194,11 @@ else
 fi
 
 # Generate and update mermaid schema documentation
-/root/go/bin/mermerd --runConfig ../ERD/mermerdConfig.yaml
+/root/go/bin/mermerd --runConfig ../docs/ERD/mermerdConfig.yaml
 echo $?
 echo 0
 if [ $? -eq 0 ]; then
-    cp postgsail.md ../ERD/postgsail.md
+    cp postgsail.md ../docs/ERD/postgsail.md
     echo postgsail.md OK
 else
     echo postgsail.md FAILED

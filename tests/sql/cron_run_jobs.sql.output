@@ -6,11 +6,11 @@
 You are now connected to database "signalk" as user "username".
 Expanded display is on.
 -[ RECORD 1 ]
-jobs | 24
+jobs | 26
 
 -[ RECORD 1 ]-+-
 run_cron_jobs | 
 
 -[ RECORD 1 ]----+--
-any_pending_jobs | 0
+any_pending_jobs | 2
 
