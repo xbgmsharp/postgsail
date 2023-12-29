@@ -8,6 +8,36 @@ select current_database();
 -- connect to the DB
 \c signalk
 
+-- Check for new logbook pending validation
+CREATE FUNCTION cron_process_pre_logbook_fn() RETURNS void AS $$
+DECLARE
+    process_rec record;
+BEGIN
+    -- Check for new logbook pending update
+    RAISE NOTICE 'cron_process_pre_logbook_fn init loop';
+    FOR process_rec in
+        SELECT * FROM process_queue
+            WHERE channel = 'pre_logbook' AND processed IS NULL
+            ORDER BY stored ASC LIMIT 100
+    LOOP
+        RAISE NOTICE 'cron_process_pre_logbook_fn processing queue [%] for logbook id [%]', process_rec.id, process_rec.payload;
+        -- update logbook
+        PERFORM process_logbook_valid_fn(process_rec.payload::INTEGER);
+        -- update process_queue table , processed
+        UPDATE process_queue
+            SET
+                processed = NOW()
+            WHERE id = process_rec.id;
+        RAISE NOTICE 'cron_process_pre_logbook_fn processed queue [%] for logbook id [%]', process_rec.id, process_rec.payload;
+    END LOOP;
+END;
+$$ language plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.cron_process_pre_logbook_fn
+    IS 'init by pg_cron to check for new logbook pending update, if so perform process_logbook_valid_fn';
+
+
 -- Check for new logbook pending update
 CREATE FUNCTION cron_process_new_logbook_fn() RETURNS void AS $$
 declare
@@ -329,6 +359,41 @@ COMMENT ON FUNCTION
     public.cron_process_new_notification_fn
     IS 'init by pg_cron to check for new event pending notifications, if so perform process_notification_queue_fn';
 
+-- CRON for new vessel metadata pending grafana provisioning
+CREATE FUNCTION cron_process_grafana_fn() RETURNS void AS $$
+DECLARE
+    process_rec record;
+    metadata_rec record;
+    app_settings jsonb;
+BEGIN
+    -- We run grafana provisioning only after the first received vessel metadata
+    -- Check for new vessel metadata pending grafana provisioning
+    RAISE NOTICE 'cron_process_grafana_fn';
+    FOR process_rec in
+        SELECT * from process_queue
+            where channel = 'grafana' and processed is null
+            order by stored asc
+    LOOP
+        RAISE NOTICE '-> cron_process_grafana_fn [%]', process_rec.payload;
+        -- as we got data from the vessel we can do the grafana provisioning.
+        -- Gather url from app settings
+        app_settings := get_app_settings_fn();
+        SELECT * INTO metadata_rec FROM api.metadata WHERE id = process_rec.payload;
+        PERFORM grafana_py_fn(metadata_rec.name,metadata_rec.vessel_id,metadata_rec.owner_email,app_settings);
+        -- update process_queue entry as processed
+        UPDATE process_queue
+            SET
+                processed = NOW()
+            WHERE id = process_rec.id;
+        RAISE NOTICE '-> cron_process_grafana_fn updated process_queue table [%]', process_rec.id;
+    END LOOP;
+END;
+$$ language plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.cron_process_new_vessel_fn
+    IS 'init by pg_cron to check for new vessel pending grafana provisioning, if so perform grafana_py_fn';
+
 -- CRON for Vacuum database
 CREATE FUNCTION cron_vacuum_fn() RETURNS void AS $$
 -- ERROR:  VACUUM cannot be executed from a function
@@ -352,6 +417,8 @@ COMMENT ON FUNCTION
 CREATE FUNCTION cron_process_alerts_fn() RETURNS void AS $$
 DECLARE
     alert_rec record;
+    last_metric TIMESTAMPTZ;
+    metric_rec record;
 BEGIN
     -- Check for new event notification pending update
     RAISE NOTICE 'cron_process_alerts_fn';
@@ -361,9 +428,24 @@ BEGIN
             FROM auth.accounts a, auth.vessels v, api.metadata m
             WHERE m.vessel_id = v.vessel_id
                 AND a.email = v.owner_email
-                AND (preferences->'alerting'->'enabled')::boolean = false
+                AND (a.preferences->'alerting'->'enabled')::boolean = True
+                AND m.active = True
     LOOP
         RAISE NOTICE '-> cron_process_alert_rec_fn for [%]', alert_rec;
+        PERFORM set_config('vessel.id', alert_rec.vessel_id, false);
+        --RAISE WARNING 'public.cron_process_alert_rec_fn() scheduler vessel.id %, user.id', current_setting('vessel.id', false), current_setting('user.id', false);
+        -- Get time from the last metrics entry
+        SELECT m.time INTO last_metric FROM api.metrics m WHERE vessel_id = alert_rec.vessel_id ORDER BY m.time DESC LIMIT 1;
+        -- Get all metrics from the last 10 minutes
+        FOR metric_rec in
+            SELECT *
+                FROM api.metrics m
+                WHERE vessel_id = alert_rec.vessel_id
+                    AND time >= last_metric - INTERVAL '10 MINUTES'
+                ORDER BY m.time DESC LIMIT 100
+        LOOP
+            RAISE NOTICE '-> cron_process_alert_rec_fn checking metrics [%]', metric_rec;
+        END LOOP;
     END LOOP;
 END;
 $$ language plpgsql;
@@ -437,7 +519,7 @@ DECLARE
     no_activity_rec record;
     user_settings jsonb;
 BEGIN
-    -- Check for vessel with no activity for more than 200 days
+    -- Check for vessel with no activity for more than 230 days
     RAISE NOTICE 'cron_process_no_activity_fn';
     FOR no_activity_rec in
         SELECT
@@ -445,7 +527,7 @@ BEGIN
             FROM auth.accounts a
             LEFT JOIN auth.vessels v ON v.owner_email = a.email
             LEFT JOIN api.metadata m ON v.vessel_id = m.vessel_id
-            WHERE m.time < NOW() AT TIME ZONE 'UTC' - INTERVAL '200 DAYS'
+            WHERE m.time < NOW() AT TIME ZONE 'UTC' - INTERVAL '230 DAYS'
     LOOP
         RAISE NOTICE '-> cron_process_no_activity_rec_fn for [%]', no_activity_rec;
         SELECT json_build_object('email', no_activity_rec.owner_email, 'recipient', no_activity_rec.first) into user_settings;
@@ -458,7 +540,7 @@ $no_activity$ language plpgsql;
 -- Description
 COMMENT ON FUNCTION
     public.cron_process_no_activity_fn
-    IS 'init by pg_cron, check for vessel with no activity for more than 200 days then send notification';
+    IS 'init by pg_cron, check for vessel with no activity for more than 230 days then send notification';
 
 -- CRON for deactivated/deletion
 CREATE FUNCTION cron_process_deactivated_fn() RETURNS void AS $deactivated$
