@@ -827,14 +827,15 @@ BEGIN
         name LIKE 'app.email%'
         OR name LIKE 'app.pushover%'
         OR name LIKE 'app.url'
-        OR name LIKE 'app.telegram%';
+        OR name LIKE 'app.telegram%'
+        OR name LIKE 'app.grafana_admin_uri';
 END;
 $get_app_settings$
 LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
     public.get_app_settings_fn
-    IS 'get application settings details, email, pushover, telegram';
+    IS 'get application settings details, email, pushover, telegram, grafana_admin_uri';
 
 DROP FUNCTION IF EXISTS get_app_url_fn;
 CREATE OR REPLACE FUNCTION get_app_url_fn(OUT app_settings jsonb)
@@ -1914,6 +1915,8 @@ BEGIN
     -- In correct order
     perform public.cron_process_new_notification_fn();
     perform public.cron_process_monitor_online_fn();
+    --perform public.cron_process_grafana_fn();
+    perform public.cron_process_pre_logbook_fn();
     perform public.cron_process_new_logbook_fn();
     perform public.cron_process_new_stay_fn();
     --perform public.cron_process_new_moorage_fn();

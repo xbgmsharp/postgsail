@@ -363,7 +363,7 @@ COMMENT ON FUNCTION
 CREATE FUNCTION cron_process_grafana_fn() RETURNS void AS $$
 DECLARE
     process_rec record;
-    metadata_rec record;
+    data_rec record;
     app_settings jsonb;
 BEGIN
     -- We run grafana provisioning only after the first received vessel metadata
@@ -375,11 +375,14 @@ BEGIN
             order by stored asc
     LOOP
         RAISE NOTICE '-> cron_process_grafana_fn [%]', process_rec.payload;
-        -- as we got data from the vessel we can do the grafana provisioning.
         -- Gather url from app settings
         app_settings := get_app_settings_fn();
-        SELECT * INTO metadata_rec FROM api.metadata WHERE id = process_rec.payload;
-        PERFORM grafana_py_fn(metadata_rec.name,metadata_rec.vessel_id,metadata_rec.owner_email,app_settings);
+        SELECT * INTO data_rec
+            FROM api.metadata m, auth.vessels v
+            WHERE id = process_rec.payload::INTEGER
+                AND m.vessel_id = v.vessel_id;
+        -- as we got data from the vessel we can do the grafana provisioning.
+        PERFORM grafana_py_fn(data_rec.name,data_rec.vessel_id,data_rec.owner_email,app_settings);
         -- update process_queue entry as processed
         UPDATE process_queue
             SET
