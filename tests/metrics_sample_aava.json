@@ -573,7 +573,31 @@
 		"courseovergroundtrue" : 197.6,
 		"windspeedapparent" : 15.9,
 		"anglespeedapparent" : 31.0,
+		"status" : "ais-sart",
+		"metrics" : {}
+	},
+	{
+		"time" : "2022-07-31T12:14:29.168Z",
+		"client_id" : "vessels.urn:mrn:imo:mmsi:987654321",
+		"latitude" : 59.7124174,
+		"longitude" : 24.7289112,
+		"speedoverground" : 55.7,
+		"courseovergroundtrue" : 197.6,
+		"windspeedapparent" : 15.9,
+		"anglespeedapparent" : 31.0,
 		"status" : "anchored",
-		"metrics" : {"navigation.log": 17442506, "navigation.trip.log": 81321, "navigation.headingTrue": 3.571, "navigation.gnss.satellites": 10, "environment.depth.belowKeel": 13.749, "navigation.magneticVariation": 0.1414, "navigation.speedThroughWater": 3.07, "environment.water.temperature": 313.15, "electrical.batteries.1.current": 43.9, "electrical.batteries.1.voltage": 14.54, "navigation.gnss.antennaAltitude": 2.05, "network.n2k.ngt-1.130356.errorID": 0, "network.n2k.ngt-1.130356.modelID": 14, "environment.depth.belowTransducer": 13.75, "electrical.batteries.1.temperature": 299.82, "environment.depth.transducerToKeel": -0.001, "navigation.gnss.horizontalDilution": 0.8, "network.n2k.ngt-1.130356.ch1.rxLoad": 4, "network.n2k.ngt-1.130356.ch1.txLoad": 0, "network.n2k.ngt-1.130356.ch2.rxLoad": 0, "network.n2k.ngt-1.130356.ch2.txLoad": 40, "network.n2k.ngt-1.130356.ch1.deleted": 0, "network.n2k.ngt-1.130356.ch2.deleted": 0, "network.n2k.ngt-1.130356.ch2Bandwidth": 4, "network.n2k.ngt-1.130356.ch1.bandwidth": 3, "network.n2k.ngt-1.130356.ch1.rxDropped": 0, "network.n2k.ngt-1.130356.ch2.rxDropped": 0, "network.n2k.ngt-1.130356.ch1.rxFiltered": 0, "network.n2k.ngt-1.130356.ch2.rxFiltered": 0, "network.n2k.ngt-1.130356.ch1.rxBandwidth": 5, "network.n2k.ngt-1.130356.ch1.txBandwidth": 0, "network.n2k.ngt-1.130356.ch2.rxBandwidth": 0, "network.n2k.ngt-1.130356.ch2.txBandwidth": 10, "network.n2k.ngt-1.130356.uniChannelCount": 2, "network.n2k.ngt-1.130356.indiChannelCount": 2, "network.n2k.ngt-1.130356.ch1.BufferLoading": 0, "network.n2k.ngt-1.130356.ch2.bufferLoading": 0, "network.n2k.ngt-1.130356.ch1.PointerLoading": 0, "network.n2k.ngt-1.130356.ch2.pointerLoading": 0}
+		"metrics" : {}
+	},
+	{
+		"time" : "2022-07-31T12:14:29.168Z",
+		"client_id" : "vessels.urn:mrn:imo:mmsi:987654321",
+		"latitude" : 59.7124174,
+		"longitude" : 24.7289112,
+		"speedoverground" : 5.7,
+		"courseovergroundtrue" : 197.6,
+		"windspeedapparent" : 15.9,
+		"anglespeedapparent" : 31.0,
+		"status" : "anchored",
+		"metrics" : {}
 	}
 ]}

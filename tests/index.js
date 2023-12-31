@@ -604,8 +604,12 @@ request.set('User-Agent', 'PostgSail unit tests');
       // Override client_id
       data[i]['client_id'] = test.vessel_metadata.client_id;
     }
-    // Force last entry to be back in time from previous, it should be ignore silently
-    data.at(-1).time = moment.utc(data.at(-2).time).subtract(1, 'minutes').format();
+    // The last entry are invalid and should be ignore.
+    // - Invalid status
+    // - Invalid speedoverground
+    // - Invalid time previous time is duplicate
+    // Force last valid entry to be back in time from previous, it should be ignore silently
+    data.at(-1).time = moment.utc(data.at(-3).time).subtract(1, 'minutes').format();
     //console.log(data[0]);
 
     it('/metrics?select=time', function(done) {
@@ -625,7 +629,7 @@ request.set('User-Agent', 'PostgSail unit tests');
           res.header['content-type'].should.match(new RegExp('json','g'));
           res.header['server'].should.match(new RegExp('postgrest','g'));
           should.exist(res.body);
-          res.body.length.should.match(test.vessel_metrics['metrics'].length-1);
+          res.body.length.should.match(test.vessel_metrics['metrics'].length-3);
           done(err);
         });
     });
