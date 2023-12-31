@@ -37,7 +37,7 @@ COMMENT ON COLUMN api.metadata.vessel_id IS 'vessel_id link auth.vessels with ap
 ---------------------------------------------------------------------------
 -- Metrics from signalk
 -- Create vessel status enum
-CREATE TYPE status AS ENUM ('sailing', 'motoring', 'moored', 'anchored');
+CREATE TYPE status_type AS ENUM ('sailing', 'motoring', 'moored', 'anchored');
 -- Table api.metrics
 CREATE TABLE IF NOT EXISTS api.metrics (
   time TIMESTAMPTZ NOT NULL,
@@ -49,8 +49,8 @@ CREATE TABLE IF NOT EXISTS api.metrics (
   courseOverGroundTrue DOUBLE PRECISION NULL,
   windSpeedApparent DOUBLE PRECISION NULL,
   angleSpeedApparent DOUBLE PRECISION NULL,
-  status status NULL,
-  metrics jsonb NULL,
+  status TEXT NULL,
+  metrics JSONB NULL,
   --CONSTRAINT valid_client_id CHECK (length(client_id) > 10),
   --CONSTRAINT valid_latitude CHECK (latitude >= -90 and latitude <= 90),
   --CONSTRAINT valid_longitude CHECK (longitude >= -180 and longitude <= 180),
@@ -454,10 +454,10 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
             RAISE WARNING 'Metrics Insert first stay as no previous metrics exist, stay_id stay_id [%] [%] [%]', stay_id, NEW.status, NEW.time;
         END IF;
         -- Check if status is valid enum
-        SELECT NEW.status::name = any(enum_range(null::status)::name[]) INTO valid_status;
+        SELECT NEW.status::name = any(enum_range(null::status_type)::name[]) INTO valid_status;
         IF valid_status IS False THEN
             -- Ignore entry if status is invalid
-            RAISE WARNING 'Metrics Ignoring metric, invalid status [%]', NEW.status;
+            RAISE WARNING 'Metrics Ignoring metric, vessel_id [%], invalid status [%]', NEW.vessel_id, NEW.status;
             RETURN NULL;
         END IF;
         -- Check if speedOverGround is valid value
