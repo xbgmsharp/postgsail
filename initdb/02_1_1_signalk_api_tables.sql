@@ -21,6 +21,8 @@ CREATE TABLE IF NOT EXISTS api.metadata(
   plugin_version TEXT NOT NULL,
   signalk_version TEXT NOT NULL,
   time TIMESTAMPTZ NOT NULL, -- should be rename to last_update !?
+  platform TEXT NULL,
+  configuration TEXT NULL,
   active BOOLEAN DEFAULT True, -- trigger monitor online/offline
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -28,7 +30,7 @@ CREATE TABLE IF NOT EXISTS api.metadata(
 -- Description
 COMMENT ON TABLE
     api.metadata
-    IS 'Stores metadata from vessel';
+    IS 'Stores metadata received from vessel, aka signalk plugin';
 COMMENT ON COLUMN api.metadata.active IS 'trigger monitor online/offline';
 COMMENT ON COLUMN api.metadata.vessel_id IS 'vessel_id link auth.vessels with api.metadata';
 -- Duplicate Indexes
@@ -256,6 +258,8 @@ CREATE FUNCTION metadata_upsert_trigger_fn() RETURNS trigger AS $metadata_upsert
                     ship_type = NEW.ship_type,
                     plugin_version = NEW.plugin_version,
                     signalk_version = NEW.signalk_version,
+                    platform = NEW.platform,
+                    configuration = NEW.configuration,
                     -- time = NEW.time, ignore the time sent by the vessel as it is out of sync sometimes.
                     time = NOW(), -- overwrite the time sent by the vessel
                     active = true
