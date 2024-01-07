@@ -32,12 +32,14 @@ erDiagram
         boolean active 
         double_precision beam 
         text client_id 
+        text configuration 
         timestamp_with_time_zone created_at "{NOT_NULL}"
         double_precision height 
         integer id "{NOT_NULL}"
         double_precision length 
         numeric mmsi 
         text name 
+        text platform 
         text plugin_version "{NOT_NULL}"
         numeric ship_type 
         text signalk_version "{NOT_NULL}"
@@ -55,7 +57,7 @@ erDiagram
         double_precision longitude "With CONSTRAINT but allow NULL value to be ignored silently by trigger"
         jsonb metrics 
         double_precision speedoverground 
-        status status "<sailing,motoring,moored,anchored>"
+        text status 
         timestamp_with_time_zone time "{NOT_NULL}"
         text vessel_id "{NOT_NULL}"
         double_precision windspeedapparent 
