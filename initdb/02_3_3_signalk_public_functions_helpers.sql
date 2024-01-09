@@ -167,10 +167,10 @@ $$
 ;
 -- Description
 COMMENT ON FUNCTION
-    public.jsonb_diff_val
-    IS 'Generate UUID v7, Based off IETF draft, https://datatracker.ietf.org/doc/draft-peabody-dispatch-new-uuid-format/ ';
+    public.timestamp_from_uuid_v7
+    IS 'extract the timestamp from the uuid.';
 
-create or replace function uuid_generate_v7()
+create or replace function public.uuid_generate_v7()
 returns uuid
 as $$
 begin
@@ -194,5 +194,5 @@ $$
 language plpgsql volatile;
 -- Description
 COMMENT ON FUNCTION
-    public.jsonb_diff_val
-    IS 'extract the timestamp from the uuid.';
+    public.uuid_generate_v7
+    IS 'Generate UUID v7, Based off IETF draft, https://datatracker.ietf.org/doc/draft-peabody-dispatch-new-uuid-format/';
