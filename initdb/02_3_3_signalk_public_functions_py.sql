@@ -623,3 +623,54 @@ $grafana_py$ TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
 COMMENT ON FUNCTION
     public.grafana_py_fn
     IS 'Grafana Organization,User,data_source,dashboards provisioning via HTTP API using plpython3u';
+
+-- https://stackoverflow.com/questions/65517230/how-to-set-user-attribute-value-in-keycloak-using-api
+DROP FUNCTION IF EXISTS keycloak_py_fn;
+CREATE OR REPLACE FUNCTION keycloak_py_fn(IN user_id TEXT, IN vessel_id TEXT,
+    IN app JSONB) RETURNS JSONB
+AS $keycloak_py$
+    """
+    Add vessel_id user attribute to keycloak user {user_id}
+    """
+    import requests
+    import json
+
+    keycloak_uri = None
+    if 'app.keycloak_uri' in app and app['app.keycloak_uri']:
+        keycloak_uri = app['app.keycloak_uri']
+    else:
+        plpy.error('Error no keycloak_uri defined, check app settings')
+    return None
+
+    _headers = {'User-Agent': 'PostgSail', 'From': 'xbgmsharp@gmail.com'}
+    _payload = {'client_id':'admin-cli','grant_type':'password','username':'admin','password':'admin'}
+    url = f'{keycloak_uri}/realms/master/protocol/openid-connect/token'.format(keycloak_uri)
+    r = requests.post(url, headers=_headers, data=_payload, timeout=(5, 60))
+    #print(r.text)
+    #plpy.notice(url)
+    if r.status_code == 200 and 'access_token' in r.json():
+        response = r.json()
+        plpy.notice(response)
+        _headers['Authorization'] = 'Bearer '+ response['access_token']
+        _headers['Content-Type'] = 'application/json'
+        _payload = { 'attributes': {'vessel_id': vessel_id} }
+        url = f'{keycloak_uri}/admin/realms/postgsail/users/{user_id}'.format(keycloak_uri,user_id)
+        #plpy.notice(url)
+        #plpy.notice(_payload)
+        data = json.dumps(_payload)
+        r = requests.put(url, headers=_headers, data=data, timeout=(5, 60))
+        if r.status_code != 204:
+            plpy.notice("Error updating user: {status} [{text}]".format(
+                status=r.status_code, text=r.text))
+            return None
+        else:
+            plpy.notice("Updated user : {user} [{text}]".format(user=user_id, text=r.text))
+    else:
+        plpy.notice(f'Error getting admin access_token: {status} [{text}]'.format(
+                status=r.status_code, text=r.text))
+    return None
+$keycloak_py$ strict TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
+-- Description
+COMMENT ON FUNCTION
+    public.keycloak_py_fn
+    IS 'Return set oauth user attribute into keycloak using plpython3u';
