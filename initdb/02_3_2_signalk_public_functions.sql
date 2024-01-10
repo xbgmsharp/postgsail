@@ -1807,6 +1807,12 @@ BEGIN
     --RAISE WARNING 'public.check_jwt() user_role vessel.id [%]', current_setting('vessel.id', false);
     --RAISE WARNING 'public.check_jwt() user_role vessel.name [%]', current_setting('vessel.name', false);
   ELSIF _role = 'vessel_role' THEN
+    SELECT current_setting('request.path', true) into _path;
+    --RAISE WARNING 'req path %', current_setting('request.path', true);
+    -- Function allow without defined vessel like for anonymous role
+    IF _path ~ '^\/rpc\/(oauth_\w+)$' THEN
+        RETURN;
+    END IF;
     -- Extract vessel_id from jwt token
     SELECT current_setting('request.jwt.claims', true)::json->>'vid' INTO _vid;
     -- Check the vessel and user exist
