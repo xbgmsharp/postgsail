@@ -21,7 +21,8 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto"; -- provides cryptographic functions
 
 DROP TABLE IF EXISTS auth.accounts CASCADE;
 CREATE TABLE IF NOT EXISTS auth.accounts (
-  public_id     INT UNIQUE NOT NULL GENERATED ALWAYS AS IDENTITY,
+  id            INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  --id            TEXT NOT NULL UNIQUE DEFAULT uuid_generate_v7(),
   user_id       TEXT NOT NULL UNIQUE DEFAULT RIGHT(gen_random_uuid()::text, 12),
   email         CITEXT PRIMARY KEY CHECK ( email ~* '^.+@.+\..+$' ),
   first         TEXT NOT NULL CHECK (length(pass) < 512),
@@ -60,30 +61,54 @@ CREATE TABLE IF NOT EXISTS auth.vessels (
   vessel_id   TEXT NOT NULL UNIQUE DEFAULT RIGHT(gen_random_uuid()::text, 12),
 --  user_id       TEXT NOT NULL REFERENCES auth.accounts(user_id) ON DELETE RESTRICT,
   owner_email CITEXT PRIMARY KEY REFERENCES auth.accounts(email) ON DELETE RESTRICT,
---  mmsi		    TEXT UNIQUE, -- Should be a numeric range between 100000000 and 800000000.
   mmsi        NUMERIC UNIQUE, -- MMSI can be optional but if present must be a valid one and unique
-  name        TEXT NOT NULL CHECK (length(name) >= 3 AND length(name) < 512),
---  pass        text not null check (length(pass) < 512), -- unused
+  name        TEXT NOT NULL CHECK (length(name) >= 3 AND length(name) < 512)
   role        name not null check (length(role) < 512),
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
---  CONSTRAINT valid_length_mmsi CHECK (length(mmsi) < 10 OR length(mmsi) = 0)
   CONSTRAINT valid_range_mmsi CHECK (mmsi > 100000000 AND mmsi < 800000000)
 );
 -- Description
 COMMENT ON TABLE
     auth.vessels
     IS 'vessels table link to accounts email user_id column';
--- Duplicate Indexes
---CREATE INDEX vessels_vesselid_idx ON auth.vessels (vessel_id);
+COMMENT ON COLUMN
+    auth.vessels.mmsi
+    IS 'MMSI can be optional but if present must be a valid one and unique but must be in numeric range between 100000000 and 800000000';
 
 CREATE TRIGGER vessels_moddatetime
-	BEFORE UPDATE ON auth.vessels
-	FOR EACH ROW
-	EXECUTE PROCEDURE moddatetime (updated_at);
+  BEFORE UPDATE ON auth.vessels
+  FOR EACH ROW
+  EXECUTE PROCEDURE moddatetime (updated_at);
 -- Description
 COMMENT ON TRIGGER vessels_moddatetime
   ON auth.vessels
+  IS 'Automatic update of updated_at on table modification';
+
+CREATE TABLE auth.users (
+  id            NAME PRIMARY KEY DEFAULT current_setting('request.jwt.claims', true)::json->>'sub',
+  email         NAME NOT NULL DEFAULT current_setting('request.jwt.claims', true)::json->>'email',
+  user_id       TEXT NOT NULL UNIQUE DEFAULT RIGHT(gen_random_uuid()::text, 12),
+  first         TEXT NOT NULL DEFAULT current_setting('request.jwt.claims', true)::json->>'given_name',
+  last          TEXT NOT NULL DEFAULT current_setting('request.jwt.claims', true)::json->>'family_name',
+  role          NAME NOT NULL DEFAULT 'user_role' CHECK (length(role) < 512),
+  preferences   JSONB NULL DEFAULT '{"email_notifications":true, "email_valid": true, "email_verified": true}',
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  connected_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+-- Description
+COMMENT ON TABLE
+    auth.users
+    IS 'Keycloak Oauth user, map user details from access token';
+
+CREATE TRIGGER user_moddatetime
+  BEFORE UPDATE ON auth.users
+  FOR EACH ROW
+  EXECUTE PROCEDURE moddatetime (updated_at);
+-- Description
+COMMENT ON TRIGGER user_moddatetime
+  ON auth.users
   IS 'Automatic update of updated_at on table modification';
 
 create or replace function
@@ -264,6 +289,96 @@ end;
 $$ language plpgsql security definer;
 
 ---------------------------------------------------------------------------
+-- API account Oauth functions
+--
+-- oauth is on your exposed schema
+create or replace function
+api.oauth() returns void as $$
+declare
+  _exist boolean;
+begin
+  -- Ensure we have the required key/value in the access token
+  if current_setting('request.jwt.claims', true)::json->>'sub' is null OR
+     current_setting('request.jwt.claims', true)::json->>'email' is null THEN
+    return;
+  end if;
+  -- check email exist
+  select exists( select email from auth.users
+     where id = current_setting('request.jwt.claims', true)::json->>'sub'
+    ) INTO _exist;
+  if NOT FOUND then
+	  RAISE WARNING 'Register new oauth user email:[%]', current_setting('request.jwt.claims', true)::json->>'email';
+    -- insert new user, default value from the oauth access token
+	  INSERT INTO auth.users (role, preferences)
+	    VALUES ('user_role', '{"email_notifications":true, "email_valid": true, "email_verified": true}');
+  end if;
+end;
+$$ language plpgsql security definer;
+-- Description
+COMMENT ON FUNCTION
+    api.oauth
+    IS 'openid/oauth user register entry point';
+
+create or replace function
+api.oauth_vessel(in _mmsi text, in _name text) returns void as $$
+declare
+  _exist boolean;
+  vessel_name text := _name;
+  vessel_mmsi text := _mmsi;
+  _vessel_id text := null;
+  vessel_rec record;
+  app_settings jsonb;
+  _user_id text := null;
+begin
+  RAISE WARNING 'oauth_vessel:[%]', current_setting('user.email', true);
+  RAISE WARNING 'oauth_vessel:[%]', current_setting('request.jwt.claims', true)::json->>'email';
+  -- Ensure we have the required key/value in the access token
+  if current_setting('request.jwt.claims', true)::json->>'sub' is null OR
+     current_setting('request.jwt.claims', true)::json->>'email' is null THEN
+    return;
+  end if;
+
+  -- check email exist
+  select exists( select email from auth.accounts
+     where email = current_setting('request.jwt.claims', true)::json->>'email'
+    ) INTO _exist;
+  if _exist is False then
+    RAISE WARNING 'Register new oauth user email:[%]', current_setting('request.jwt.claims', true)::json->>'email';
+    -- insert new user, default value from the oauth access token
+    INSERT INTO auth.users VALUES(DEFAULT) RETURNING user_id INTO _user_id;
+    -- insert new user to account table from the oauth access token
+    INSERT INTO auth.accounts (email, first, last, pass, user_id, role, preferences)
+      VALUES (current_setting('request.jwt.claims', true)::json->>'email',
+      current_setting('request.jwt.claims', true)::json->>'given_name',
+      current_setting('request.jwt.claims', true)::json->>'family_name',
+      current_setting('request.jwt.claims', true)::json->>'sub',
+      _user_id, 'user_role', '{"email_notifications":true, "email_valid": true, "email_verified": true}');
+  end if;
+
+  IF public.isnumeric(vessel_mmsi) IS False THEN
+    vessel_mmsi = NULL;
+  END IF;
+  -- check vessel exist
+  SELECT * INTO vessel_rec
+    FROM auth.vessels vessel
+    WHERE vessel.owner_email = current_setting('request.jwt.claims', true)::json->>'email';
+  IF vessel_rec IS NULL THEN
+      RAISE WARNING 'Register new vessel name:[%] mmsi:[%] for [%]', vessel_name, vessel_mmsi, current_setting('request.jwt.claims', true)::json->>'email';
+      INSERT INTO auth.vessels (owner_email, mmsi, name, role)
+        VALUES (current_setting('request.jwt.claims', true)::json->>'email', vessel_mmsi::NUMERIC, vessel_name, 'vessel_role') RETURNING vessel_id INTO _vessel_id;
+      -- Gather url from app settings
+      app_settings := get_app_settings_fn();
+      -- set oauth user vessel_id attributes for token generation
+      PERFORM keycloak_py_fn(current_setting('request.jwt.claims', true)::json->>'sub'::TEXT, _vessel_id::TEXT, app_settings);
+  END IF;
+end;
+$$ language plpgsql security definer;
+-- Description
+COMMENT ON FUNCTION
+    api.oauth_vessel
+    IS 'user and vessel register entry point from signalk plugin';
+
+---------------------------------------------------------------------------
 -- API vessel helper functions
 -- register_vessel should be on your exposed schema
 create or replace function
@@ -289,7 +404,7 @@ begin
   IF vessel_rec IS NULL THEN
       RAISE WARNING 'Register new vessel name:[%] mmsi:[%] for [%]', vessel_name, vessel_mmsi, vessel_email;
       INSERT INTO auth.vessels (owner_email, mmsi, name, role)
-	      VALUES (vessel_email, vessel_mmsi::NUMERIC, vessel_name, 'vessel_role') RETURNING vessel_id INTO _vessel_id;
+        VALUES (vessel_email, vessel_mmsi::NUMERIC, vessel_name, 'vessel_role') RETURNING vessel_id INTO _vessel_id;
     vessel_rec.role := 'vessel_role';
     vessel_rec.owner_email = vessel_email;
     vessel_rec.vessel_id = _vessel_id;
