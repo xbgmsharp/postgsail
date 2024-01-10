@@ -178,7 +178,10 @@ $new_account_entry$ language plpgsql;
 
 create function new_account_otp_validation_entry_fn() returns trigger as $new_account_otp_validation_entry$
 begin
-    insert into process_queue (channel, payload, stored, ref_id) values ('email_otp', NEW.email, now(), NEW.user_id);
+    -- Add email_otp check only if not from oauth server
+    if (NEW.preferences->>'email_verified')::boolean IS NOT True then
+        insert into process_queue (channel, payload, stored, ref_id) values ('email_otp', NEW.email, now(), NEW.user_id);
+    end if
     return NEW;
 END;
 $new_account_otp_validation_entry$ language plpgsql;
