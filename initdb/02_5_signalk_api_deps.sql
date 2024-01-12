@@ -266,8 +266,8 @@ DROP VIEW IF EXISTS api.eventlogs_view;
 CREATE VIEW api.eventlogs_view WITH (security_invoker=true,security_barrier=true) AS
     SELECT pq.*
         FROM public.process_queue pq
-        WHERE ref_id = current_setting('user.id', true)
-            OR ref_id = current_setting('vessel.id', true)
+        WHERE channel <> 'pre_logbook' AND (ref_id = current_setting('user.id', true)
+            OR ref_id = current_setting('vessel.id', true))
         ORDER BY id ASC;
 -- Description
 COMMENT ON VIEW
