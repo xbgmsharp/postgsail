@@ -181,7 +181,7 @@ begin
     -- Add email_otp check only if not from oauth server
     if (NEW.preferences->>'email_verified')::boolean IS NOT True then
         insert into process_queue (channel, payload, stored, ref_id) values ('email_otp', NEW.email, now(), NEW.user_id);
-    end if
+    end if;
     return NEW;
 END;
 $new_account_otp_validation_entry$ language plpgsql;
