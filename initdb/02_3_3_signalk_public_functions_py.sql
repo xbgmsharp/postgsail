@@ -651,7 +651,6 @@ AS $keycloak_py$
         plpy.error('Error parsing keycloak_uri, check app settings')
         return None
 
-    if 'app.keycloak_uri' in app and app['app.keycloak_uri']:
     _headers = {'User-Agent': 'PostgSail', 'From': 'xbgmsharp@gmail.com'}
     _payload = {'client_id':'admin-cli','grant_type':'password','username':user,'password':pwd}
     url = f'{_.scheme}://{host}/realms/master/protocol/openid-connect/token'.format(_.scheme, host)
