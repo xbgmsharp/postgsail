@@ -242,7 +242,7 @@ $vessel_details$
 DECLARE
 BEGIN
      RETURN ( WITH tbl AS (
-                SELECT mmsi,ship_type,length,beam,height,plugin_version FROM api.metadata WHERE vessel_id = current_setting('vessel.id', false)
+                SELECT mmsi,ship_type,length,beam,height,plugin_version,platform FROM api.metadata WHERE vessel_id = current_setting('vessel.id', false)
                 )
                 SELECT json_build_object(
                         'ship_type', (SELECT ais.description FROM aistypes ais, tbl t WHERE t.ship_type = ais.id),
@@ -251,7 +251,8 @@ BEGIN
                         'length', t.ship_type,
                         'beam', t.beam,
                         'height', t.height,
-                        'plugin_version', t.plugin_version)
+                        'plugin_version', t.plugin_version,
+                        'platform', t.platform)
                         FROM tbl t
             );
 END;
