@@ -18,6 +18,7 @@ INSERT INTO app_settings (name, value) VALUES
         ('app.pushover_app_url', '${PGSAIL_PUSHOVER_APP_URL}'),
         ('app.telegram_bot_token', '${PGSAIL_TELEGRAM_BOT_TOKEN}'),
         ('app.grafana_admin_uri', '${PGSAIL_GRAFANA_ADMIN_URI}'),
+        ('app.keycloak_uri', '${PGSAIL_KEYCLOAK_URI}'),
         ('app.url', '${PGSAIL_APP_URL}'),
         ('app.version', '${PGSAIL_VERSION}');
 -- Update comment with version
