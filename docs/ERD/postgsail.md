@@ -106,10 +106,10 @@ erDiagram
         timestamp_with_time_zone created_at "{NOT_NULL}"
         citext email "{NOT_NULL}"
         text first "User first name with CONSTRAINT CHECK {NOT_NULL}"
+        integer id "{NOT_NULL}"
         text last "User last name with CONSTRAINT CHECK {NOT_NULL}"
         text pass "{NOT_NULL}"
         jsonb preferences 
-        integer public_id "{NOT_NULL}"
         name role "{NOT_NULL}"
         timestamp_with_time_zone updated_at "{NOT_NULL}"
         text user_id "{NOT_NULL}"
@@ -137,7 +137,7 @@ erDiagram
 
     auth_vessels {
         timestamp_with_time_zone created_at "{NOT_NULL}"
-        numeric mmsi 
+        numeric mmsi "MMSI can be optional but if present must be a valid one and unique but must be in numeric range between 100000000 and 800000000"
         text name "{NOT_NULL}"
         citext owner_email "{NOT_NULL}"
         name role "{NOT_NULL}"
