@@ -21,7 +21,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto"; -- provides cryptographic functions
 
 DROP TABLE IF EXISTS auth.accounts CASCADE;
 CREATE TABLE IF NOT EXISTS auth.accounts (
-  id            INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  id            INT UNIQUE GENERATED ALWAYS AS IDENTITY,
   --id            TEXT NOT NULL UNIQUE DEFAULT uuid_generate_v7(),
   user_id       TEXT NOT NULL UNIQUE DEFAULT RIGHT(gen_random_uuid()::text, 12),
   email         CITEXT PRIMARY KEY CHECK ( email ~* '^.+@.+\..+$' ),
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS auth.vessels (
 --  user_id       TEXT NOT NULL REFERENCES auth.accounts(user_id) ON DELETE RESTRICT,
   owner_email CITEXT PRIMARY KEY REFERENCES auth.accounts(email) ON DELETE RESTRICT,
   mmsi        NUMERIC UNIQUE, -- MMSI can be optional but if present must be a valid one and unique
-  name        TEXT NOT NULL CHECK (length(name) >= 3 AND length(name) < 512)
+  name        TEXT NOT NULL CHECK (length(name) >= 3 AND length(name) < 512),
   role        name not null check (length(role) < 512),
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
