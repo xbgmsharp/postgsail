@@ -377,12 +377,13 @@ BEGIN
         RAISE NOTICE '-> cron_process_grafana_fn [%]', process_rec.payload;
         -- Gather url from app settings
         app_settings := get_app_settings_fn();
+        -- Get vessel details base on metadata id
         SELECT * INTO data_rec
             FROM api.metadata m, auth.vessels v
-            WHERE id = process_rec.payload::INTEGER
+            WHERE m.id = process_rec.payload::INTEGER
                 AND m.vessel_id = v.vessel_id;
         -- as we got data from the vessel we can do the grafana provisioning.
-        PERFORM grafana_py_fn(data_rec.name,data_rec.vessel_id,data_rec.owner_email,app_settings);
+        PERFORM grafana_py_fn(data_rec.name, data_rec.vessel_id, data_rec.owner_email, app_settings);
         -- update process_queue entry as processed
         UPDATE process_queue
             SET
