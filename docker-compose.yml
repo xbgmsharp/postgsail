@@ -48,6 +48,9 @@ services:
       PGRST_DB_POOL: 20
       PGRST_DB_URI: ${PGRST_DB_URI}
       PGRST_JWT_SECRET: ${PGRST_JWT_SECRET}
+      PGRST_SERVER_TIMING_ENABLED: True
+      PGRST_DB_MAX_ROWS: 500
+      PGRST_JWT_CACHE_MAX_LIFETIME: 3600
     depends_on:
       - db
     logging:
@@ -75,10 +78,9 @@ services:
     env_file: .env
     environment:
       - GF_INSTALL_PLUGINS=pr0ps-trackmap-panel,fatcloud-windrose-panel
+      - GF_SECURITY_ADMIN_PASSWORD=${PGSAIL_GRAFANA_PASSWORD}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SMTP_ENABLED=false
-      - PGSAIL_GRAFANA_URI=db:5432
-      - PGSAIL_GRAFANA_PASSWORD=${PGSAIL_GRAFANA_PASSWORD}
     depends_on:
       - db
     logging:
