@@ -634,17 +634,27 @@ AS $keycloak_py$
     """
     import requests
     import json
+    import urllib.parse
 
-    keycloak_uri = None
+    safe_uri = host = user = pwd = None
     if 'app.keycloak_uri' in app and app['app.keycloak_uri']:
-        keycloak_uri = app['app.keycloak_uri']
+        safe_uri = urllib.parse.quote(app['app.keycloak_uri'], safe=':/?&=')
+        _ = urllib.parse.urlparse(safe_uri)
+        host = _.netloc.split('@')[-1]
+        user = _.netloc.split('@')[0].split(':')[0]
+        pwd = _.netloc.split('@')[0].split(':')[1]
     else:
         plpy.error('Error no keycloak_uri defined, check app settings')
-    return None
+        return None
 
+    if not host or not user or not pwd:
+        plpy.error('Error parsing keycloak_uri, check app settings')
+        return None
+
+    if 'app.keycloak_uri' in app and app['app.keycloak_uri']:
     _headers = {'User-Agent': 'PostgSail', 'From': 'xbgmsharp@gmail.com'}
-    _payload = {'client_id':'admin-cli','grant_type':'password','username':'admin','password':'admin'}
-    url = f'{keycloak_uri}/realms/master/protocol/openid-connect/token'.format(keycloak_uri)
+    _payload = {'client_id':'admin-cli','grant_type':'password','username':user,'password':pwd}
+    url = f'{_.scheme}://{host}/realms/master/protocol/openid-connect/token'.format(_.scheme, host)
     r = requests.post(url, headers=_headers, data=_payload, timeout=(5, 60))
     #print(r.text)
     #plpy.notice(url)
