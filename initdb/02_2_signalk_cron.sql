@@ -395,7 +395,7 @@ END;
 $$ language plpgsql;
 -- Description
 COMMENT ON FUNCTION
-    public.cron_process_new_vessel_fn
+    public.cron_process_grafana_fn
     IS 'init by pg_cron to check for new vessel pending grafana provisioning, if so perform grafana_py_fn';
 
 -- CRON for Vacuum database
