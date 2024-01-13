@@ -794,3 +794,42 @@ $delete_logbook$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION
     api.delete_logbook_fn
     IS 'Delete a logbook and dependency stay';
+
+CREATE OR REPLACE FUNCTION api.monitoring_history_fn(IN time_interval TEXT DEFAULT '24', OUT history_metrics JSONB) RETURNS JSONB AS $monitoring_history$
+    DECLARE
+        bucket_interval interval := '5 minutes';
+    BEGIN
+        RAISE NOTICE '-> monitoring_history_fn';
+        SELECT CASE time_interval
+            WHEN '24' THEN '5 minutes'
+            WHEN '48' THEN '2 hours'
+            WHEN '72' THEN '4 hours'
+            WHEN '168' THEN '7 hours'
+            ELSE '5 minutes'
+            END bucket INTO bucket_interval;
+        RAISE NOTICE '-> monitoring_history_fn % %', time_interval, bucket_interval;
+        WITH history_table AS (
+            SELECT time_bucket(bucket_interval::INTERVAL, time) AS time_bucket,
+                avg((metrics->'environment.water.temperature')::numeric) AS waterTemperature,
+                avg((metrics->'environment.inside.temperature')::numeric) AS insideTemperature,
+                avg((metrics->'environment.outside.temperature')::numeric) AS outsideTemperature,
+                avg((metrics->'environment.wind.speedOverGround')::numeric) AS windSpeedOverGround,
+                avg((metrics->'environment.inside.relativeHumidity')::numeric) AS insideHumidity,
+                avg((metrics->'environment.outside.relativeHumidity')::numeric) AS outsideHumidity,
+                avg((metrics->'environment.outside.pressure')::numeric) AS outsidePressure,
+                avg((metrics->'environment.inside.pressure')::numeric) AS insidePressure,
+                avg((metrics->'electrical.batteries.House.capacity.stateOfCharge')::numeric) AS batteryCharge,
+                avg((metrics->'electrical.batteries.House.voltage')::numeric) AS batteryVoltage,
+                avg((metrics->'environment.depth.belowTransducer')::numeric) AS depth
+                FROM api.metrics
+                WHERE time > (NOW() AT TIME ZONE 'UTC' - INTERVAL '1 hours' * time_interval::NUMERIC)
+                GROUP BY time_bucket
+                ORDER BY time_bucket asc
+        )
+        SELECT jsonb_agg(history_table) INTO history_metrics FROM history_table;
+    END
+$monitoring_history$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    api.monitoring_history_fn
+    IS 'Export metrics from a time period 24h, 48h, 72h, 7d';
