@@ -66,7 +66,7 @@ stay_code | 4
 
 eventlogs_view
 -[ RECORD 1 ]
-count | 14
+count | 12
 
 stats_logs_fn
 SELECT 1
