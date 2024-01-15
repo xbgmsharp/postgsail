@@ -7,6 +7,12 @@
 --
 ---------------------------------------------------------------------------
 
+-- PostgRest Media Type Handlers
+CREATE DOMAIN "text/xml" AS xml;
+CREATE DOMAIN "application/geo+json" AS jsonb;
+CREATE DOMAIN "application/gpx+xml" AS xml;
+CREATE DOMAIN "application/vnd.google-earth.kml+xml" AS xml;
+
 ---------------------------------------------------------------------------
 -- Functions API schema
 -- Timelapse - replay logs
@@ -69,7 +75,7 @@ CREATE OR REPLACE FUNCTION api.timelapse_fn(
         -- Return a GeoJSON MultiLineString
         -- result _geojson [null, null]
         --raise WARNING 'result _geojson %' , _geojson;
-        SELECT json_build_object(
+        SELECT jsonb_build_object(
             'type', 'FeatureCollection',
             'features', ARRAY[_geojson] ) INTO geojson;
     END;
@@ -111,7 +117,7 @@ COMMENT ON FUNCTION
 -- https://opencpn.org/OpenCPN/info/gpxvalidation.html
 --
 DROP FUNCTION IF EXISTS api.export_logbook_gpx_fn;
-CREATE OR REPLACE FUNCTION api.export_logbook_gpx_fn(IN _id INTEGER) RETURNS pg_catalog.xml
+CREATE OR REPLACE FUNCTION api.export_logbook_gpx_fn(IN _id INTEGER) RETURNS "text/xml"
 AS $export_logbook_gpx$
     DECLARE
         app_settings jsonb;
@@ -169,7 +175,7 @@ COMMENT ON FUNCTION
 -- https://developers.google.com/kml/documentation/kml_tut
 -- TODO https://developers.google.com/kml/documentation/time#timespans
 DROP FUNCTION IF EXISTS api.export_logbook_kml_fn;
-CREATE OR REPLACE FUNCTION api.export_logbook_kml_fn(IN _id INTEGER) RETURNS pg_catalog.xml
+CREATE OR REPLACE FUNCTION api.export_logbook_kml_fn(IN _id INTEGER) RETURNS "text/xml"
 AS $export_logbook_kml$
     DECLARE
         logbook_rec record;
@@ -212,7 +218,7 @@ COMMENT ON FUNCTION
 DROP FUNCTION IF EXISTS api.export_logbooks_gpx_fn;
 CREATE OR REPLACE FUNCTION api.export_logbooks_gpx_fn(
     IN start_log INTEGER DEFAULT NULL,
-    IN end_log INTEGER DEFAULT NULL) RETURNS pg_catalog.xml
+    IN end_log INTEGER DEFAULT NULL) RETURNS "application/gpx+xml"
 AS $export_logbooks_gpx$
     declare
         merged_jsonb jsonb;
@@ -276,7 +282,7 @@ COMMENT ON FUNCTION
 DROP FUNCTION IF EXISTS api.export_logbooks_kml_fn;
 CREATE OR REPLACE FUNCTION api.export_logbooks_kml_fn(
     IN start_log INTEGER DEFAULT NULL,
-    IN end_log INTEGER DEFAULT NULL) RETURNS pg_catalog.xml
+    IN end_log INTEGER DEFAULT NULL) RETURNS "text/xml"
 AS $export_logbooks_kml$
 DECLARE
     _geom geometry;
@@ -334,7 +340,7 @@ COMMENT ON FUNCTION
 
 -- Find all log from and to moorage geopoint within 100m
 DROP FUNCTION IF EXISTS api.find_log_from_moorage_fn;
-CREATE OR REPLACE FUNCTION api.find_log_from_moorage_fn(IN _id INTEGER, OUT geojson JSON) RETURNS JSON AS $find_log_from_moorage$
+CREATE OR REPLACE FUNCTION api.find_log_from_moorage_fn(IN _id INTEGER, OUT geojson JSONB) RETURNS JSONB AS $find_log_from_moorage$
     DECLARE
         moorage_rec record;
         _geojson jsonb;
@@ -357,7 +363,7 @@ CREATE OR REPLACE FUNCTION api.find_log_from_moorage_fn(IN _id INTEGER, OUT geoj
                     1000 -- in meters ?
                 );
         -- Return a GeoJSON filter on LineString
-        SELECT json_build_object(
+        SELECT jsonb_build_object(
             'type', 'FeatureCollection',
             'features', public.geojson_py_fn(_geojson, 'Point'::TEXT) ) INTO geojson;
     END;
@@ -368,7 +374,7 @@ COMMENT ON FUNCTION
     IS 'Find all log from moorage geopoint within 100m';
 
 DROP FUNCTION IF EXISTS api.find_log_to_moorage_fn;
-CREATE OR REPLACE FUNCTION api.find_log_to_moorage_fn(IN _id INTEGER, OUT geojson JSON) RETURNS JSON AS $find_log_to_moorage$
+CREATE OR REPLACE FUNCTION api.find_log_to_moorage_fn(IN _id INTEGER, OUT geojson JSONB) RETURNS JSONB AS $find_log_to_moorage$
     DECLARE
         moorage_rec record;
         _geojson jsonb;
@@ -391,7 +397,7 @@ CREATE OR REPLACE FUNCTION api.find_log_to_moorage_fn(IN _id INTEGER, OUT geojso
                     1000 -- in meters ?
                 );
         -- Return a GeoJSON filter on LineString
-        SELECT json_build_object(
+        SELECT jsonb_build_object(
             'type', 'FeatureCollection',
             'features', public.geojson_py_fn(_geojson, 'Point'::TEXT) ) INTO geojson;
     END;
@@ -529,7 +535,7 @@ DROP FUNCTION IF EXISTS api.export_moorages_geojson_fn;
 CREATE FUNCTION api.export_moorages_geojson_fn(OUT geojson JSONB) RETURNS JSONB AS $export_moorages_geojson$
     DECLARE
     BEGIN
-        SELECT json_build_object(
+        SELECT jsonb_build_object(
             'type', 'FeatureCollection',
             'features',
                 ( SELECT
@@ -552,7 +558,7 @@ COMMENT ON FUNCTION
     IS 'Export moorages as geojson';
 
 DROP FUNCTION IF EXISTS api.export_moorages_gpx_fn;
-CREATE FUNCTION api.export_moorages_gpx_fn() RETURNS pg_catalog.xml AS $export_moorages_gpx$
+CREATE FUNCTION api.export_moorages_gpx_fn() RETURNS "text/xml" AS $export_moorages_gpx$
     DECLARE
         app_settings jsonb;
     BEGIN
@@ -604,7 +610,7 @@ DROP FUNCTION IF EXISTS api.stats_logs_fn;
 CREATE OR REPLACE FUNCTION api.stats_logs_fn(
     IN start_date TEXT DEFAULT NULL,
     IN end_date TEXT DEFAULT NULL,
-    OUT stats JSON) RETURNS JSON AS $stats_logs$
+    OUT stats JSONB) RETURNS JSONB AS $stats_logs$
     DECLARE
         _start_date TIMESTAMPTZ DEFAULT '1970-01-01';
         _end_date TIMESTAMPTZ DEFAULT NOW();
@@ -833,3 +839,31 @@ $monitoring_history$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION
     api.monitoring_history_fn
     IS 'Export metrics from a time period 24h, 48h, 72h, 7d';
+
+CREATE OR REPLACE FUNCTION api.status_fn(out status jsonb) RETURNS JSONB AS $status_fn$
+    DECLARE
+        in_route BOOLEAN := False;
+    BEGIN
+        RAISE NOTICE '-> status_fn';
+        SELECT EXISTS ( SELECT id
+                        FROM api.logbook l
+                        WHERE active IS True
+                        LIMIT 1
+                    ) INTO in_route;
+        IF in_route IS True THEN
+            -- In route from <logbook.from_name> arrived at <>
+            SELECT jsonb_build_object('status', sa.description, 'location', m.name, 'departed', l._from_time) INTO status
+                from api.logbook l, api.stays_at sa, api.moorages m
+                where s.stay_code = sa.stay_code AND l._from_moorage_id = m.id AND l.active IS True;
+        ELSE
+            -- At <Stat_at.Desc> in <Moorage.name> departed at <>
+            SELECT jsonb_build_object('status', sa.description, 'location', m.name, 'arrived', s.arrived) INTO status
+                from api.stays s, api.stays_at sa, api.moorages m
+                where s.stay_code = sa.stay_code AND s.moorage_id = m.id AND s.active IS True;
+        END IF;
+    END
+$status_fn$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    api.status_fn
+    IS 'generate vessel status';
