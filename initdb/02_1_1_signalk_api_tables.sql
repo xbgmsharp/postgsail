@@ -506,7 +506,7 @@ CREATE FUNCTION metrics_trigger_fn() RETURNS trigger AS $metrics$
                     WHERE id = stay_id;
                 -- Add stay entry to process queue for further processing
                 INSERT INTO process_queue (channel, payload, stored, ref_id)
-                    VALUES ('new_stay', stay_id, now(), current_setting('vessel.id', true));
+                    VALUES ('new_stay', stay_id, NOW(), current_setting('vessel.id', true));
                 RAISE WARNING 'Metrics Updating Stay end current stay_id [%] [%] [%]', stay_id, NEW.status, NEW.time;
             ELSE
                 RAISE WARNING 'Metrics Invalid stay_id [%] [%]', stay_id, NEW.time;

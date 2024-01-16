@@ -7,7 +7,7 @@
 --
 ---------------------------------------------------------------------------
 
--- PostgRest Media Type Handlers
+-- PostgREST Media Type Handlers
 CREATE DOMAIN "text/xml" AS xml;
 CREATE DOMAIN "application/geo+json" AS jsonb;
 CREATE DOMAIN "application/gpx+xml" AS xml;
