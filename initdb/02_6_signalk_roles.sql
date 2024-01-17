@@ -40,6 +40,9 @@ grant execute on function api.telegram_otp_fn(text) to api_anonymous;
 --grant execute on function api.generate_otp_fn(text) to api_anonymous;
 grant execute on function api.ispublic_fn(text,text,integer) to api_anonymous;
 grant execute on function api.timelapse_fn to api_anonymous;
+grant execute on function api.stats_logs_fn to api_anonymous;
+grant execute on function api.stats_stays_fn to api_anonymous;
+grant execute on function api.status_fn to api_anonymous;
 -- Allow read on TABLES on API schema
 --GRANT SELECT ON TABLE api.metrics,api.logbook,api.moorages,api.stays,api.metadata,api.stays_at TO api_anonymous;
 -- Allow read on VIEWS on API schema
@@ -90,6 +93,7 @@ GRANT SELECT ON TABLE auth.accounts TO grafana_auth;
 GRANT SELECT ON TABLE auth.vessels TO grafana_auth;
 -- GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO grafana_auth;
 GRANT EXECUTE ON FUNCTION public.citext_eq(citext, citext) TO grafana_auth;
+GRANT ALL ON SCHEMA public TO grafana_auth; -- Important if grafana database in pg
 
 -- User:
 -- nologin, web api only
@@ -152,6 +156,9 @@ GRANT EXECUTE ON FUNCTION public.stay_in_progress_fn(text) to vessel_role;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA _timescaledb_internal TO vessel_role;
 -- on metrics st_makepoint
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO vessel_role;
+-- Oauth registration
+GRANT EXECUTE ON FUNCTION api.oauth() TO vessel_role;
+GRANT EXECUTE ON FUNCTION api.oauth_vessel(text,text) TO vessel_role;
 
 --- Scheduler:
 -- TODO: currently cron function are run as super user, switch to scheduler role.
@@ -278,6 +285,10 @@ CREATE POLICY api_scheduler_role ON api.stays TO scheduler
 CREATE POLICY grafana_role ON api.stays TO grafana
     USING (vessel_id = current_setting('vessel.id', false))
     WITH CHECK (false);
+-- Allow anonymous to select based on the vessel.id
+CREATE POLICY api_anonymous_role ON api.stays TO api_anonymous
+    USING (vessel_id = current_setting('vessel.id', false))
+    WITH CHECK (false);
 
 -- Be sure to enable row level security on the table
 ALTER TABLE api.moorages ENABLE ROW LEVEL SECURITY;
@@ -299,6 +310,10 @@ CREATE POLICY api_scheduler_role ON api.moorages TO scheduler
     WITH CHECK (vessel_id = current_setting('vessel.id', false));
 -- Allow grafana to select based on the vessel_id
 CREATE POLICY grafana_role ON api.moorages TO grafana
+    USING (vessel_id = current_setting('vessel.id', false))
+    WITH CHECK (false);
+-- Allow anonymous to select based on the vessel.id
+CREATE POLICY api_anonymous_role ON api.moorages TO api_anonymous
     USING (vessel_id = current_setting('vessel.id', false))
     WITH CHECK (false);
 
