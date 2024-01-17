@@ -316,7 +316,8 @@ BEGIN
         RETURN False;
     END IF;
 
-    IF _type ~ '^public_(logs|timelapse)$' AND _id IS NOT NULL THEN
+    RAISE WARNING '-> ispublic_fn _type [%], _id [%]', _type, _id;
+    IF _type ~ '^public_(logs|timelapse)$' AND _id > 0 THEN
         WITH log as (
             SELECT vessel_id from api.logbook l where l.id = _id
         )

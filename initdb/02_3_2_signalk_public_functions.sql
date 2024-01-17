@@ -1867,7 +1867,7 @@ BEGIN
             END IF;
             -- Check if boat name match public_vessel name
             boat := '^' || _pvessel || '$';
-            IF _ptype ~ '^public_(logs|timelapse)$' AND _pid IS NOT NULL THEN
+            IF _ptype ~ '^public_(logs|timelapse)$' AND _pid > 0 THEN
                 WITH log as (
                     SELECT vessel_id from api.logbook l where l.id = _pid
                 )
