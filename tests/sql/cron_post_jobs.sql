@@ -69,3 +69,8 @@ SELECT extra FROM api.logbook l WHERE id = 1 AND vessel_id = current_setting('ve
 --SELECT api.export_logbook_geojson_fn(1);
 --SELECT api.export_logbook_gpx_fn(1);
 --SELECT api.export_logbook_kml_fn(1);
+
+-- Check history
+--\echo 'monitoring history fn'
+--select api.monitoring_history_fn();
+--select api.monitoring_history_fn('24');

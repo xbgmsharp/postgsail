@@ -50,6 +50,24 @@ var moment = require("moment");
       payload: null,
       res: {},
     },
+    timelapse_full: {
+      url: "/rpc/timelapse_fn",
+      header: { name: "x-is-public", value: btoa("kapla,public_timelapse,0") },
+      payload: null,
+      res: {},
+    },
+    stats_logs: {
+      url: "/rpc/stats_logs_fn",
+      header: { name: "x-is-public", value: btoa("kapla,public_stats,0") },
+      payload: null,
+      res: {},
+    },
+    stats_stays: {
+      url: "/rpc/stats_stay_fn",
+      header: { name: "x-is-public", value: btoa("kapla,public_stats,0") },
+      payload: null,
+      res: {},
+    },
     export_gpx: {
       url: "/rpc/export_logbook_gpx_fn",
       header: { name: "x-is-public", value: btoa("kapla,public_logs,0") },
@@ -80,7 +98,25 @@ var moment = require("moment");
     },
     timelapse: {
       url: "/rpc/timelapse_fn",
+      header: { name: "x-is-public", value: btoa("aava,public_timelapse,3") },
+      payload: null,
+      res: {},
+    },
+    timelapse_full: {
+      url: "/rpc/timelapse_fn",
       header: { name: "x-is-public", value: btoa("aava,public_timelapse,0") },
+      payload: null,
+      res: {},
+    },
+    stats_logs: {
+      url: "/rpc/stats_logs_fn",
+      header: { name: "x-is-public", value: btoa("aava,public_stats,0") },
+      payload: null,
+      res: {},
+    },
+    stats_stays: {
+      url: "/rpc/stats_stay_fn",
+      header: { name: "x-is-public", value: btoa("kapla,public_stats,0") },
       payload: null,
       res: {},
     },
@@ -97,7 +133,7 @@ var moment = require("moment");
     request = supertest.agent(test.cname);
     request.set("User-Agent", "PostgSail unit tests");
 
-    describe("Get JWT api_anonymous", function () {
+    describe("With no JWT as api_anonymous", function () {
       it("/logs_view, api_anonymous no jwt token", function (done) {
         // Reset agent so we do not save cookies
         request = supertest.agent(test.cname);
@@ -156,7 +192,7 @@ var moment = require("moment");
           .set("Accept", "application/json")
           .end(function (err, res) {
             console.log(res.text);
-            res.status.should.equal(404);
+            res.status.should.equal(404); // return 404 as it is not enable in user settings.
             should.exist(res.header["content-type"]);
             should.exist(res.header["server"]);
             res.header["content-type"].should.match(new RegExp("json", "g"));
