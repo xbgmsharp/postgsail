@@ -22,7 +22,7 @@ BEGIN
     LOOP
         RAISE NOTICE 'cron_process_pre_logbook_fn processing queue [%] for logbook id [%]', process_rec.id, process_rec.payload;
         -- update logbook
-        PERFORM process_logbook_valid_fn(process_rec.payload::INTEGER);
+        PERFORM process_pre_logbook_fn(process_rec.payload::INTEGER);
         -- update process_queue table , processed
         UPDATE process_queue
             SET

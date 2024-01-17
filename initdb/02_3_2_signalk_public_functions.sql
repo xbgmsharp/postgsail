@@ -1262,8 +1262,8 @@ COMMENT ON FUNCTION
     public.badges_geom_fn
     IS 'check geometry logbook for new badges, eg: Tropic, Alaska, Geographic zone';
 
-DROP FUNCTION IF EXISTS public.process_logbook_valid_fn;
-CREATE OR REPLACE FUNCTION public.process_logbook_valid_fn(IN _id integer) RETURNS void AS $process_logbook_valid$
+DROP FUNCTION IF EXISTS public.process_pre_logbook_fn;
+CREATE OR REPLACE FUNCTION public.process_pre_logbook_fn(IN _id integer) RETURNS void AS $process_pre_logbook$
     DECLARE
         logbook_rec record;
         avg_rec record;
@@ -1281,7 +1281,7 @@ CREATE OR REPLACE FUNCTION public.process_logbook_valid_fn(IN _id integer) RETUR
     BEGIN
         -- If _id is not NULL
         IF _id IS NULL OR _id < 1 THEN
-            RAISE WARNING '-> process_logbook_valid_fn invalid input %', _id;
+            RAISE WARNING '-> process_pre_logbook_fn invalid input %', _id;
             RETURN;
         END IF;
         -- Get the logbook record with all necessary fields exist
@@ -1295,7 +1295,7 @@ CREATE OR REPLACE FUNCTION public.process_logbook_valid_fn(IN _id integer) RETUR
                 AND _to_lat IS NOT NULL;
         -- Ensure the query is successful
         IF logbook_rec.vessel_id IS NULL THEN
-            RAISE WARNING '-> process_logbook_valid_fn invalid logbook %', _id;
+            RAISE WARNING '-> process_pre_logbook_fn invalid logbook %', _id;
             RETURN;
         END IF;
 
@@ -1304,7 +1304,7 @@ CREATE OR REPLACE FUNCTION public.process_logbook_valid_fn(IN _id integer) RETUR
 
         -- Check if all metrics are within 50meters base on geo loc
         count_metric := logbook_metrics_dwithin_fn(logbook_rec._from_time::TEXT, logbook_rec._to_time::TEXT, logbook_rec._from_lng::NUMERIC, logbook_rec._from_lat::NUMERIC);
-        RAISE NOTICE '-> process_logbook_valid_fn logbook_metrics_dwithin_fn count:[%]', count_metric;
+        RAISE NOTICE '-> process_pre_logbook_fn logbook_metrics_dwithin_fn count:[%]', count_metric;
 
         -- Calculate logbook data average and geo
         -- Update logbook entry with the latest metric data and calculate data
@@ -1318,8 +1318,9 @@ CREATE OR REPLACE FUNCTION public.process_logbook_valid_fn(IN _id integer) RETUR
         SELECT geo_rec._track_distance < 0.010 INTO _invalid_distance;
         -- Is duration is less than 100sec
         SELECT (logbook_rec._to_time::TIMESTAMPTZ - logbook_rec._from_time::TIMESTAMPTZ) < (100::text||' secs')::interval INTO _invalid_interval;
+        -- If we have less than 15 metrics
         -- Is within metrics represent more or equal than 60% of the total entry
-        IF count_metric::NUMERIC <= 10 THEN
+        IF count_metric::NUMERIC <= 15 THEN
             SELECT (count_metric::NUMERIC / avg_rec.count_metric::NUMERIC) >= 0.60 INTO _invalid_ratio;
         END IF;
         -- if stationary fix data metrics,logbook,stays,moorage
@@ -1327,7 +1328,7 @@ CREATE OR REPLACE FUNCTION public.process_logbook_valid_fn(IN _id integer) RETUR
             OR _invalid_interval IS True OR count_metric = avg_rec.count_metric
             OR _invalid_ratio IS True
             OR avg_rec.count_metric <= 3 THEN
-            RAISE NOTICE '-> process_logbook_valid_fn invalid logbook data id [%], _invalid_time [%], _invalid_distance [%], _invalid_interval [%], count_metric_in_zone [%], count_metric_log [%], _invalid_ratio [%]',
+            RAISE NOTICE '-> process_pre_logbook_fn invalid logbook data id [%], _invalid_time [%], _invalid_distance [%], _invalid_interval [%], count_metric_in_zone [%], count_metric_log [%], _invalid_ratio [%]',
                 logbook_rec.id, _invalid_time, _invalid_distance, _invalid_interval, count_metric, avg_rec.count_metric, _invalid_ratio;
             -- Update metrics status to moored
             UPDATE api.metrics
@@ -1365,9 +1366,9 @@ CREATE OR REPLACE FUNCTION public.process_logbook_valid_fn(IN _id integer) RETUR
                     AND id = previous_stays_id;
             -- Clean up, remove invalid logbook and stay entry
             DELETE FROM api.logbook WHERE id = logbook_rec.id;
-            RAISE WARNING '-> process_logbook_valid_fn delete invalid logbook [%]', logbook_rec.id;
+            RAISE WARNING '-> process_pre_logbook_fn delete invalid logbook [%]', logbook_rec.id;
             DELETE FROM api.stays WHERE id = current_stays_id;
-            RAISE WARNING '-> process_logbook_valid_fn delete invalid stays [%]', current_stays_id;
+            RAISE WARNING '-> process_pre_logbook_fn delete invalid stays [%]', current_stays_id;
             RETURN;
         END IF;
 
@@ -1394,11 +1395,11 @@ CREATE OR REPLACE FUNCTION public.process_logbook_valid_fn(IN _id integer) RETUR
             VALUES ('new_logbook', logbook_rec.id, NOW(), current_setting('vessel.id', true));
 
     END;
-$process_logbook_valid$ LANGUAGE plpgsql;
+$process_pre_logbook$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
     public.process_logbook_queue_fn
-    IS 'Avoid/ignore/delete logbook stationary movement or time sync issue';
+    IS 'Detect/Avoid/ignore/delete logbook stationary movement or time sync issue';
 
 DROP FUNCTION IF EXISTS process_lat_lon_fn;
 CREATE OR REPLACE FUNCTION process_lat_lon_fn(IN lon NUMERIC, IN lat NUMERIC,
