@@ -1398,7 +1398,7 @@ CREATE OR REPLACE FUNCTION public.process_pre_logbook_fn(IN _id integer) RETURNS
 $process_pre_logbook$ LANGUAGE plpgsql;
 -- Description
 COMMENT ON FUNCTION
-    public.process_logbook_queue_fn
+    public.process_pre_logbook_fn
     IS 'Detect/Avoid/ignore/delete logbook stationary movement or time sync issue';
 
 DROP FUNCTION IF EXISTS process_lat_lon_fn;
