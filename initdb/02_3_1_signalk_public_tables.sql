@@ -132,7 +132,12 @@ INSERT INTO public.email_templates VALUES
     'PostgSail account deactivated',
     E'Hello __RECIPIENT__,\nYour account has been deactivated and all your data has been removed from PostgSail system.',
     'PostgSail deactivated!',
-    E'We removed your account. Check your email!\n');
+    E'We removed your account. Check your email!\n'),
+('grafana',
+    'PostgSail Grafana integration',
+    E'Hello __RECIPIENT__,\nCongratulations! You have just unlocked Grafana\nSee more details at https://app.opneplotter.cloud\nHappy sailing!\nFrancois',
+    'PostgSail Grafana!',
+    E'Congratulations!\nYou have just unlocked Grafana\nSee more details at https://app.opneplotter.cloud\n');
 
 ---------------------------------------------------------------------------
 -- Queue handling
