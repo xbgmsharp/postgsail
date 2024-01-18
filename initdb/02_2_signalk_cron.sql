@@ -384,6 +384,11 @@ BEGIN
                 AND m.vessel_id = v.vessel_id;
         -- as we got data from the vessel we can do the grafana provisioning.
         PERFORM grafana_py_fn(data_rec.name, data_rec.vessel_id, data_rec.owner_email, app_settings);
+        -- Gather user settings
+        user_settings := get_user_settings_from_vesselid_fn(data_rec.vessel_id::TEXT);
+        RAISE DEBUG '-> DEBUG cron_process_grafana_fn get_user_settings_from_vesselid_fn [%]', user_settings;
+        -- Send notification
+        PERFORM send_notification_fn('grafana'::TEXT, user_settings::JSONB);
         -- update process_queue entry as processed
         UPDATE process_queue
             SET
