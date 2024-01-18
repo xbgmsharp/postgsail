@@ -15,12 +15,12 @@
 -- security_invoker=true,security_barrier=true
 ---------------------------------------------------------------------------
 
-CREATE VIEW first_metric AS
+CREATE VIEW public.first_metric AS
     SELECT * 
         FROM api.metrics
         ORDER BY time ASC LIMIT 1;
 
-CREATE VIEW last_metric AS
+CREATE VIEW public.last_metric AS
     SELECT * 
         FROM api.metrics
         ORDER BY time DESC LIMIT 1;
@@ -397,7 +397,8 @@ CREATE VIEW api.monitoring_view WITH (security_invoker=true,security_barrier=tru
                 'speedoverground', m.speedoverground,
                 'windspeedapparent', m.windspeedapparent
                 )::jsonb ) AS geojson,
-        current_setting('vessel.name', false) AS name
+        current_setting('vessel.name', false) AS name,
+        ( SELECT api.status_fn() ) AS status
     FROM api.metrics m
     ORDER BY time DESC LIMIT 1;
 COMMENT ON VIEW
