@@ -1372,23 +1372,23 @@ CREATE OR REPLACE FUNCTION public.process_pre_logbook_fn(IN _id integer) RETURNS
             RETURN;
         END IF;
 
-        IF (logbook_rec.notes IS NULL) THEN -- run one time only
-            -- If duration is over 24h or number of entry is over 400, check for stays and potential multiple logs with stationary location
-            IF (logbook_rec._to_time::TIMESTAMPTZ - logbook_rec._from_time::TIMESTAMPTZ) > INTERVAL '24 hours'
-                OR avg_rec.count_metric > 400 THEN
-                timebucket := public.logbook_metrics_timebucket_fn('15 minutes'::TEXT, logbook_rec.id, logbook_rec._from_time::TIMESTAMPTZ, logbook_rec._to_time::TIMESTAMPTZ);
-                -- If true exit current process as the current logbook need to be re-process.
-                IF timebucket IS True THEN
-                    RETURN;
-                END IF;
-            ELSE
-                timebucket := public.logbook_metrics_timebucket_fn('5 minutes'::TEXT, logbook_rec.id, logbook_rec._from_time::TIMESTAMPTZ, logbook_rec._to_time::TIMESTAMPTZ);
-                -- If true exit current process as the current logbook need to be re-process.
-                IF timebucket IS True THEN
-                    RETURN;
-                END IF;
-            END IF;
-        END IF;
+        --IF (logbook_rec.notes IS NULL) THEN -- run one time only
+        --    -- If duration is over 24h or number of entry is over 400, check for stays and potential multiple logs with stationary location
+        --    IF (logbook_rec._to_time::TIMESTAMPTZ - logbook_rec._from_time::TIMESTAMPTZ) > INTERVAL '24 hours'
+        --        OR avg_rec.count_metric > 400 THEN
+        --        timebucket := public.logbook_metrics_timebucket_fn('15 minutes'::TEXT, logbook_rec.id, logbook_rec._from_time::TIMESTAMPTZ, logbook_rec._to_time::TIMESTAMPTZ);
+        --        -- If true exit current process as the current logbook need to be re-process.
+        --        IF timebucket IS True THEN
+        --            RETURN;
+        --        END IF;
+        --    ELSE
+        --        timebucket := public.logbook_metrics_timebucket_fn('5 minutes'::TEXT, logbook_rec.id, logbook_rec._from_time::TIMESTAMPTZ, logbook_rec._to_time::TIMESTAMPTZ);
+        --        -- If true exit current process as the current logbook need to be re-process.
+        --        IF timebucket IS True THEN
+        --            RETURN;
+        --        END IF;
+        --    END IF;
+        --END IF;
 
         -- Add logbook entry to process queue for later processing
         INSERT INTO process_queue (channel, payload, stored, ref_id)
