@@ -47,7 +47,7 @@ CREATE OR REPLACE FUNCTION api.timelapse_fn(
             WITH logbook as (
                 SELECT track_geom
                     FROM api.logbook
-                    WHERE _from_time >= start_log::TIMESTAMPTZ
+                    WHERE _from_time >= start_date::TIMESTAMPTZ
                         AND _to_time <= end_date::TIMESTAMPTZ + interval '23 hours 59 minutes'
                         AND track_geom IS NOT NULL
                     ORDER BY _from_time ASC
@@ -84,6 +84,75 @@ $timelapse$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION
     api.timelapse_fn
     IS 'Export all selected logs geometry `track_geom` to a geojson as MultiLineString with empty properties';
+
+DROP FUNCTION IF EXISTS api.timelapse2_fn;
+CREATE OR REPLACE FUNCTION api.timelapse2_fn(
+    IN start_log INTEGER DEFAULT NULL,
+    IN end_log INTEGER DEFAULT NULL,
+    IN start_date TEXT DEFAULT NULL,
+    IN end_date TEXT DEFAULT NULL,
+    OUT geojson JSONB) RETURNS JSONB AS $timelapse2$
+    DECLARE
+        _geojson jsonb;
+    BEGIN
+        -- Using sub query to force id order by
+        -- Merge GIS track_geom into a GeoJSON Points
+        IF start_log IS NOT NULL AND public.isnumeric(start_log::text) AND public.isnumeric(end_log::text) THEN
+            SELECT jsonb_agg(
+                        jsonb_build_object('type', 'Feature',
+                                            'properties', jsonb_build_object( 'notes', f->'properties'->>'notes'),
+                                            'geometry', jsonb_build_object( 'coordinates', f->'geometry'->'coordinates', 'type', 'Point'))
+                    ) INTO _geojson
+            FROM (
+                SELECT jsonb_array_elements(track_geojson->'features') AS f
+                    FROM api.logbook
+                    WHERE id >= start_log
+                        AND id <= end_log
+                        AND track_geojson IS NOT NULL
+                    ORDER BY _from_time ASC
+            ) AS sub
+            WHERE (f->'geometry'->>'type') = 'Point';
+        ELSIF start_date IS NOT NULL AND public.isdate(start_date::text) AND public.isdate(end_date::text) THEN
+            SELECT jsonb_agg(
+                        jsonb_build_object('type', 'Feature',
+                                            'properties', jsonb_build_object( 'notes', f->'properties'->>'notes'),
+                                            'geometry', jsonb_build_object( 'coordinates', f->'geometry'->'coordinates', 'type', 'Point'))
+                    ) INTO _geojson
+            FROM (
+                SELECT jsonb_array_elements(track_geojson->'features') AS f
+                    FROM api.logbook
+                    WHERE _from_time >= start_date::TIMESTAMPTZ
+                        AND _to_time <= end_date::TIMESTAMPTZ + interval '23 hours 59 minutes'
+                        AND track_geojson IS NOT NULL
+                    ORDER BY _from_time ASC
+            ) AS sub
+            WHERE (f->'geometry'->>'type') = 'Point';
+        ELSE
+            SELECT jsonb_agg(
+                        jsonb_build_object('type', 'Feature',
+                                            'properties', jsonb_build_object( 'notes', f->'properties'->>'notes'),
+                                            'geometry', jsonb_build_object( 'coordinates', f->'geometry'->'coordinates', 'type', 'Point'))
+                    ) INTO _geojson
+            FROM (
+                SELECT jsonb_array_elements(track_geojson->'features') AS f
+                    FROM api.logbook
+                    WHERE track_geojson IS NOT NULL
+                    ORDER BY _from_time ASC
+            ) AS sub
+            WHERE (f->'geometry'->>'type') = 'Point';
+        END IF;
+        -- Return a GeoJSON MultiLineString
+        -- result _geojson [null, null]
+        raise WARNING 'result _geojson %' , _geojson;
+        SELECT jsonb_build_object(
+            'type', 'FeatureCollection',
+            'features', _geojson ) INTO geojson;
+    END;
+$timelapse2$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    api.timelapse2_fn
+    IS 'Export all selected logs geometry `track_geom` to a geojson as points with notes properties';
 
 -- export_logbook_geojson_fn
 DROP FUNCTION IF EXISTS api.export_logbook_geojson_fn;
