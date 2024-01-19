@@ -365,6 +365,7 @@ DECLARE
     process_rec record;
     data_rec record;
     app_settings jsonb;
+    user_settings jsonb;
 BEGIN
     -- We run grafana provisioning only after the first received vessel metadata
     -- Check for new vessel metadata pending grafana provisioning
