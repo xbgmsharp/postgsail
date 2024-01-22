@@ -381,11 +381,11 @@ AS $reverse_geoip_py$
     #plpy.notice('IP [{}] [{}]'.format(_ip, r.status_code))
     if r.status_code == 200:
         #plpy.notice('Got [{}] [{}]'.format(r.text, r.status_code))
-        return r.json();
+        return r.json()
     else:
         plpy.error('Failed to get ip details')
-    return '{}'
-$reverse_geoip_py$ LANGUAGE plpython3u;
+    return {}
+$reverse_geoip_py$ IMMUTABLE strict TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
 -- Description
 COMMENT ON FUNCTION
     public.reverse_geoip_py_fn
@@ -479,10 +479,10 @@ AS $overpass_py$
         if r_dict["elements"]:
             if "tags" in r_dict["elements"][0] and r_dict["elements"][0]["tags"]:
                 return r_dict["elements"][0]["tags"]; # return the first element
-        return '{}'
+        return {}
     else:
         plpy.notice('overpass-api Failed to get overpass-api details')
-    return '{}'
+    return {}
 $overpass_py$ IMMUTABLE strict TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
 -- Description
 COMMENT ON FUNCTION
