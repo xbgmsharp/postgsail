@@ -124,7 +124,7 @@ $$ language plpgsql;
 -- Description
 COMMENT ON FUNCTION
     public.cron_process_new_moorage_fn
-    IS 'init by pg_cron to check for new moorage pending update, if so perform process_moorage_queue_fn';
+    IS 'Deprecated, init by pg_cron to check for new moorage pending update, if so perform process_moorage_queue_fn';
 
 -- CRON Monitor offline pending notification
 create function cron_process_monitor_offline_fn() RETURNS void AS $$
