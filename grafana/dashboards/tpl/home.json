@@ -204,7 +204,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT latitude, longitude FROM api.metrics WHERE vessel_id = '${boat}' ORDER BY time ASC LIMIT 1;",
+          "rawSql": "SELECT latitude, longitude FROM api.metrics WHERE vessel_id = '${boat}' ORDER BY time DESC LIMIT 1;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -291,7 +291,7 @@
   },
   "timezone": "browser",
   "title": "Home",
-  "uid": "d81aa15b",
+  "uid": "pgsail_tpl_home",
   "version": 1,
   "weekStart": ""
 }

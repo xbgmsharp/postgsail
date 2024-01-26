@@ -1981,7 +1981,7 @@
     },
     "timezone": "utc",
     "title": "Weather",
-    "uid": "631a97c2e",
+    "uid": "pgsail_tpl_weather",
     "version": 1,
     "weekStart": ""
   }
