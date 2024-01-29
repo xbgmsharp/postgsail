@@ -248,7 +248,7 @@ BEGIN
                         'ship_type', (SELECT ais.description FROM aistypes ais, tbl t WHERE t.ship_type = ais.id),
                         'country', (SELECT mid.country FROM mid, tbl t WHERE LEFT(cast(t.mmsi as text), 3)::NUMERIC = mid.id),
                         'alpha_2', (SELECT o.alpha_2 FROM mid m, iso3166 o, tbl t WHERE LEFT(cast(t.mmsi as text), 3)::NUMERIC = m.id AND m.country_id = o.id),
-                        'length', t.ship_type,
+                        'length', t.length,
                         'beam', t.beam,
                         'height', t.height,
                         'plugin_version', t.plugin_version,
