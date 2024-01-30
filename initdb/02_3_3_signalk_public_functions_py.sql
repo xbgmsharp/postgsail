@@ -638,11 +638,11 @@ AS $keycloak_py$
 
     safe_uri = host = user = pwd = None
     if 'app.keycloak_uri' in app and app['app.keycloak_uri']:
-        safe_uri = urllib.parse.quote(app['app.keycloak_uri'], safe=':/?&=')
-        _ = urllib.parse.urlparse(safe_uri)
+        #safe_uri = urllib.parse.quote(app['app.keycloak_uri'], safe=':/?&=')
+        _ = urllib.parse.urlparse(app['app.keycloak_uri'])
         host = _.netloc.split('@')[-1]
-        user = _.netloc.split('@')[0].split(':')[0]
-        pwd = _.netloc.split('@')[0].split(':')[1]
+        user = _.netloc.split(':')[0]
+        pwd = _.netloc.split(':')[1].split('@')[0]
     else:
         plpy.error('Error no keycloak_uri defined, check app settings')
         return None
@@ -682,4 +682,87 @@ $keycloak_py$ strict TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
 -- Description
 COMMENT ON FUNCTION
     public.keycloak_py_fn
+    IS 'Return set oauth user attribute into keycloak using plpython3u';
+
+DROP FUNCTION IF EXISTS keycloak_auth_py_fn;
+CREATE OR REPLACE FUNCTION keycloak_auth_py_fn(IN _v_id TEXT,
+    IN _user JSONB, IN app JSONB) RETURNS JSONB
+AS $keycloak_auth_py$
+    """
+    Addkeycloak user
+    """
+    import requests
+    import json
+    import urllib.parse
+
+    safe_uri = host = user = pwd = None
+    if 'app.keycloak_uri' in app and app['app.keycloak_uri']:
+        #safe_uri = urllib.parse.quote(app['app.keycloak_uri'], safe=':/?&=')
+        _ = urllib.parse.urlparse(app['app.keycloak_uri'])
+        host = _.netloc.split('@')[-1]
+        user = _.netloc.split(':')[0]
+        pwd = _.netloc.split(':')[1].split('@')[0]
+    else:
+        plpy.error('Error no keycloak_uri defined, check app settings')
+        return none
+
+    if not host or not user or not pwd:
+        plpy.error('Error parsing keycloak_uri, check app settings')
+        return None
+
+    if not 'email' in _user and _user['email']:
+        plpy.error('Error parsing user email, check user settings')
+        return none
+
+    if not _v_id:
+        plpy.error('Error parsing vessel_id')
+        return none
+
+    _headers = {'User-Agent': 'PostgSail', 'From': 'xbgmsharp@gmail.com'}
+    _payload = {'client_id':'admin-cli','grant_type':'password','username':user,'password':pwd}
+    url = f'{_.scheme}://{host}/realms/master/protocol/openid-connect/token'.format(_.scheme, host)
+    r = requests.post(url, headers=_headers, data=_payload, timeout=(5, 60))
+    #print(r.text)
+    #plpy.notice(url)
+    if r.status_code == 200 and 'access_token' in r.json():
+        response = r.json()
+        plpy.notice(response)
+        _headers['Authorization'] = 'Bearer '+ response['access_token']
+        _headers['Content-Type'] = 'application/json'
+        url = f'{_.scheme}://{host}/admin/realms/postgsail/users'.format(_.scheme, host)
+        _payload = {
+            "enabled": "true",
+            "email": _user['email'],
+            "firstName": _user['recipient'],
+            "attributes": {"vessel_id": _v_id},
+            "emailVerified": True,
+            "requiredActions":["UPDATE_PASSWORD"]
+        }
+        plpy.notice(_payload)
+        data = json.dumps(_payload)
+        r = requests.post(url, headers=_headers, data=data, timeout=(5, 60))
+        if r.status_code != 201:
+            #print("Error creating user: {status}".format(status=r.status_code))
+            plpy.error(f'Error creating user: {user} {status}'.format(user=_payload['email'], status=r.status_code))
+            return None
+        else:
+            #print("Created user : {u}]".format(u=_payload['email']))
+            plpy.notice('Created user : {u} {t}, {l}'.format(u=_payload['email'], t=r.text, l=r.headers['location']))
+            user_url = "{user_url}/execute-actions-email".format(user_url=r.headers['location'])
+            _payload = ["UPDATE_PASSWORD"]
+            plpy.notice(_payload)
+            data = json.dumps(_payload)
+            r = requests.put(user_url, headers=_headers, data=data, timeout=(5, 60))
+            if r.status_code != 204:
+              plpy.error('Error execute-actions-email: {u} {s}'.format(u=_user['email'], s=r.status_code))
+            else:
+              plpy.notice('execute-actions-email: {u} {s}'.format(u=_user['email'], s=r.status_code))
+            return None
+    else:
+        plpy.error(f'Error getting admin access_token: {status}'.format(status=r.status_code))
+    return None
+$keycloak_auth_py$ strict TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
+-- Description
+COMMENT ON FUNCTION
+    public.keycloak_auth_py_fn
     IS 'Return set oauth user attribute into keycloak using plpython3u';
