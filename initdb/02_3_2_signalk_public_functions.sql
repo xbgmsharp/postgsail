@@ -828,7 +828,8 @@ BEGIN
         OR name LIKE 'app.pushover%'
         OR name LIKE 'app.url'
         OR name LIKE 'app.telegram%'
-        OR name LIKE 'app.grafana_admin_uri';
+        OR name LIKE 'app.grafana_admin_uri'
+        OR name LIKE 'app.keycloak_uri';
 END;
 $get_app_settings$
 LANGUAGE plpgsql;
@@ -1831,7 +1832,7 @@ BEGIN
     --RAISE WARNING 'public.check_jwt() user_role vessel.name %', current_setting('vessel.name', false);
     --RAISE WARNING 'public.check_jwt() user_role vessel.id %', current_setting('vessel.id', false);
   ELSIF _role = 'api_anonymous' THEN
-    RAISE WARNING 'public.check_jwt() api_anonymous';
+    --RAISE WARNING 'public.check_jwt() api_anonymous';
     -- Check if path is the a valid allow anonymous path
     SELECT current_setting('request.path', true) ~ '^/(logs_view|log_view|rpc/timelapse_fn|monitoring_view|stats_logs_view|stats_moorages_view|rpc/stats_logs_fn)$' INTO _ppath;
     if _ppath is True then
@@ -1936,16 +1937,16 @@ $$ language plpgsql;
 CREATE OR REPLACE FUNCTION public.delete_account_fn(IN _email TEXT, IN _vessel_id TEXT) RETURNS BOOLEAN
 AS $delete_account$
 BEGIN
-    select count(*) from api.metrics m where vessel_id = _vessel_id;
+    --select count(*) from api.metrics m where vessel_id = _vessel_id;
     delete from api.metrics m where vessel_id = _vessel_id;
-    select * from api.metadata m where vessel_id = _vessel_id;
-    delete from api.logbook l where vessel_id = _vessel_id;
+    --select * from api.metadata m where vessel_id = _vessel_id;
     delete from api.moorages m where vessel_id = _vessel_id;
+    delete from api.logbook l where vessel_id = _vessel_id;
     delete from api.stays s where vessel_id = _vessel_id;
     delete from api.metadata m where vessel_id = _vessel_id;
-    select * from auth.vessels v where vessel_id = _vessel_id;
+    --select * from auth.vessels v where vessel_id = _vessel_id;
     delete from auth.vessels v where vessel_id = _vessel_id;
-    select * from auth.accounts a where email = _email;
+    --select * from auth.accounts a where email = _email;
     delete from auth.accounts a where email = _email;
     RETURN True;
 END
