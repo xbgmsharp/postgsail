@@ -388,6 +388,8 @@ BEGIN
         -- Gather user settings
         user_settings := get_user_settings_from_vesselid_fn(data_rec.vessel_id::TEXT);
         RAISE DEBUG '-> DEBUG cron_process_grafana_fn get_user_settings_from_vesselid_fn [%]', user_settings;
+        -- add user in keycloak
+        PERFORM keycloak_auth_py_fn(data_rec.vessel_id, user_settings, app_settings);
         -- Send notification
         PERFORM send_notification_fn('grafana'::TEXT, user_settings::JSONB);
         -- update process_queue entry as processed
