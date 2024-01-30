@@ -736,7 +736,7 @@ AS $keycloak_auth_py$
             "firstName": _user['recipient'],
             "attributes": {"vessel_id": _v_id},
             "emailVerified": True,
-            "requiredActions":["UPDATE_PASSWORD"]
+            "requiredActions":["UPDATE_PROFILE", "UPDATE_PASSWORD"]
         }
         plpy.notice(_payload)
         data = json.dumps(_payload)
