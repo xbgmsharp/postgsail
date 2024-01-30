@@ -135,9 +135,9 @@ INSERT INTO public.email_templates VALUES
     E'We removed your account. Check your email!\n'),
 ('grafana',
     'PostgSail Grafana integration',
-    E'Hello __RECIPIENT__,\nCongratulations! You have just unlocked Grafana\nSee more details at https://app.opneplotter.cloud\nHappy sailing!\nFrancois',
+    E'Hello __RECIPIENT__,\nCongratulations! You unlocked Grafana dashboard.\nSee more details at https://app.openplotter.cloud\nHappy sailing!\nFrancois',
     'PostgSail Grafana!',
-    E'Congratulations!\nYou have just unlocked Grafana\nSee more details at https://app.opneplotter.cloud\n');
+    E'Congratulations!\nYou unlocked Grafana dashboard.\nSee more details at https://app.openplotter.cloud\n');
 
 ---------------------------------------------------------------------------
 -- Queue handling
