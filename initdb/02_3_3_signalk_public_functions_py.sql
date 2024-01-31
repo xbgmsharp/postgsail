@@ -515,12 +515,18 @@ AS $grafana_py$
 		plpy.error('Error no grafana_admin_uri defined, check app settings')
 		return None
 
+	b_name = None
+	if not _v_name:
+		b_name = _v_id
+	else:
+		b_name = _v_name
+
 	# add vessel org
 	headers = {'User-Agent': 'PostgSail', 'From': 'xbgmsharp@gmail.com',
 	'Accept': 'application/json', 'Content-Type': 'application/json'}
 	path = 'api/orgs'
 	url = f'{grafana_uri}/{path}'.format(grafana_uri,path)
-	data_dict = {'name':_v_name}
+	data_dict = {'name':b_name}
 	data = json.dumps(data_dict)
 	r = requests.post(url, data=data, headers=headers)
 	#print(r.text)
