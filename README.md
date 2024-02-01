@@ -38,6 +38,8 @@ postgsail-telegram-bot:
 - Offline mode.
 - Low Bandwidth mode.
 - Awesome statistics and graphs.
+- Create and manage your own dashboards.
+- Windy PWS (Personal Weather Station).
 - Anything missing? just ask!
 
 ## Context
