@@ -829,7 +829,8 @@ BEGIN
         OR name LIKE 'app.url'
         OR name LIKE 'app.telegram%'
         OR name LIKE 'app.grafana_admin_uri'
-        OR name LIKE 'app.keycloak_uri';
+        OR name LIKE 'app.keycloak_uri'
+        OR name LIKE 'app.windy_apikey';
 END;
 $get_app_settings$
 LANGUAGE plpgsql;
@@ -942,9 +943,7 @@ AS $get_user_settings_from_vesselid$
                     'boat' , v.name,
                     'recipient', a.first,
                     'email', v.owner_email,
-                    'settings', a.preferences,
-                    'pushover_key', a.preferences->'pushover_key'
-                    --'badges', a.preferences->'badges'
+                    'settings', a.preferences
                     ) INTO user_settings
             FROM auth.accounts a, auth.vessels v, api.metadata m
             WHERE m.vessel_id = v.vessel_id
