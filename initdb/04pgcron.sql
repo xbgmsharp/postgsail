@@ -76,7 +76,7 @@ SELECT cron.schedule('cron_prune_otp', '*/15 * * * *', 'select public.cron_proce
 
 -- Alerts
 -- Create a every 11 minute job cron_process_alerts_fn
---SELECT cron.schedule('cron_alerts', '*/11 * * * *', 'select public.cron_process_alerts_fn()');
+SELECT cron.schedule('cron_alerts', '*/11 * * * *', 'select public.cron_process_alerts_fn()');
 
 -- Notifications/Reminders of no vessel & no metadata & no activity
 -- At 08:05 on Sunday.
