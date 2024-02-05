@@ -49,6 +49,9 @@ SELECT cron.schedule('cron_monitor_online', '*/10 * * * *', 'select public.cron_
 -- Create a every 5 minute job cron_process_grafana_fn
 SELECT cron.schedule('cron_grafana', '*/5 * * * *', 'select public.cron_process_grafana_fn()');
 
+-- Create a every 5 minute job cron_process_windy_fn
+SELECT cron.schedule('cron_windy', '*/5 * * * *', 'select public.cron_process_windy_fn()');
+
 -- Notification
 -- Create a every 1 minute job cron_process_new_notification_queue_fn, new_account, new_vessel, _new_account_otp
 SELECT cron.schedule('cron_new_notification', '*/1 * * * *', 'select public.cron_process_new_notification_fn()');
