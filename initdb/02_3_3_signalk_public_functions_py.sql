@@ -530,7 +530,7 @@ AS $grafana_py$
 	data = json.dumps(data_dict)
 	r = requests.post(url, data=data, headers=headers)
 	#print(r.text)
-	plpy.notice(r.json())
+	#plpy.notice(r.json())
 	if r.status_code == 200 and "orgId" in r.json():
 		org_id = r.json()['orgId']
 	else:
@@ -544,7 +544,7 @@ AS $grafana_py$
 	data = json.dumps(data_dict)
 	r = requests.post(url, data=data, headers=headers)
 	#print(r.text)
-	plpy.notice(r.json())
+	#plpy.notice(r.json())
 	if r.status_code == 200 and "id" in r.json():
 		user_id = r.json()['id']
 	else:
@@ -556,7 +556,7 @@ AS $grafana_py$
 	url = f'{grafana_uri}/{path}'.format(grafana_uri,path)
 	r = requests.get(url, headers=headers)
 	#print(r.text)
-	plpy.notice(r.json())
+	#plpy.notice(r.json())
 	data_source = r.json()
 	data_source['id'] = 0
 	data_source['orgId'] = org_id
@@ -573,7 +573,7 @@ AS $grafana_py$
 	data = json.dumps(data_source)
 	headers['X-Grafana-Org-Id'] = str(org_id)
 	r = requests.post(url, data=data, headers=headers)
-	plpy.notice(r.json())
+	#plpy.notice(r.json())
 	del headers['X-Grafana-Org-Id']
 	if r.status_code != 200 and "id" not in r.json():
 		plpy.error('Error grafana add data_source to vessel org')
@@ -587,7 +587,7 @@ AS $grafana_py$
 		if 'X-Grafana-Org-Id' in headers:
 			del headers['X-Grafana-Org-Id']
 		r = requests.get(url, headers=headers)
-		plpy.notice(r.json())
+		#plpy.notice(r.json())
 		if r.status_code != 200 and "id" not in r.json():
 			plpy.error('Error grafana read dashboard template')
 			return
@@ -604,7 +604,7 @@ AS $grafana_py$
 		new_data = data.replace('PCC52D03280B7034C', data_source['uid'])
 		headers['X-Grafana-Org-Id'] = str(org_id)
 		r = requests.post(url, data=new_data, headers=headers)
-		plpy.notice(r.json())
+		#plpy.notice(r.json())
 		if r.status_code != 200 and "id" not in r.json():
 			plpy.error('Error grafana add dashboard to vessel org')
 			return
@@ -618,7 +618,7 @@ AS $grafana_py$
 	data = json.dumps(home_dashboard)
 	headers['X-Grafana-Org-Id'] = str(org_id)
 	r = requests.patch(url, data=data, headers=headers)
-	plpy.notice(r.json())
+	#plpy.notice(r.json())
 	if r.status_code != 200:
 		plpy.error('Error grafana update org preferences')
 		return
@@ -688,14 +688,14 @@ $keycloak_py$ strict TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
 -- Description
 COMMENT ON FUNCTION
     public.keycloak_py_fn
-    IS 'Return set oauth user attribute into keycloak using plpython3u';
+    IS 'Set oauth user attribute into keycloak using plpython3u';
 
 DROP FUNCTION IF EXISTS keycloak_auth_py_fn;
 CREATE OR REPLACE FUNCTION keycloak_auth_py_fn(IN _v_id TEXT,
     IN _user JSONB, IN app JSONB) RETURNS JSONB
 AS $keycloak_auth_py$
     """
-    Addkeycloak user
+    Add keycloak user
     """
     import requests
     import json
@@ -732,7 +732,7 @@ AS $keycloak_auth_py$
     #plpy.notice(url)
     if r.status_code == 200 and 'access_token' in r.json():
         response = r.json()
-        plpy.notice(response)
+        #plpy.notice(response)
         _headers['Authorization'] = 'Bearer '+ response['access_token']
         _headers['Content-Type'] = 'application/json'
         url = f'{_.scheme}://{host}/admin/realms/postgsail/users'.format(_.scheme, host)
@@ -744,7 +744,7 @@ AS $keycloak_auth_py$
             "emailVerified": True,
             "requiredActions":["UPDATE_PROFILE", "UPDATE_PASSWORD"]
         }
-        plpy.notice(_payload)
+        #plpy.notice(_payload)
         data = json.dumps(_payload)
         r = requests.post(url, headers=_headers, data=data, timeout=(5, 60))
         if r.status_code != 201:
@@ -756,7 +756,7 @@ AS $keycloak_auth_py$
             plpy.notice('Created user : {u} {t}, {l}'.format(u=_payload['email'], t=r.text, l=r.headers['location']))
             user_url = "{user_url}/execute-actions-email".format(user_url=r.headers['location'])
             _payload = ["UPDATE_PASSWORD"]
-            plpy.notice(_payload)
+            #plpy.notice(_payload)
             data = json.dumps(_payload)
             r = requests.put(user_url, headers=_headers, data=data, timeout=(5, 60))
             if r.status_code != 204:
@@ -771,4 +771,83 @@ $keycloak_auth_py$ strict TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
 -- Description
 COMMENT ON FUNCTION
     public.keycloak_auth_py_fn
-    IS 'Return set oauth user attribute into keycloak using plpython3u';
+    IS 'Create an oauth user into keycloak using plpython3u';
+
+CREATE OR REPLACE FUNCTION windy_pws_py_fn(IN metric JSONB,
+    IN _user JSONB, IN app JSONB) RETURNS JSONB
+AS $windy_pws_py$
+    """
+    Send environment data from boat instruments to Windy as a Personal Weather Station (PWS)
+    https://community.windy.com/topic/8168/report-your-weather-station-data-to-windy
+    """
+    import requests
+    import json
+    import decimal
+
+    if not 'app.windy_apikey' in app and not app['app.windy_apikey']:
+        plpy.error('Error no windy_apikey defined, check app settings')
+        return none
+    if not 'station' in metric and not metric['station']:
+        plpy.error('Error no metrics defined')
+        return none
+    if not 'temp' in metric and not metric['temp']:
+        plpy.error('Error no metrics defined')
+        return none
+    if not _user:
+        plpy.error('Error no user defined, check user settings')
+        return none
+
+    _headers = {'User-Agent': 'PostgSail', 'From': 'xbgmsharp@gmail.com', 'Content-Type': 'application/json'}
+    _payload = {
+        'stations': [
+            { 'station': int(decimal.Decimal(metric['station'])),
+            'name': metric['name'],
+            'shareOption': 'Open',
+            'type': 'SignalK PostgSail Plugin',
+            'provider': 'PostgSail',
+            'url': 'https://iot.openplotter.cloud/{name}/monitoring'.format(name=metric['name']),
+            'lat': float(decimal.Decimal(metric['lat'])),
+            'lon': float(decimal.Decimal(metric['lon'])),
+            'elevation': 1 }
+        ],
+        'observations': [
+            { 'station': int(decimal.Decimal(metric['station'])),
+            'temp': float(decimal.Decimal(metric['temp'])),
+            'wind': round(float(decimal.Decimal(metric['wind']))),
+            'gust': round(float(decimal.Decimal(metric['wind']))),
+            'winddir': int(decimal.Decimal(metric['winddir'])),
+            'pressure': int(decimal.Decimal(metric['pressure'])),
+            'rh': float(decimal.Decimal(metric['rh'])) }
+    ]}
+    #print(_payload)
+    #plpy.notice(_payload)
+    data = json.dumps(_payload)
+    api_url = 'https://stations.windy.com/pws/update/{api_key}'.format(api_key=app['app.windy_apikey'])
+    r = requests.post(api_url, data=data, headers=_headers, timeout=(5, 60))
+    #print(r.text)
+    #plpy.notice(api_url)
+    if r.status_code == 200:
+        #print('Data sent successfully!')
+        plpy.notice('Data sent successfully to Windy!')
+        #plpy.notice(api_url)
+        if not 'windy' in _user['settings']:
+	        api_url = 'https://stations.windy.com/pws/station/{api_key}/{station}'.format(api_key=app['app.windy_apikey'], station=metric['station'])
+		    #print(r.text)
+		    #plpy.notice(api_url)
+	        r = requests.get(api_url, timeout=(5, 60))
+	        if r.status_code == 200:
+	            #print('Windy Personal Weather Station created successfully in Windy Stations!')
+	            plpy.notice('Windy Personal Weather Station created successfully in Windy Stations!')
+	            return r.json()
+	        else:
+	            plpy.error(f'Failed to gather PWS details. Status code: {r.status_code}')
+    else:
+        plpy.error(f'Failed to send data. Status code: {r.status_code}')
+        #print(f'Failed to send data. Status code: {r.status_code}')
+        #print(r.text)
+    return {}
+$windy_pws_py$ strict TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
+-- Description
+COMMENT ON FUNCTION
+    public.windy_pws_py_fn
+    IS 'Forward vessel data to Windy as a Personal Weather Station using plpython3u';
