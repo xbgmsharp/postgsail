@@ -142,7 +142,12 @@ INSERT INTO public.email_templates VALUES
     'PostgSail Windy Weather station',
     E'Hello __RECIPIENT__,\nCongratulations! Your boat is now a Windy Weather station.\nSee more details at __APP_URL__/windy\nHappy sailing!\nFrancois',
     'PostgSail Windy!',
-    E'Congratulations!\nYour boat is now a Windy Weather station.\nSee more details at __APP_URL__/windy\n');
+    E'Congratulations!\nYour boat is now a Windy Weather station.\nSee more details at __APP_URL__/windy\n'),
+('alert',
+    'PostgSail Alert',
+    E'Hello __RECIPIENT__,\nWe detected an alert __APP_URL__\nHappy sailing!\nFrancois',
+    'PostgSail Alert!',
+    E'Congratulations!\nWe detected an alert __APP_URL__\n');
 
 ---------------------------------------------------------------------------
 -- Queue handling
