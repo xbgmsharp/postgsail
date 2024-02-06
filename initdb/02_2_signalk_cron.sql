@@ -525,6 +525,18 @@ DECLARE
     alerting JSONB;
     _alarms JSONB;
     alarms TEXT;
+    alert_default JSONB := '{
+        "low_pressure_threshold": 990,
+        "high_wind_speed_threshold": 30,
+        "low_water_depth_threshold": 1,
+        "min_notification_interval": 6,
+        "high_pressure_drop_threshold": 12,
+        "low_battery_charge_threshold": 90,
+        "low_battery_voltage_threshold": 12.5,
+        "low_water_temperature_threshold": 10,
+        "low_indoor_temperature_threshold": 7,
+        "low_outdoor_temperature_threshold": 3
+    }';
 BEGIN
     -- Check for new event notification pending update
     RAISE NOTICE 'cron_process_alerts_fn';
@@ -532,14 +544,13 @@ BEGIN
         SELECT
             a.user_id,a.email,v.vessel_id,
             COALESCE((a.preferences->'alert_last_metric')::TEXT,'2024-01-01') as last_metric,
-            (a.preferences->'alerting')::JSONB as alerting,
+            (alert_default || (a.preferences->'alerting')::JSONB) as alerting,
             (a.preferences->'alarms')::JSONB as alarms
             FROM auth.accounts a
             LEFT JOIN auth.vessels AS v ON v.owner_email = a.email
             LEFT JOIN api.metadata AS m ON m.vessel_id = v.vessel_id
             WHERE (a.preferences->'alerting'->'enabled')::boolean = True
                 AND m.active = True
-                and a.email = 'lacroix.francois@gmail.com'
         LOOP
         RAISE NOTICE '-> cron_process_alerts_fn for [%]', alert_rec;
         PERFORM set_config('vessel.id', alert_rec.vessel_id, false);
