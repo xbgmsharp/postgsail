@@ -147,7 +147,7 @@ INSERT INTO public.email_templates VALUES
     'PostgSail Alert',
     E'Hello __RECIPIENT__,\nWe detected an alert __ALERT__.\nSee more details at __APP_URL__\nStay safe.\nFrancois',
     'PostgSail Alert!',
-    E'Congratulations!\nWe detected an alert __ALERT__.\n');
+    E'We detected an alert __ALERT__.\n');
 
 ---------------------------------------------------------------------------
 -- Queue handling
