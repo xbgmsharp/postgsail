@@ -419,16 +419,17 @@ BEGIN
     -- Check for new observations pending update
     RAISE NOTICE 'cron_process_windy_fn';
     -- Gather url from app settings
-	app_settings := get_app_settings_fn();
+    app_settings := get_app_settings_fn();
     -- Find users with windy active and with an active vessel
     FOR windy_rec in
         SELECT
-            a.id,a.user_id,a.email,v.vessel_id,m.name,COALESCE((a.preferences->'windy_last_metric')::TEXT,'2024-01-01') as last_metric
-            FROM auth.accounts a, auth.vessels v, api.metadata m
-            WHERE m.vessel_id = v.vessel_id
-                AND a.email = v.owner_email
-                AND (a.preferences->'public_windy')::boolean = True
-                AND m.active = true
+            a.user_id,a.email,v.vessel_id,
+            COALESCE((a.preferences->'windy_last_metric')::TEXT,'2024-01-01') as last_metric
+            FROM auth.accounts a
+            LEFT JOIN auth.vessels AS v ON v.owner_email = a.email
+            LEFT JOIN api.metadata AS m ON m.vessel_id = v.vessel_id
+            WHERE (a.preferences->'public_windy')::boolean = True
+                AND m.active = True
     LOOP
         RAISE NOTICE '-> cron_process_windy_fn for [%]', windy_rec;
         PERFORM set_config('vessel.id', windy_rec.vessel_id, false);
