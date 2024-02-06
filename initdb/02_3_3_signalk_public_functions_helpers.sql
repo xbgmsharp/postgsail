@@ -196,3 +196,45 @@ language plpgsql volatile;
 COMMENT ON FUNCTION
     public.uuid_generate_v7
     IS 'Generate UUID v7, Based off IETF draft, https://datatracker.ietf.org/doc/draft-peabody-dispatch-new-uuid-format/';
+
+---------------------------------------------------------------------------
+-- Conversion helpers
+--
+CREATE OR REPLACE FUNCTION public.kelvinToCel(IN temperature NUMERIC)
+RETURNS NUMERIC
+AS $$
+BEGIN
+	RETURN ROUND((((temperature)::numeric - 273.15) * 10) / 10);
+END
+$$
+LANGUAGE plpgsql IMMUTABLE;
+-- Description
+COMMENT ON FUNCTION
+    public.kelvinToCel
+    IS 'convert kelvin To Celsius';
+
+CREATE OR REPLACE FUNCTION public.radiantToDegrees(IN angle NUMERIC)
+RETURNS NUMERIC
+AS $$
+BEGIN
+    RETURN ROUND((((angle)::numeric * 57.2958) * 10) / 10);
+END
+$$
+LANGUAGE plpgsql IMMUTABLE;
+-- Description
+COMMENT ON FUNCTION
+    public.radiantToDegrees
+    IS 'convert radiant To Degrees';
+
+CREATE OR REPLACE FUNCTION public.valToPercent(IN val NUMERIC)
+RETURNS NUMERIC
+AS $$
+BEGIN
+    RETURN (val * 100);
+END
+$$
+LANGUAGE plpgsql IMMUTABLE;
+-- Description
+COMMENT ON FUNCTION
+    public.valToPercent
+    IS 'convert radiant To Degrees';
