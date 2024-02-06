@@ -612,7 +612,7 @@ BEGIN
                 RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
                 -- Get latest alarms
                 SELECT preferences->'alarms' INTO _alarms FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
-                -- Is alarm in the min_notification_interval timeframe
+                -- Is alarm in the min_notification_interval time frame
                 IF (
                     ((_alarms->'low_outdoor_temperature_threshold'->>'date') IS NULL) OR
                     (((_alarms->'low_outdoor_temperature_threshold'->>'date')::TIMESTAMPTZ
@@ -640,7 +640,7 @@ BEGIN
                 RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
                 -- Get latest alarms
                 SELECT preferences->'alarms' INTO _alarms FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
-                -- Is alarm in the min_notification_interval timeframe
+                -- Is alarm in the min_notification_interval time frame
                 IF (
                     ((_alarms->'low_water_temperature_threshold'->>'date') IS NULL) OR
                     (((_alarms->'low_water_temperature_threshold'->>'date')::TIMESTAMPTZ
@@ -668,7 +668,7 @@ BEGIN
                 RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
                 -- Get latest alarms
                 SELECT preferences->'alarms' INTO _alarms FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
-                -- Is alarm in the min_notification_interval timeframe
+                -- Is alarm in the min_notification_interval time frame
                 IF (
                     ((_alarms->'low_water_depth_threshold'->>'date') IS NULL) OR
                     (((_alarms->'low_water_depth_threshold'->>'date')::TIMESTAMPTZ
@@ -696,7 +696,7 @@ BEGIN
                 RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
                 -- Get latest alarms
                 SELECT preferences->'alarms' INTO _alarms FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
-                -- Is alarm in the min_notification_interval timeframe
+                -- Is alarm in the min_notification_interval time frame
                 IF (
                     ((_alarms->'high_pressure_drop_threshold'->>'date') IS NULL) OR
                     (((_alarms->'high_pressure_drop_threshold'->>'date')::TIMESTAMPTZ
@@ -724,7 +724,7 @@ BEGIN
                 RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
                 -- Get latest alarms
                 SELECT preferences->'alarms' INTO _alarms FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
-                -- Is alarm in the min_notification_interval timeframe
+                -- Is alarm in the min_notification_interval time frame
                 IF (
                     ((_alarms->'high_wind_speed_threshold'->>'date') IS NULL) OR
                     (((_alarms->'high_wind_speed_threshold'->>'date')::TIMESTAMPTZ
@@ -752,7 +752,7 @@ BEGIN
                 RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
                 -- Get latest alarms
                 SELECT preferences->'alarms' INTO _alarms FROM auth.accounts a WHERE a.email = 'lacroix.francois@gmail.com';
-                -- Is alarm in the min_notification_interval timeframe
+                -- Is alarm in the min_notification_interval time frame
                 IF (
                     ((_alarms->'low_battery_voltage_threshold'->>'date') IS NULL) OR
                     (((_alarms->'low_battery_voltage_threshold'->>'date')::TIMESTAMPTZ
@@ -780,7 +780,7 @@ BEGIN
                 RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
                 -- Get latest alarms
                 SELECT preferences->'alarms' INTO _alarms FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
-                -- Is alarm in the min_notification_interval timeframe
+                -- Is alarm in the min_notification_interval time frame
                 IF (
                     ((_alarms->'low_battery_charge_threshold'->>'date') IS NULL) OR
                     (((_alarms->'low_battery_charge_threshold'->>'date')::TIMESTAMPTZ
