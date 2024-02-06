@@ -104,12 +104,12 @@ CREATE OR REPLACE FUNCTION send_email_py_fn(IN email_type TEXT, IN _user JSONB, 
 AS $send_email_py$
     # Import smtplib for the actual sending function
     import smtplib
-    
+
     # Import the email modules we need
     #from email.message import EmailMessage
     from email.utils import formatdate,make_msgid
     from email.mime.text import MIMEText
-    
+
     # Use the shared cache to avoid preparing the email metadata
     if email_type in SD:
         plan = SD[email_type]
@@ -142,6 +142,8 @@ AS $send_email_py$
         email_content = email_content.replace('__OTP_CODE__', _user['otp_code'])
     if 'reset_qs' in _user and _user['reset_qs']:
         email_content = email_content.replace('__RESET_QS__', _user['reset_qs'])
+    if 'alert' in _user and _user['alert']:
+        email_content = email_content.replace('__ALERT__', _user['alert'])
 
     if 'app.url' in app and app['app.url']:
         email_content = email_content.replace('__APP_URL__', app['app.url'])
@@ -231,6 +233,8 @@ AS $send_pushover_py$
         pushover_message = pushover_message.replace('__BOAT__', _user['boat'])
     if 'badge' in _user and _user['badge']:
         pushover_message = pushover_message.replace('__BADGE_NAME__', _user['badge'])
+    if 'alert' in _user and _user['alert']:
+        pushover_message = pushover_message.replace('__ALERT__', _user['alert'])
 
     if 'app.url' in app and app['app.url']:
         pushover_message = pushover_message.replace('__APP_URL__', app['app.url'])
@@ -307,6 +311,8 @@ AS $send_telegram_py$
         telegram_message = telegram_message.replace('__BOAT__', _user['boat'])
     if 'badge' in _user and _user['badge']:
         telegram_message = telegram_message.replace('__BADGE_NAME__', _user['badge'])
+    if 'alert' in _user and _user['alert']:
+        telegram_message = telegram_message.replace('__ALERT__', _user['alert'])
 
     if 'app.url' in app and app['app.url']:
         telegram_message = telegram_message.replace('__APP_URL__', app['app.url'])
