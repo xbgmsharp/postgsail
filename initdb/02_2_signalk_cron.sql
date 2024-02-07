@@ -409,6 +409,7 @@ COMMENT ON FUNCTION
 CREATE OR REPLACE FUNCTION public.cron_process_windy_fn() RETURNS void AS $$
 DECLARE
     windy_rec record;
+    default_last_metric TIMESTAMPTZ := NOW() - interval '1 day';
     last_metric TIMESTAMPTZ;
     metric_rec record;
     windy_metric jsonb;
@@ -420,11 +421,12 @@ BEGIN
     RAISE NOTICE 'cron_process_windy_fn';
     -- Gather url from app settings
     app_settings := get_app_settings_fn();
-    -- Find users with windy active and with an active vessel
+    -- Find users with Windy active and with an active vessel
+    -- Map account id to Windy Station ID
     FOR windy_rec in
         SELECT
-            a.user_id,a.email,v.vessel_id,
-            COALESCE((a.preferences->'windy_last_metric')::TEXT,'2024-01-01') as last_metric
+            a.id,a.email,v.vessel_id,v.name,
+            COALESCE((a.preferences->'windy_last_metric')::TEXT, default_last_metric::TEXT) as last_metric
             FROM auth.accounts a
             LEFT JOIN auth.vessels AS v ON v.owner_email = a.email
             LEFT JOIN api.metadata AS m ON m.vessel_id = v.vessel_id
@@ -469,9 +471,9 @@ BEGIN
                 'wind', metric_rec.wind,
                 'gust', metric_rec.gust,
                 'pressure', metric_rec.pressure,
-                'winddir', ROUND((((metric_rec.winddir)::numeric * 57.2958) * 10) / 10),
-                'temp', ROUND((((metric_rec.temperature)::numeric - 273.15) * 10) / 10),
-                'rh', ((metric_rec.rh)::numeric * 100)
+                'winddir', radiantToDegrees(metric_rec.winddir::numeric),
+                'temp', kelvinToCel(metric_rec.temperature::numeric),
+                'rh', valToPercent(metric_rec.rh::numeric)
                 ) INTO windy_metric;
             RAISE NOTICE '-> cron_process_windy_fn checking windy_metrics [%]', windy_metric;
             SELECT windy_pws_py_fn(windy_metric, user_settings, app_settings) into windy_pws;
@@ -518,6 +520,7 @@ COMMENT ON FUNCTION
 CREATE OR REPLACE FUNCTION public.cron_process_alerts_fn() RETURNS void AS $$
 DECLARE
     alert_rec record;
+    default_last_metric TIMESTAMPTZ := NOW() - interval '1 day';
     last_metric TIMESTAMPTZ;
     metric_rec record;
     app_settings JSONB;
@@ -543,7 +546,7 @@ BEGIN
     FOR alert_rec in
         SELECT
             a.user_id,a.email,v.vessel_id,
-            COALESCE((a.preferences->'alert_last_metric')::TEXT,'2024-01-01') as last_metric,
+            COALESCE((a.preferences->'alert_last_metric')::TEXT, default_last_metric::TEXT) as last_metric,
             (alert_default || (a.preferences->'alerting')::JSONB) as alerting,
             (a.preferences->'alarms')::JSONB as alarms
             FROM auth.accounts a
@@ -775,7 +778,7 @@ BEGIN
                 END IF;
                 RAISE NOTICE '-> cron_process_alerts_fn checking debug low_battery_voltage_threshold';
             END IF;
-            if (metric_rec.charge*10) < (alert_rec.alerting->'low_battery_charge_threshold')::numeric then
+            if (metric_rec.charge*100) < (alert_rec.alerting->'low_battery_charge_threshold')::numeric then
                 RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', (alert_rec.alarms->'low_battery_charge_threshold'->>'date')::TIMESTAMPTZ;
                 RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
                 -- Get latest alarms
