@@ -581,7 +581,7 @@ BEGIN
         LOOP
             RAISE NOTICE '-> cron_process_alerts_fn checking metrics [%]', metric_rec;
             RAISE NOTICE '-> cron_process_alerts_fn checking alerting [%]', alert_rec.alerting;
-            RAISE NOTICE '-> cron_process_alerts_fn checking debug [%] [%]', kelvinToCel(metric_rec.intemp), (alert_rec.alerting->'low_indoor_temperature_threshold');
+            --RAISE NOTICE '-> cron_process_alerts_fn checking debug [%] [%]', kelvinToCel(metric_rec.intemp), (alert_rec.alerting->'low_indoor_temperature_threshold');
             IF kelvinToCel(metric_rec.intemp) < (alert_rec.alerting->'low_indoor_temperature_threshold')::numeric then
                 RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', (alert_rec.alarms->'low_indoor_temperature_threshold'->>'date')::TIMESTAMPTZ;
                 RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
@@ -595,18 +595,18 @@ BEGIN
                     < metric_rec.time_bucket::TIMESTAMPTZ)
                     ) THEN
                     -- Add alarm
-                    alarms := '{"low_indoor_temperature_threshold": {"value": '|| metric_rec.charge ||', "date":"' || metric_rec.time_bucket || '"}}';
+                    alarms := '{"low_indoor_temperature_threshold": {"value": '|| kelvinToCel(metric_rec.intemp) ||', "date":"' || metric_rec.time_bucket || '"}}';
                     -- Merge alarms
                     SELECT public.jsonb_recursive_merge(_alarms::jsonb, alarms::jsonb) into _alarms;
                     -- Update alarms for user
                     PERFORM api.update_user_preferences_fn('{alarms}'::TEXT, _alarms::TEXT);
                     -- Gather user settings
                     user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
-                    SELECT user_settings::JSONB || '{"alert": "low_outdoor_temperature_threshold"}'::JSONB into user_settings;
+                    SELECT user_settings::JSONB || ('{"alert": "low_outdoor_temperature_threshold value:'|| kelvinToCel(metric_rec.intemp) ||'"}'::text)::JSONB into user_settings;
                     -- Send notification
                     PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
                     -- DEBUG
-                    RAISE NOTICE '-> cron_process_alerts_fn checking debug low_indoor_temperature_threshold +6h';
+                    RAISE NOTICE '-> cron_process_alerts_fn checking debug low_indoor_temperature_threshold +interval';
                 END IF;
                 RAISE NOTICE '-> cron_process_alerts_fn checking debug low_indoor_temperature_threshold';
             END IF;
@@ -623,18 +623,18 @@ BEGIN
                     < metric_rec.time_bucket::TIMESTAMPTZ)
                     ) THEN
                     -- Add alarm
-                    alarms := '{"low_outdoor_temperature_threshold": {"value": '|| metric_rec.charge ||', "date":"' || metric_rec.time_bucket || '"}}';
+                    alarms := '{"low_outdoor_temperature_threshold": {"value": '|| kelvinToCel(metric_rec.outtemp) ||', "date":"' || metric_rec.time_bucket || '"}}';
                     -- Merge alarms
                     SELECT public.jsonb_recursive_merge(_alarms::jsonb, alarms::jsonb) into _alarms;
                     -- Update alarms for user
                     PERFORM api.update_user_preferences_fn('{alarms}'::TEXT, _alarms::TEXT);
                     -- Gather user settings
                     user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
-                    SELECT user_settings::JSONB || '{"alert": "low_outdoor_temperature_threshold"}'::JSONB into user_settings;
+                    SELECT user_settings::JSONB || ('{"alert": "low_outdoor_temperature_threshold value:'|| kelvinToCel(metric_rec.outtemp) ||'"}'::text)::JSONB into user_settings;
                     -- Send notification
                     PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
                     -- DEBUG
-                    RAISE NOTICE '-> cron_process_alerts_fn checking debug low_outdoor_temperature_threshold +6h';
+                    RAISE NOTICE '-> cron_process_alerts_fn checking debug low_outdoor_temperature_threshold +interval';
                 END IF;
                 RAISE NOTICE '-> cron_process_alerts_fn checking debug low_outdoor_temperature_threshold';
             END IF;
@@ -651,18 +651,18 @@ BEGIN
                     < metric_rec.time_bucket::TIMESTAMPTZ)
                     ) THEN
                     -- Add alarm
-                    alarms := '{"low_water_temperature_threshold": {"value": '|| metric_rec.charge ||', "date":"' || metric_rec.time_bucket || '"}}';
+                    alarms := '{"low_water_temperature_threshold": {"value": '|| kelvinToCel(metric_rec.wattemp) ||', "date":"' || metric_rec.time_bucket || '"}}';
                     -- Merge alarms
                     SELECT public.jsonb_recursive_merge(_alarms::jsonb, alarms::jsonb) into _alarms;
                     -- Update alarms for user
                     PERFORM api.update_user_preferences_fn('{alarms}'::TEXT, _alarms::TEXT);
                     -- Gather user settings
                     user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
-                    SELECT user_settings::JSONB || '{"alert": "low_water_temperature_threshold"}'::JSONB into user_settings;
+                    SELECT user_settings::JSONB || ('{"alert": "low_water_temperature_threshold value:'|| kelvinToCel(metric_rec.wattemp) ||'"}'::text)::JSONB into user_settings;
                     -- Send notification
                     PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
                     -- DEBUG
-                    RAISE NOTICE '-> cron_process_alerts_fn checking debug low_water_temperature_threshold +6h';
+                    RAISE NOTICE '-> cron_process_alerts_fn checking debug low_water_temperature_threshold +interval';
                 END IF;
                 RAISE NOTICE '-> cron_process_alerts_fn checking debug low_water_temperature_threshold';
             END IF;
@@ -679,18 +679,18 @@ BEGIN
                     < metric_rec.time_bucket::TIMESTAMPTZ)
                     ) THEN
                     -- Add alarm
-                    alarms := '{"low_water_depth_threshold": {"value": '|| metric_rec.charge ||', "date":"' || metric_rec.time_bucket || '"}}';
+                    alarms := '{"low_water_depth_threshold": {"value": '|| metric_rec.watdepth ||', "date":"' || metric_rec.time_bucket || '"}}';
                     -- Merge alarms
                     SELECT public.jsonb_recursive_merge(_alarms::jsonb, alarms::jsonb) into _alarms;
                     -- Update alarms for user
                     PERFORM api.update_user_preferences_fn('{alarms}'::TEXT, _alarms::TEXT);
                     -- Gather user settings
                     user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
-                    SELECT user_settings::JSONB || '{"alert": "low_water_depth_threshold"}'::JSONB into user_settings;
+                    SELECT user_settings::JSONB || ('{"alert": "low_water_depth_threshold value:'|| metric_rec.watdepth ||'"}'::text)::JSONB into user_settings;
                     -- Send notification
                     PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
                     -- DEBUG
-                    RAISE NOTICE '-> cron_process_alerts_fn checking debug low_water_depth_threshold +6h';
+                    RAISE NOTICE '-> cron_process_alerts_fn checking debug low_water_depth_threshold +interval';
                 END IF;
                 RAISE NOTICE '-> cron_process_alerts_fn checking debug low_water_depth_threshold';
             END IF;
@@ -707,22 +707,22 @@ BEGIN
                     < metric_rec.time_bucket::TIMESTAMPTZ)
                     ) THEN
                     -- Add alarm
-                    alarms := '{"high_pressure_drop_threshold": {"value": '|| metric_rec.charge ||', "date":"' || metric_rec.time_bucket || '"}}';
+                    alarms := '{"high_pressure_drop_threshold": {"value": '|| metric_rec.pressure ||', "date":"' || metric_rec.time_bucket || '"}}';
                     -- Merge alarms
                     SELECT public.jsonb_recursive_merge(_alarms::jsonb, alarms::jsonb) into _alarms;
                     -- Update alarms for user
                     PERFORM api.update_user_preferences_fn('{alarms}'::TEXT, _alarms::TEXT);
                     -- Gather user settings
                     user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
-                    SELECT user_settings::JSONB || '{"alert": "high_pressure_drop_threshold"}'::JSONB into user_settings;
+                    SELECT user_settings::JSONB || ('{"alert": "high_pressure_drop_threshold value:'|| metric_rec.pressure ||'"}'::text)::JSONB into user_settings;
                     -- Send notification
                     PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
                     -- DEBUG
-                    RAISE NOTICE '-> cron_process_alerts_fn checking debug high_pressure_drop_threshold +6h';
+                    RAISE NOTICE '-> cron_process_alerts_fn checking debug high_pressure_drop_threshold +interval';
                 END IF;
                 RAISE NOTICE '-> cron_process_alerts_fn checking debug high_pressure_drop_threshold';
             END IF;
-            if metric_rec.wind > (alert_rec.alerting->'high_wind_speed_threshold')::numeric then
+            IF metric_rec.wind > (alert_rec.alerting->'high_wind_speed_threshold')::numeric then
                 RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', (alert_rec.alarms->'high_wind_speed_threshold'->>'date')::TIMESTAMPTZ;
                 RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
                 -- Get latest alarms
@@ -735,18 +735,18 @@ BEGIN
                     < metric_rec.time_bucket::TIMESTAMPTZ)
                     ) THEN
                     -- Add alarm
-                    alarms := '{"high_wind_speed_threshold": {"value": '|| metric_rec.charge ||', "date":"' || metric_rec.time_bucket || '"}}';
+                    alarms := '{"high_wind_speed_threshold": {"value": '|| metric_rec.wind ||', "date":"' || metric_rec.time_bucket || '"}}';
                     -- Merge alarms
                     SELECT public.jsonb_recursive_merge(_alarms::jsonb, alarms::jsonb) into _alarms;
                     -- Update alarms for user
                     PERFORM api.update_user_preferences_fn('{alarms}'::TEXT, _alarms::TEXT);
                     -- Gather user settings
                     user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
-                    SELECT user_settings::JSONB || '{"alert": "high_wind_speed_threshold"}'::JSONB into user_settings;
+                    SELECT user_settings::JSONB || ('{"alert": "high_wind_speed_threshold value:'|| metric_rec.wind ||'"}'::text)::JSONB into user_settings;
                     -- Send notification
                     PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
                     -- DEBUG
-                    RAISE NOTICE '-> cron_process_alerts_fn checking debug high_wind_speed_threshold +6h';
+                    RAISE NOTICE '-> cron_process_alerts_fn checking debug high_wind_speed_threshold +interval';
                 END IF;
                 RAISE NOTICE '-> cron_process_alerts_fn checking debug high_wind_speed_threshold';
             END IF;
@@ -763,18 +763,18 @@ BEGIN
                     < metric_rec.time_bucket::TIMESTAMPTZ)
                     ) THEN
                     -- Add alarm
-                    alarms := '{"low_battery_voltage_threshold": {"value": '|| metric_rec.charge ||', "date":"' || metric_rec.time_bucket || '"}}';
+                    alarms := '{"low_battery_voltage_threshold": {"value": '|| metric_rec.voltage ||', "date":"' || metric_rec.time_bucket || '"}}';
                     -- Merge alarms
                     SELECT public.jsonb_recursive_merge(_alarms::jsonb, alarms::jsonb) into _alarms;
                     -- Update alarms for user
                     PERFORM api.update_user_preferences_fn('{alarms}'::TEXT, _alarms::TEXT);
                     -- Gather user settings
                     user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
-                    SELECT user_settings::JSONB || '{"alert": "low_battery_voltage_threshold"}'::JSONB into user_settings;
+                    SELECT user_settings::JSONB || ('{"alert": "low_battery_voltage_threshold value:'|| metric_rec.voltage ||'"}'::text)::JSONB into user_settings;
                     -- Send notification
                     PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
                     -- DEBUG
-                    RAISE NOTICE '-> cron_process_alerts_fn checking debug low_battery_voltage_threshold +6h';
+                    RAISE NOTICE '-> cron_process_alerts_fn checking debug low_battery_voltage_threshold +interval';
                 END IF;
                 RAISE NOTICE '-> cron_process_alerts_fn checking debug low_battery_voltage_threshold';
             END IF;
@@ -791,18 +791,18 @@ BEGIN
                     < metric_rec.time_bucket::TIMESTAMPTZ)
                     ) THEN
                     -- Add alarm
-                    alarms := '{"low_battery_charge_threshold": {"value": '|| metric_rec.charge ||', "date":"' || metric_rec.time_bucket || '"}}';
+                    alarms := '{"low_battery_charge_threshold": {"value": '|| (metric_rec.charge*100) ||', "date":"' || metric_rec.time_bucket || '"}}';
                     -- Merge alarms
                     SELECT public.jsonb_recursive_merge(_alarms::jsonb, alarms::jsonb) into _alarms;
                     -- Update alarms for user
                     PERFORM api.update_user_preferences_fn('{alarms}'::TEXT, _alarms::TEXT);
                     -- Gather user settings
                     user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
-                    SELECT user_settings::JSONB || '{"alert": "low_battery_charge_threshold"}'::JSONB into user_settings;
+                    SELECT user_settings::JSONB || ('{"alert": "low_battery_charge_threshold value:'|| (metric_rec.charge*100) ||'"}'::text)::JSONB into user_settings;
                     -- Send notification
                     PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
                     -- DEBUG
-                    RAISE NOTICE '-> cron_process_alerts_fn checking debug low_battery_charge_threshold +6h';
+                    RAISE NOTICE '-> cron_process_alerts_fn checking debug low_battery_charge_threshold +interval';
                 END IF;
                 RAISE NOTICE '-> cron_process_alerts_fn checking debug low_battery_charge_threshold';
             END IF;
