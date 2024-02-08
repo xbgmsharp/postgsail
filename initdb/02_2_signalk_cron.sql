@@ -447,8 +447,8 @@ BEGIN
                     avg((m.metrics->'environment.outside.pressure')::numeric) AS pressure,
                     avg((m.metrics->'environment.outside.relativeHumidity')::numeric) AS rh,
                     avg((m.metrics->'environment.wind.directionTrue')::numeric) AS winddir,
-                    avg((m.metrics->'environment.wind.speedOverGround')::numeric) AS wind,
-                    max((m.metrics->'environment.wind.speedOverGround')::numeric) AS gust,
+                    avg((m.metrics->'environment.wind.speedTrue')::numeric) AS wind,
+                    max((m.metrics->'environment.wind.speedTrue')::numeric) AS gust,
                     last(latitude, time) AS lat,
                     last(longitude, time) AS lng
                 FROM api.metrics m
@@ -570,7 +570,7 @@ BEGIN
                     avg((m.metrics->'environment.water.temperature')::numeric) AS wattemp,
                     avg((m.metrics->'environment.depth.belowTransducer')::numeric) AS watdepth,
                     avg((m.metrics->'environment.outside.pressure')::numeric) AS pressure,
-                    avg((m.metrics->'environment.wind.speedOverGround')::numeric) AS wind,
+                    avg((m.metrics->'environment.wind.speedTrue')::numeric) AS wind,
                     avg((m.metrics->'electrical.batteries.House.voltage')::numeric) AS voltage,
                     avg((m.metrics->'electrical.batteries.House.capacity.stateOfCharge')::numeric) AS charge
                 FROM api.metrics m
