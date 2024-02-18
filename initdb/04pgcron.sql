@@ -50,7 +50,7 @@ SELECT cron.schedule('cron_monitor_online', '*/10 * * * *', 'select public.cron_
 SELECT cron.schedule('cron_grafana', '*/5 * * * *', 'select public.cron_process_grafana_fn()');
 
 -- Create a every 5 minute job cron_process_windy_fn
-SELECT cron.schedule('cron_windy', '*/5 * * * *', 'select public.cron_process_windy_fn()');
+SELECT cron.schedule('cron_windy', '*/5 * * * *', 'select public.cron_windy_fn()');
 
 -- Notification
 -- Create a every 1 minute job cron_process_new_notification_queue_fn, new_account, new_vessel, _new_account_otp
@@ -71,23 +71,23 @@ SELECT cron.schedule('cron_reindex_auth', '1 23 1 * *', 'REINDEX TABLE CONCURREN
 -- Any other maintenance require?
 
 -- OTP
--- Create a every 15 minute job cron_process_prune_otp_fn
-SELECT cron.schedule('cron_prune_otp', '*/15 * * * *', 'select public.cron_process_prune_otp_fn()');
+-- Create a every 15 minute job cron_prune_otp_fn
+SELECT cron.schedule('cron_prune_otp', '*/15 * * * *', 'select public.cron_prune_otp_fn()');
 
 -- Alerts
--- Create a every 11 minute job cron_process_alerts_fn
-SELECT cron.schedule('cron_alerts', '*/11 * * * *', 'select public.cron_process_alerts_fn()');
+-- Create a every 11 minute job cron_alerts_fn
+SELECT cron.schedule('cron_alerts', '*/11 * * * *', 'select public.cron_alerts_fn()');
 
 -- Notifications/Reminders of no vessel & no metadata & no activity
 -- At 08:05 on Sunday.
 -- At 08:05 on every 4th day-of-month if it's on Sunday.
-SELECT cron.schedule('cron_no_vessel', '5 8 */4 * 0', 'select public.cron_process_no_vessel_fn()');
-SELECT cron.schedule('cron_no_metadata', '5 8 */4 * 0', 'select public.cron_process_no_metadata_fn()');
-SELECT cron.schedule('cron_no_activity', '5 8 */4 * 0', 'select public.cron_process_no_activity_fn()');
+SELECT cron.schedule('cron_no_vessel', '5 8 */4 * 0', 'select public.cron_no_vessel_fn()');
+SELECT cron.schedule('cron_no_metadata', '5 8 */4 * 0', 'select public.cron_no_metadata_fn()');
+SELECT cron.schedule('cron_no_activity', '5 8 */4 * 0', 'select public.cron_no_activity_fn()');
 
 -- Cron job settings
 UPDATE cron.job SET database = 'signalk';
-UPDATE cron.job SET username = 'username'; -- TODO update to scheduler, pending process_queue update
+UPDATE cron.job SET username = current_user; -- TODO update to scheduler, pending process_queue update
 --UPDATE cron.job SET username = 'username' where jobname = 'cron_vacuum'; -- TODO Update to superuser for vacuum permissions
 UPDATE cron.job SET nodename = '/var/run/postgresql/'; -- VS default localhost ??
 UPDATE cron.job	SET database = 'postgres' WHERE jobname = 'job_run_details_cleanup';
