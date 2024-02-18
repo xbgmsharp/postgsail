@@ -418,7 +418,7 @@ DECLARE
     windy_pws jsonb;
 BEGIN
     -- Check for new observations pending update
-    RAISE NOTICE 'cron_process_windy_fn';
+    RAISE NOTICE 'cron_windy_fn';
     -- Gather url from app settings
     app_settings := get_app_settings_fn();
     -- Find users with Windy active and with an active vessel
@@ -433,12 +433,12 @@ BEGIN
             WHERE (a.preferences->'public_windy')::boolean = True
                 AND m.active = True
     LOOP
-        RAISE NOTICE '-> cron_process_windy_fn for [%]', windy_rec;
+        RAISE NOTICE '-> cron_windy_fn for [%]', windy_rec;
         PERFORM set_config('vessel.id', windy_rec.vessel_id, false);
         --RAISE WARNING 'public.cron_process_windy_rec_fn() scheduler vessel.id %, user.id', current_setting('vessel.id', false), current_setting('user.id', false);
         -- Gather user settings
         user_settings := get_user_settings_from_vesselid_fn(windy_rec.vessel_id::TEXT);
-        RAISE NOTICE '-> cron_process_windy_fn checking user_settings [%]', user_settings;
+        RAISE NOTICE '-> cron_windy_fn checking user_settings [%]', user_settings;
         -- Get all metrics from the last windy_last_metric avg by 5 minutes
         -- TODO json_agg to send all data in once, but issue with py jsonb transformation decimal. 
         FOR metric_rec in
@@ -457,7 +457,7 @@ BEGIN
                 GROUP BY time_bucket
                 ORDER BY time_bucket ASC LIMIT 100
         LOOP
-            RAISE NOTICE '-> cron_process_windy_fn checking metrics [%]', metric_rec;
+            RAISE NOTICE '-> cron_windy_fn checking metrics [%]', metric_rec;
             -- https://community.windy.com/topic/8168/report-your-weather-station-data-to-windy
             -- temp from kelvin to celcuis
             -- winddir from radiant to degres
@@ -475,11 +475,11 @@ BEGIN
                 'temp', kelvinToCel(metric_rec.temperature::numeric),
                 'rh', valToPercent(metric_rec.rh::numeric)
                 ) INTO windy_metric;
-            RAISE NOTICE '-> cron_process_windy_fn checking windy_metrics [%]', windy_metric;
+            RAISE NOTICE '-> cron_windy_fn checking windy_metrics [%]', windy_metric;
             SELECT windy_pws_py_fn(windy_metric, user_settings, app_settings) into windy_pws;
-            RAISE NOTICE '-> cron_process_windy_fn Windy PWS [%]', ((windy_pws->'header')::JSONB ? 'id');
+            RAISE NOTICE '-> cron_windy_fn Windy PWS [%]', ((windy_pws->'header')::JSONB ? 'id');
             IF NOT((user_settings->'settings')::JSONB ? 'windy') and ((windy_pws->'header')::JSONB ? 'id') then
-                RAISE NOTICE '-> cron_process_windy_fn new Windy PWS [%]', (windy_pws->'header')::JSONB->>'id';
+                RAISE NOTICE '-> cron_windy_fn new Windy PWS [%]', (windy_pws->'header')::JSONB->>'id';
                 -- Send metrics to Windy
                 PERFORM api.update_user_preferences_fn('{windy}'::TEXT, ((windy_pws->'header')::JSONB->>'id')::TEXT);
                 -- Send notification
@@ -517,7 +517,7 @@ COMMENT ON FUNCTION
     IS 'init by pg_cron to full vacuum tables on schema api';
 
 -- CRON for alerts notification
-CREATE OR REPLACE FUNCTION public.cron_process_alerts_fn() RETURNS void AS $$
+CREATE OR REPLACE FUNCTION public.cron_alerts_fn() RETURNS void AS $$
 DECLARE
     alert_rec record;
     default_last_metric TIMESTAMPTZ := NOW() - interval '1 day';
@@ -542,7 +542,7 @@ DECLARE
     }';
 BEGIN
     -- Check for new event notification pending update
-    RAISE NOTICE 'cron_process_alerts_fn';
+    RAISE NOTICE 'cron_alerts_fn';
     FOR alert_rec in
         SELECT
             a.user_id,a.email,v.vessel_id,
@@ -555,13 +555,13 @@ BEGIN
             WHERE (a.preferences->'alerting'->'enabled')::boolean = True
                 AND m.active = True
         LOOP
-        RAISE NOTICE '-> cron_process_alerts_fn for [%]', alert_rec;
+        RAISE NOTICE '-> cron_alerts_fn for [%]', alert_rec;
         PERFORM set_config('vessel.id', alert_rec.vessel_id, false);
         PERFORM set_config('user.email', alert_rec.email, false);
         --RAISE WARNING 'public.cron_process_alert_rec_fn() scheduler vessel.id %, user.id', current_setting('vessel.id', false), current_setting('user.id', false);
         -- Gather user settings
         user_settings := get_user_settings_from_vesselid_fn(alert_rec.vessel_id::TEXT);
-        RAISE NOTICE '-> cron_process_alerts_fn checking user_settings [%]', user_settings;
+        RAISE NOTICE '-> cron_alerts_fn checking user_settings [%]', user_settings;
         -- Get all metrics from the last last_metric avg by 5 minutes
         FOR metric_rec in
             SELECT time_bucket('5 minutes', m.time) AS time_bucket,
@@ -579,12 +579,12 @@ BEGIN
                 GROUP BY time_bucket
                 ORDER BY time_bucket ASC LIMIT 100
         LOOP
-            RAISE NOTICE '-> cron_process_alerts_fn checking metrics [%]', metric_rec;
-            RAISE NOTICE '-> cron_process_alerts_fn checking alerting [%]', alert_rec.alerting;
-            --RAISE NOTICE '-> cron_process_alerts_fn checking debug [%] [%]', kelvinToCel(metric_rec.intemp), (alert_rec.alerting->'low_indoor_temperature_threshold');
+            RAISE NOTICE '-> cron_alerts_fn checking metrics [%]', metric_rec;
+            RAISE NOTICE '-> cron_alerts_fn checking alerting [%]', alert_rec.alerting;
+            --RAISE NOTICE '-> cron_alerts_fn checking debug [%] [%]', kelvinToCel(metric_rec.intemp), (alert_rec.alerting->'low_indoor_temperature_threshold');
             IF kelvinToCel(metric_rec.intemp) < (alert_rec.alerting->'low_indoor_temperature_threshold')::numeric then
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', (alert_rec.alarms->'low_indoor_temperature_threshold'->>'date')::TIMESTAMPTZ;
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', (alert_rec.alarms->'low_indoor_temperature_threshold'->>'date')::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
                 -- Get latest alarms
                 SELECT preferences->'alarms' INTO _alarms FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
                 -- Is alarm in the min_notification_interval time frame
@@ -606,13 +606,13 @@ BEGIN
                     -- Send notification
                     PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
                     -- DEBUG
-                    RAISE NOTICE '-> cron_process_alerts_fn checking debug low_indoor_temperature_threshold +interval';
+                    RAISE NOTICE '-> cron_alerts_fn checking debug low_indoor_temperature_threshold +interval';
                 END IF;
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug low_indoor_temperature_threshold';
+                RAISE NOTICE '-> cron_alerts_fn checking debug low_indoor_temperature_threshold';
             END IF;
             IF kelvinToCel(metric_rec.outtemp) < (alert_rec.alerting->'low_outdoor_temperature_threshold')::numeric then
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', (alert_rec.alarms->'low_outdoor_temperature_threshold'->>'date')::TIMESTAMPTZ;
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', (alert_rec.alarms->'low_outdoor_temperature_threshold'->>'date')::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
                 -- Get latest alarms
                 SELECT preferences->'alarms' INTO _alarms FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
                 -- Is alarm in the min_notification_interval time frame
@@ -634,13 +634,13 @@ BEGIN
                     -- Send notification
                     PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
                     -- DEBUG
-                    RAISE NOTICE '-> cron_process_alerts_fn checking debug low_outdoor_temperature_threshold +interval';
+                    RAISE NOTICE '-> cron_alerts_fn checking debug low_outdoor_temperature_threshold +interval';
                 END IF;
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug low_outdoor_temperature_threshold';
+                RAISE NOTICE '-> cron_alerts_fn checking debug low_outdoor_temperature_threshold';
             END IF;
             IF kelvinToCel(metric_rec.wattemp) < (alert_rec.alerting->'low_water_temperature_threshold')::numeric then
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', (alert_rec.alarms->'low_water_temperature_threshold'->>'date')::TIMESTAMPTZ;
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', (alert_rec.alarms->'low_water_temperature_threshold'->>'date')::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
                 -- Get latest alarms
                 SELECT preferences->'alarms' INTO _alarms FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
                 -- Is alarm in the min_notification_interval time frame
@@ -662,13 +662,13 @@ BEGIN
                     -- Send notification
                     PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
                     -- DEBUG
-                    RAISE NOTICE '-> cron_process_alerts_fn checking debug low_water_temperature_threshold +interval';
+                    RAISE NOTICE '-> cron_alerts_fn checking debug low_water_temperature_threshold +interval';
                 END IF;
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug low_water_temperature_threshold';
+                RAISE NOTICE '-> cron_alerts_fn checking debug low_water_temperature_threshold';
             END IF;
             IF metric_rec.watdepth < (alert_rec.alerting->'low_water_depth_threshold')::numeric then
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', (alert_rec.alarms->'low_water_depth_threshold'->>'date')::TIMESTAMPTZ;
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', (alert_rec.alarms->'low_water_depth_threshold'->>'date')::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
                 -- Get latest alarms
                 SELECT preferences->'alarms' INTO _alarms FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
                 -- Is alarm in the min_notification_interval time frame
@@ -690,13 +690,13 @@ BEGIN
                     -- Send notification
                     PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
                     -- DEBUG
-                    RAISE NOTICE '-> cron_process_alerts_fn checking debug low_water_depth_threshold +interval';
+                    RAISE NOTICE '-> cron_alerts_fn checking debug low_water_depth_threshold +interval';
                 END IF;
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug low_water_depth_threshold';
+                RAISE NOTICE '-> cron_alerts_fn checking debug low_water_depth_threshold';
             END IF;
             if metric_rec.pressure < (alert_rec.alerting->'high_pressure_drop_threshold')::numeric then
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', (alert_rec.alarms->'high_pressure_drop_threshold'->>'date')::TIMESTAMPTZ;
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', (alert_rec.alarms->'high_pressure_drop_threshold'->>'date')::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
                 -- Get latest alarms
                 SELECT preferences->'alarms' INTO _alarms FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
                 -- Is alarm in the min_notification_interval time frame
@@ -718,13 +718,13 @@ BEGIN
                     -- Send notification
                     PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
                     -- DEBUG
-                    RAISE NOTICE '-> cron_process_alerts_fn checking debug high_pressure_drop_threshold +interval';
+                    RAISE NOTICE '-> cron_alerts_fn checking debug high_pressure_drop_threshold +interval';
                 END IF;
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug high_pressure_drop_threshold';
+                RAISE NOTICE '-> cron_alerts_fn checking debug high_pressure_drop_threshold';
             END IF;
             IF metric_rec.wind > (alert_rec.alerting->'high_wind_speed_threshold')::numeric then
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', (alert_rec.alarms->'high_wind_speed_threshold'->>'date')::TIMESTAMPTZ;
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', (alert_rec.alarms->'high_wind_speed_threshold'->>'date')::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
                 -- Get latest alarms
                 SELECT preferences->'alarms' INTO _alarms FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
                 -- Is alarm in the min_notification_interval time frame
@@ -746,13 +746,13 @@ BEGIN
                     -- Send notification
                     PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
                     -- DEBUG
-                    RAISE NOTICE '-> cron_process_alerts_fn checking debug high_wind_speed_threshold +interval';
+                    RAISE NOTICE '-> cron_alerts_fn checking debug high_wind_speed_threshold +interval';
                 END IF;
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug high_wind_speed_threshold';
+                RAISE NOTICE '-> cron_alerts_fn checking debug high_wind_speed_threshold';
             END IF;
             if metric_rec.voltage < (alert_rec.alerting->'low_battery_voltage_threshold')::numeric then
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', (alert_rec.alarms->'low_battery_voltage_threshold'->>'date')::TIMESTAMPTZ;
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', (alert_rec.alarms->'low_battery_voltage_threshold'->>'date')::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
                 -- Get latest alarms
                 SELECT preferences->'alarms' INTO _alarms FROM auth.accounts a WHERE a.email = 'lacroix.francois@gmail.com';
                 -- Is alarm in the min_notification_interval time frame
@@ -774,13 +774,13 @@ BEGIN
                     -- Send notification
                     PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
                     -- DEBUG
-                    RAISE NOTICE '-> cron_process_alerts_fn checking debug low_battery_voltage_threshold +interval';
+                    RAISE NOTICE '-> cron_alerts_fn checking debug low_battery_voltage_threshold +interval';
                 END IF;
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug low_battery_voltage_threshold';
+                RAISE NOTICE '-> cron_alerts_fn checking debug low_battery_voltage_threshold';
             END IF;
             if (metric_rec.charge*100) < (alert_rec.alerting->'low_battery_charge_threshold')::numeric then
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', (alert_rec.alarms->'low_battery_charge_threshold'->>'date')::TIMESTAMPTZ;
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', (alert_rec.alarms->'low_battery_charge_threshold'->>'date')::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
                 -- Get latest alarms
                 SELECT preferences->'alarms' INTO _alarms FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
                 -- Is alarm in the min_notification_interval time frame
@@ -802,9 +802,9 @@ BEGIN
                     -- Send notification
                     PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
                     -- DEBUG
-                    RAISE NOTICE '-> cron_process_alerts_fn checking debug low_battery_charge_threshold +interval';
+                    RAISE NOTICE '-> cron_alerts_fn checking debug low_battery_charge_threshold +interval';
                 END IF;
-                RAISE NOTICE '-> cron_process_alerts_fn checking debug low_battery_charge_threshold';
+                RAISE NOTICE '-> cron_alerts_fn checking debug low_battery_charge_threshold';
             END IF;
             -- Record last metrics time
             SELECT metric_rec.time_bucket INTO last_metric;
@@ -815,7 +815,7 @@ END;
 $$ language plpgsql;
 -- Description
 COMMENT ON FUNCTION
-    public.cron_process_alerts_fn
+    public.cron_alerts_fn
     IS 'init by pg_cron to check for alerts';
 
 -- CRON for no vessel notification
@@ -977,7 +977,7 @@ COMMENT ON FUNCTION
 -- Need to be in the postgres database.
 \c postgres
 -- CRON for clean up job details logs
-CREATE FUNCTION job_run_details_cleanup_fn() RETURNS void AS $$
+CREATE FUNCTION public.job_run_details_cleanup_fn() RETURNS void AS $$
 DECLARE
 BEGIN
     -- Remove job run log older than 3 months
