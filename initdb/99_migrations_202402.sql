@@ -697,6 +697,33 @@ COMMENT ON FUNCTION
     public.cron_deactivated_fn
     IS 'init by pg_cron, check for vessel with no activity for more than 1 year then send notification and delete data';
 
+DROP FUNCTION IF EXISTS public.cron_prune_otp_fn;
+CREATE OR REPLACE FUNCTION public.cron_prune_otp_fn() RETURNS void
+AS $$
+    DECLARE
+        otp_rec record;
+    BEGIN
+        -- Purge OTP older than 15 minutes
+        RAISE NOTICE 'cron_prune_otp_fn';
+        FOR otp_rec in
+            SELECT *
+            FROM auth.otp
+            WHERE otp_timestamp < NOW() AT TIME ZONE 'UTC' - INTERVAL '15 MINUTES'
+            ORDER BY otp_timestamp desc
+        LOOP
+            RAISE NOTICE '-> cron_prune_otp_fn deleting expired otp for user [%]', otp_rec.user_email;
+            -- remove entry
+            DELETE FROM auth.otp
+                WHERE user_email = otp_rec.user_email;
+            RAISE NOTICE '-> cron_prune_otp_fn deleted expire otp for user [%]', otp_rec.user_email;
+        END LOOP;
+    END;
+$$ language plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.cron_prune_otp_fn
+    IS 'init by pg_cron to purge older than 15 minutes OTP token';
+
 DROP FUNCTION IF EXISTS public.cron_process_prune_otp_fn();
 DROP FUNCTION IF EXISTS public.cron_process_no_vessel_fn();
 DROP FUNCTION IF EXISTS public.cron_process_no_metadata_fn();
@@ -706,10 +733,10 @@ DROP FUNCTION IF EXISTS public.cron_process_windy_fn();
 DROP FUNCTION IF EXISTS public.cron_process_alerts_fn();
 
 -- Remove deprecated fn
-DROP FUNCTION public.cron_process_new_account_fn();
-DROP FUNCTION public.cron_process_new_account_otp_validation_fn();
-DROP FUNCTION public.cron_process_new_moorage_fn();
-DROP FUNCTION public.cron_process_new_vessel_fn();
+DROP FUNCTION IF EXISTS public.cron_process_new_account_fn();
+DROP FUNCTION IF EXISTS public.cron_process_new_account_otp_validation_fn();
+DROP FUNCTION IF EXISTS public.cron_process_new_moorage_fn();
+DROP FUNCTION IF EXISTS public.cron_process_new_vessel_fn();
 
 -- Update version
 UPDATE public.app_settings
