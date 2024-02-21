@@ -34,7 +34,7 @@ const fs = require('fs');
   { cname: process.env.PGSAIL_API_URI, name: "PostgSail unit test kapla",
     signin: { email: 'demo+kapla@openplotter.cloud', pass: 'test', firstname:'First_kapla', lastname:'Last_kapla'},
     login: { email: 'demo+kapla@openplotter.cloud', pass: 'test'},
-    vessel: { vessel_email: "demo+kapla@openplotter.cloud", vessel_mmsi: "test", vessel_name: "kapla"},
+    vessel: { vessel_email: "demo+kapla@openplotter.cloud", vessel_mmsi: "test", vessel_name: " kapla "},
     preferences: { key: '{email_notifications}', value: false }, /* Disable email_notifications */
     vessel_metadata: {
             name: "kapla",
@@ -174,7 +174,7 @@ const fs = require('fs');
   { cname: process.env.PGSAIL_API_URI, name: "PostgSail unit test, aava",
     signin: { email: 'demo+aava@openplotter.cloud', pass: 'test', firstname:'first_aava', lastname:'last_aava'},
     login: { email: 'demo+aava@openplotter.cloud', pass: 'test'},
-    vessel: { vessel_email: "demo+aava@openplotter.cloud", vessel_mmsi: "787654321", vessel_name: "aava"},
+    vessel: { vessel_email: "demo+aava@openplotter.cloud", vessel_mmsi: "787654321", vessel_name: " aava "},
     preferences: { key: '{email_notifications}', value: false }, /* Disable email_notifications */
     vessel_metadata: {
             name: "aava",
