@@ -39,6 +39,7 @@ services:
       - "db:database"
     ports:
       - "3000:3000"
+      - "3003:3003"
     env_file: .env
     environment:
       PGRST_DB_SCHEMA: api
@@ -112,13 +113,18 @@ services:
         max-size: 10m
 
   web:
-    image: xbgmsharp/postgsail-vuestic
+    image: vuestic-postgsail
+    build:
+      context: https://github.com/xbgmsharp/vuestic-postgsail.git#live
+      dockerfile: Dockerfile
+    hostname: web
     container_name: web
     restart: unless-stopped
     links:
       - "api:postgrest"
     ports:
       - 8080:8080
+    env_file: .env
     environment:
       - VITE_PGSAIL_URL=${PGSAIL_API_URL}
       - VITE_APP_INCLUDE_DEMOS=false
