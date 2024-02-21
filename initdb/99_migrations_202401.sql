@@ -1,10 +1,10 @@
 ---------------------------------------------------------------------------
--- TODO
+-- Copyright 2021-2024 Francois Lacroix <xbgmsharp@gmail.com>
+-- This file is part of PostgSail which is released under Apache License, Version 2.0 (the "License").
+-- See file LICENSE or go to http://www.apache.org/licenses/LICENSE-2.0 for full license details.
 --
-----------------------------------------
------ TODO --------------
-----------------------------------------
-
+-- Migration January 2024
+--
 -- List current database
 select current_database();
 

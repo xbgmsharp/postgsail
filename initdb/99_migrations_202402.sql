@@ -1,10 +1,10 @@
 ---------------------------------------------------------------------------
--- TODO
+-- Copyright 2021-2024 Francois Lacroix <xbgmsharp@gmail.com>
+-- This file is part of PostgSail which is released under Apache License, Version 2.0 (the "License").
+-- See file LICENSE or go to http://www.apache.org/licenses/LICENSE-2.0 for full license details.
 --
-----------------------------------------
------ TODO --------------
-----------------------------------------
-
+-- Migration February 2024
+--
 -- List current database
 select current_database();
 
@@ -21,7 +21,7 @@ set timezone to 'UTC';
 --VALUES ('alert','PostgSail Alert',E'Hello __RECIPIENT__,\nWe detected an alert __ALERT__.\nSee more details at __APP_URL__\nStay safe.\nFrancois','PostgSail Alert!',E'Congratulations!\nWe detected an alert __ALERT__.\n');
 
 INSERT INTO public.email_templates ("name",email_subject,email_content,pushover_title,pushover_message)
-	VALUES ('windy_error','PostgSail Windy Weather station Error','Hello __RECIPIENT__,\nSorry!We could not convert your boat to a Windy Personal Weather Station.\nWindy Personal Weather Station is now disable.','PostgSail Windy error!','Sorry!\nWe could not convert your boat to a Windy Personal Weather Station.');
+	VALUES ('windy_error','PostgSail Windy Weather station Error',E'Hello __RECIPIENT__,\nSorry!We could not convert your boat into a Windy Personal Weather Station due to missing data (temp or wind).\nWindy Personal Weather Station is now disable.','PostgSail Windy error!',E'Sorry!\nWe could not convert your boat into a Windy Personal Weather Station.');
 
 -- Update app_settings
 CREATE OR REPLACE FUNCTION public.get_app_settings_fn(OUT app_settings jsonb)
@@ -152,7 +152,7 @@ COMMENT ON FUNCTION
     public.windy_pws_py_fn
     IS 'Forward vessel data to Windy as a Personal Weather Station using plpython3u';
 
-CREATE OR REPLACE FUNCTION public.cron_windy_fn() RETURNS void AS $$
+CREATE OR REPLACE FUNCTION public.cron_windy_fn() RETURNS void AS $cron_windy$
 DECLARE
     windy_rec record;
     default_last_metric TIMESTAMPTZ := NOW() - interval '1 day';
@@ -204,9 +204,17 @@ BEGIN
                 ORDER BY time_bucket ASC LIMIT 100
         LOOP
             RAISE NOTICE '-> cron_windy_fn checking metrics [%]', metric_rec;
+            IF metric_rec.wind IS NULL OR metric_rec.temperature IS NULL THEN
+                -- Ignore when there is no metrics
+                -- Send notification
+                PERFORM send_notification_fn('windy_error'::TEXT, user_settings::JSONB);
+                -- Disable windy
+                PERFORM api.update_user_preferences_fn('{public_windy}'::TEXT, 'false'::TEXT);
+                RETURN;
+            END IF;
             -- https://community.windy.com/topic/8168/report-your-weather-station-data-to-windy
-            -- temp from kelvin to celcuis
-            -- winddir from radiant to degres
+            -- temp from Kelvin to Celsius
+            -- winddir from radiant to Degrees
             -- rh from ratio to percentage
             SELECT jsonb_build_object(
                 'dateutc', metric_rec.time_bucket,
@@ -237,7 +245,7 @@ BEGIN
         PERFORM api.update_user_preferences_fn('{windy_last_metric}'::TEXT, last_metric::TEXT);
     END LOOP;
 END;
-$$ language plpgsql;
+$cron_windy$ language plpgsql;
 -- Description
 COMMENT ON FUNCTION
     public.cron_windy_fn
@@ -737,6 +745,86 @@ DROP FUNCTION IF EXISTS public.cron_process_new_account_fn();
 DROP FUNCTION IF EXISTS public.cron_process_new_account_otp_validation_fn();
 DROP FUNCTION IF EXISTS public.cron_process_new_moorage_fn();
 DROP FUNCTION IF EXISTS public.cron_process_new_vessel_fn();
+
+CREATE OR REPLACE FUNCTION send_notification_fn(
+    IN email_type TEXT,
+    IN user_settings JSONB) RETURNS VOID
+AS $send_notification$
+    DECLARE
+        app_settings JSONB;
+        _email_notifications BOOLEAN := False;
+        _phone_notifications BOOLEAN := False;
+        _pushover_user_key TEXT := NULL;
+        pushover_settings JSONB := NULL;
+        _telegram_notifications BOOLEAN := False;
+        _telegram_chat_id TEXT := NULL;
+        telegram_settings JSONB := NULL;
+		_email TEXT := NULL;
+    BEGIN
+        -- TODO input check
+        --RAISE NOTICE '--> send_notification_fn type [%]', email_type;
+        -- Gather notification app settings, eg: email, pushover, telegram
+        app_settings := get_app_settings_fn();
+        --RAISE NOTICE '--> send_notification_fn app_settings [%]', app_settings;
+        --RAISE NOTICE '--> user_settings [%]', user_settings->>'email'::TEXT;
+
+        -- Gather notifications settings and merge with user settings
+        -- Send notification email
+        SELECT preferences['email_notifications'] INTO _email_notifications
+            FROM auth.accounts a
+            WHERE a.email = user_settings->>'email'::TEXT;
+        RAISE NOTICE '--> send_notification_fn email_notifications [%]', _email_notifications;
+        -- If email server app settings set and if email user settings set
+        IF app_settings['app.email_server'] IS NOT NULL AND _email_notifications IS True THEN
+            PERFORM send_email_py_fn(email_type::TEXT, user_settings::JSONB, app_settings::JSONB);
+        END IF;
+
+        -- Send notification pushover
+        SELECT preferences['phone_notifications'],preferences->>'pushover_user_key' INTO _phone_notifications,_pushover_user_key
+            FROM auth.accounts a
+            WHERE a.email = user_settings->>'email'::TEXT;
+        RAISE NOTICE '--> send_notification_fn phone_notifications [%]', _phone_notifications;
+        -- If pushover app settings set and if pushover user settings set
+        IF app_settings['app.pushover_app_token'] IS NOT NULL AND _phone_notifications IS True AND _pushover_user_key IS NOT NULL THEN
+            SELECT json_build_object('pushover_user_key', _pushover_user_key) into pushover_settings;
+            SELECT user_settings::JSONB || pushover_settings::JSONB into user_settings;
+            --RAISE NOTICE '--> send_notification_fn user_settings + pushover [%]', user_settings;
+            PERFORM send_pushover_py_fn(email_type::TEXT, user_settings::JSONB, app_settings::JSONB);
+        END IF;
+
+        -- Send notification telegram
+        SELECT (preferences->'telegram'->'chat'->'id') IS NOT NULL,preferences['telegram']['chat']['id'] INTO _telegram_notifications,_telegram_chat_id
+            FROM auth.accounts a
+            WHERE a.email = user_settings->>'email'::TEXT;
+        RAISE NOTICE '--> send_notification_fn telegram_notifications [%]', _telegram_notifications;
+        -- If telegram app settings set and if telegram user settings set
+        IF app_settings['app.telegram_bot_token'] IS NOT NULL AND _telegram_notifications IS True AND _phone_notifications IS True THEN
+            SELECT json_build_object('telegram_chat_id', _telegram_chat_id) into telegram_settings;
+            SELECT user_settings::JSONB || telegram_settings::JSONB into user_settings;
+            --RAISE NOTICE '--> send_notification_fn user_settings + telegram [%]', user_settings;
+            PERFORM send_telegram_py_fn(email_type::TEXT, user_settings::JSONB, app_settings::JSONB);
+        END IF;
+    END;
+$send_notification$ LANGUAGE plpgsql;
+
+-- fn to trim new vessel name
+CREATE FUNCTION new_vessel_trim_fn() RETURNS trigger AS $new_vessel_trim_fn$
+BEGIN
+    NEW.name := TRIM(NEW.name);
+    RETURN NEW;
+END;
+$new_vessel_trim_fn$ language plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.new_vessel_trim_fn
+    IS 'Trim space vessel name';
+-- Trigger trim new vessel name
+CREATE TRIGGER new_vessel_trim BEFORE INSERT ON auth.vessels
+    FOR EACH ROW EXECUTE FUNCTION public.new_vessel_trim_fn();
+-- Description
+COMMENT ON TRIGGER new_vessel_trim
+  ON auth.vessels
+  IS 'Trim space vessel name';
 
 -- Update version
 UPDATE public.app_settings
