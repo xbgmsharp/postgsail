@@ -111,7 +111,7 @@ First let's initialize the database.
 First let's import the SQL schema, execute:
 
 ```bash
-$ docker-compose up db
+$ docker compose up db
 ```
 
 #### Step 2. Start backend (db, api)
@@ -119,13 +119,21 @@ $ docker-compose up db
 Then launch the full stack (db, api) backend, execute:
 
 ```bash
-$ docker-compose up db api
+$ docker compose up db api
 ```
 
 The API should be accessible via port HTTP/3000.
 The database should be accessible via port TCP/5432.
 
 You can connect to the database via a web gui like [pgadmin](https://www.pgadmin.org/) or you can use a client [dbeaver](https://dbeaver.io/).
+
+#### Step 3. Start frontend (web)
+
+Then launch the web frontend, execute:
+
+```bash
+$ docker compose build web
+```
 
 ### SQL Configuration
 
