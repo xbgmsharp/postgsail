@@ -117,6 +117,11 @@ services:
     build:
       context: https://github.com/xbgmsharp/vuestic-postgsail.git#live
       dockerfile: Dockerfile
+      args:
+        - VITE_PGSAIL_URL=${PGSAIL_API_URL}
+        - VITE_APP_INCLUDE_DEMOS=false
+        - VITE_APP_BUILD_VERSION=true
+        - VITE_APP_TITLE=${VITE_APP_TITLE}
     hostname: web
     container_name: web
     restart: unless-stopped
