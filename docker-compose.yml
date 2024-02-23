@@ -1,0 +1,148 @@
+version: "3.9"
+
+services:
+  db:
+    image: xbgmsharp/timescaledb-postgis
+    container_name: db
+    hostname: db
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - TIMESCALEDB_TELEMETRY=off
+      - PGDATA=/var/lib/postgresql/data/pgdata
+      - TZ=UTC
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - PGSAIL_AUTHENTICATOR_PASSWORD=${PGSAIL_AUTHENTICATOR_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db-data:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d
+    logging:
+      options:
+        max-size: 10m
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${POSTGRES_USER} -d signalk'"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 100s
+
+  api:
+    image: postgrest/postgrest
+    container_name: api
+    hostname: api
+    restart: unless-stopped
+    links:
+      - "db:database"
+    ports:
+      - "3000:3000"
+      - "3003:3003"
+    env_file: .env
+    environment:
+      PGRST_DB_SCHEMA: api
+      PGRST_DB_ANON_ROLE: api_anonymous
+      PGRST_OPENAPI_SERVER_PROXY_URI: http://127.0.0.1:3000
+      PGRST_DB_PRE_REQUEST: public.check_jwt
+      PGRST_DB_POOL: 20
+      PGRST_DB_URI: ${PGRST_DB_URI}
+      PGRST_JWT_SECRET: ${PGRST_JWT_SECRET}
+      PGRST_SERVER_TIMING_ENABLED: 1
+      PGRST_DB_MAX_ROWS: 500
+      PGRST_JWT_CACHE_MAX_LIFETIME: 3600
+    depends_on:
+      - db
+    logging:
+      options:
+        max-size: 10m
+    #healthcheck:
+    #  test: ["CMD-SHELL", "sh -c 'curl --fail http://localhost:3003/live || exit 1'"]
+    #  interval: 60s
+    #  timeout: 10s
+    #  retries: 5
+    #  start_period: 100s
+
+  app:
+    image: grafana/grafana:latest
+    container_name: app
+    restart: unless-stopped
+    links:
+      - "db:database"
+    volumes:
+      - data:/var/lib/grafana
+      - data:/var/log/grafana
+      - ./grafana:/etc/grafana
+    ports:
+      - "3001:3000"
+    env_file: .env
+    environment:
+      - GF_INSTALL_PLUGINS=pr0ps-trackmap-panel,fatcloud-windrose-panel
+      - GF_SECURITY_ADMIN_PASSWORD=${PGSAIL_GRAFANA_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SMTP_ENABLED=false
+    depends_on:
+      - db
+    logging:
+      options:
+        max-size: 10m
+    #healthcheck:
+    #  test: ["CMD-SHELL", "sh -c 'curl --fail http://localhost:3000/healthz || exit 1'"]
+    #  interval: 60s
+    #  timeout: 10s
+    #  retries: 5
+    #  start_period: 100s
+
+  telegram:
+    image: xbgmsharp/postgsail-telegram-bot
+    container_name: telegram
+    restart: unless-stopped
+    links:
+      - "api:postgrest"
+    ports:
+      - "3005:8080"
+    environment:
+      - BOT_TOKEN=${PGSAIL_TELEGRAM_BOT_TOKEN}
+      - PGSAIL_URL=${PGSAIL_API_URL}
+    depends_on:
+      - db
+      - api
+    logging:
+      options:
+        max-size: 10m
+
+  web:
+    image: vuestic-postgsail
+    build:
+      context: https://github.com/xbgmsharp/vuestic-postgsail.git#live
+      dockerfile: Dockerfile
+      args:
+        - VITE_PGSAIL_URL=${PGSAIL_API_URL}
+        - VITE_APP_INCLUDE_DEMOS=false
+        - VITE_APP_BUILD_VERSION=true
+        - VITE_APP_TITLE=${VITE_APP_TITLE}
+        - VITE_GRAFANA_URL=${VITE_GRAFANA_URL}
+    hostname: web
+    container_name: web
+    restart: unless-stopped
+    links:
+      - "api:postgrest"
+    ports:
+      - 8080:8080
+    env_file: .env
+    environment:
+      - VITE_PGSAIL_URL=${PGSAIL_API_URL}
+      - VITE_APP_INCLUDE_DEMOS=false
+      - VITE_APP_BUILD_VERSION=true
+      - VITE_APP_TITLE=${VITE_APP_TITLE}
+      - VITE_GRAFANA_URL=${VITE_GRAFANA_URL}
+    depends_on:
+      - db
+      - api
+    logging:
+      options:
+        max-size: 10m
+
+volumes:
+  data: {}

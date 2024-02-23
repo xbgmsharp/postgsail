@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "dev": {
+      "Name": "PostgSail dev db",
+      "Group": "Servers",
+      "Port": 5432,
+      "Host": "db",
+      "SSLMode": "prefer",
+      "MaintenanceDB": "postgres",
+      "Username": "postgres"
+    }
+  }
+}

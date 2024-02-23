@@ -1,0 +1,64 @@
+ current_database 
+------------------
+ signalk
+(1 row)
+
+You are now connected to database "signalk" as user "username".
+Expanded display is on.
+SET
+-[ RECORD 1 ]--------------+--
+telegram_session_exists_fn | f
+
+-[ RECORD 1 ]--------------+--
+telegram_session_exists_fn | f
+
+-[ RECORD 1 ]--------------+--
+telegram_session_exists_fn | f
+
+SET
+-[ RECORD 1 ]----+--
+telegram_session | f
+
+-[ RECORD 1 ]----+--
+telegram_session | f
+
+-[ RECORD 1 ]----+--
+telegram_session | t
+
+SET
+SET
+-[ RECORD 1 ]
+vessel_id | t
+
+SET
+-[ RECORD 1 ]+------
+name         | kapla
+mmsi         | 
+created_at   | t
+last_contact | t
+
+-[ RECORD 1 ]------+--------------------------------------------------------
+name               | kapla
+geometry           | {"type": "Point", "coordinates": [23.365766667, 59.86]}
+watertemperature   | 
+insidetemperature  | 
+outsidetemperature | 
+
+SET
+-[ RECORD 1 ]
+vessel_id | t
+
+SET
+-[ RECORD 1 ]+----------
+name         | aava
+mmsi         | 787654321
+created_at   | t
+last_contact | t
+
+-[ RECORD 1 ]------+------------------------------------------------------------
+name               | aava
+geometry           | {"type": "Point", "coordinates": [2.2934791, 41.465333283]}
+watertemperature   | 280.25
+insidetemperature  | 
+outsidetemperature | 
+

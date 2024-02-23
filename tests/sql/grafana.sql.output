@@ -1,0 +1,271 @@
+ current_database 
+------------------
+ signalk
+(1 row)
+
+You are now connected to database "signalk" as user "username".
+Expanded display is on.
+SET
+ROLE grafana_auth current_setting
+-[ RECORD 1 ]---+-------------
+current_user    | grafana_auth
+current_setting | 
+current_setting | 
+current_setting | 
+
+link vessel and user based on current_setting
+-[ RECORD 1 ]----------------------------------------------------------------
+name      | aava
+client_id | vessels.urn:mrn:imo:mmsi:787654321
+-[ RECORD 2 ]----------------------------------------------------------------
+name      | kapla
+client_id | vessels.urn:mrn:signalk:uuid:5b4f7543-7153-4840-b139-761310b242fd
+
+auth.accounts details
+-[ RECORD 1 ]-----+-----------------------------
+user_id           | t
+email             | demo+aava@openplotter.cloud
+first             | first_aava
+last              | last_aava
+pass              | t
+role              | user_role
+telegram          | 
+pushover_user_key | 
+-[ RECORD 2 ]-----+-----------------------------
+user_id           | t
+email             | demo+kapla@openplotter.cloud
+first             | First_kapla
+last              | Last_kapla
+pass              | t
+role              | user_role
+telegram          | 
+pushover_user_key | 
+
+auth.vessels details
+-[ RECORD 1 ]-----------------------------
+vessel_id   | t
+owner_email | demo+kapla@openplotter.cloud
+mmsi        | 
+name        | kapla
+role        | vessel_role
+-[ RECORD 2 ]-----------------------------
+vessel_id   | t
+owner_email | demo+aava@openplotter.cloud
+mmsi        | 787654321
+name        | aava
+role        | vessel_role
+
+api.metadata details
+-[ RECORD 1 ]---+------------------------------------------------------------------
+id              | 1
+name            | kapla
+mmsi            | 123456789
+client_id       | vessels.urn:mrn:signalk:uuid:5b4f7543-7153-4840-b139-761310b242fd
+length          | 12
+beam            | 10
+height          | 24
+ship_type       | 36
+plugin_version  | 0.0.1
+signalk_version | signalk_version
+time            | t
+active          | t
+-[ RECORD 2 ]---+------------------------------------------------------------------
+id              | 2
+name            | aava
+mmsi            | 787654321
+client_id       | vessels.urn:mrn:imo:mmsi:787654321
+length          | 12
+beam            | 10
+height          | 24
+ship_type       | 37
+plugin_version  | 1.0.2
+signalk_version | 1.20.0
+time            | t
+active          | t
+
+SET
+ROLE grafana current_setting
+Set current_setting value
+SET
+-[ RECORD 1 ]
+vessel_id | t
+
+-[ RECORD 1 ]---+-----------------------------
+current_user    | grafana
+current_setting | demo+kapla@openplotter.cloud
+current_setting | 
+
+-[ RECORD 1 ]--------------------------------------------------------------
+__text  | kapla
+__value | vessels.urn:mrn:signalk:uuid:5b4f7543-7153-4840-b139-761310b242fd
+
+auth.vessels details
+-[ RECORD 1 ]-----------------------------
+vessel_id   | t
+owner_email | demo+kapla@openplotter.cloud
+mmsi        | 
+name        | kapla
+role        | vessel_role
+
+api.metadata details
+-[ RECORD 1 ]---+------------------------------------------------------------------
+id              | 1
+name            | kapla
+mmsi            | 123456789
+client_id       | vessels.urn:mrn:signalk:uuid:5b4f7543-7153-4840-b139-761310b242fd
+length          | 12
+beam            | 10
+height          | 24
+ship_type       | 36
+plugin_version  | 0.0.1
+signalk_version | signalk_version
+time            | t
+active          | t
+
+api.logs_view
+-[ RECORD 1 ]----+-----------------------
+id               | 2
+name             | Norra hamnen to Ekenäs
+from             | Norra hamnen
+to               | Ekenäs
+distance         | 8.8968
+duration         | PT20M
+_from_moorage_id | 2
+_to_moorage_id   | 3
+-[ RECORD 2 ]----+-----------------------
+id               | 1
+name             | patch log name 3
+from             | patch moorage name 3
+to               | Norra hamnen
+distance         | 7.6447
+duration         | PT27M
+_from_moorage_id | 1
+_to_moorage_id   | 2
+
+api.stays
+-[ RECORD 1 ]--------------------------------------------------
+id         | 3
+vessel_id  | t
+moorage_id | 
+active     | t
+name       | f
+latitude   | 59.86
+longitude  | 23.365766666666666
+geog       | 
+arrived    | t
+departed   | f
+duration   | 
+stay_code  | 2
+notes      | 
+-[ RECORD 2 ]--------------------------------------------------
+id         | 1
+vessel_id  | t
+moorage_id | 1
+active     | f
+name       | t
+latitude   | 60.077666666666666
+longitude  | 23.530866666666668
+geog       | 0101000020E6100000B0DEBBE0E68737404DA938FBF0094E40
+arrived    | t
+departed   | t
+duration   | PT1M
+stay_code  | 2
+notes      | new stay note 3
+-[ RECORD 3 ]--------------------------------------------------
+id         | 2
+vessel_id  | t
+moorage_id | 2
+active     | f
+name       | t
+latitude   | 59.97688333333333
+longitude  | 23.4321
+geog       | 0101000020E6100000029A081B9E6E37404A5658830AFD4D40
+arrived    | t
+departed   | t
+duration   | PT2M
+stay_code  | 4
+notes      | 
+
+stays_view
+-[ RECORD 1 ]+---------------------
+id           | 2
+name         | t
+moorage      | Norra hamnen
+moorage_id   | 2
+duration     | PT2M
+stayed_at    | Dock
+stayed_at_id | 4
+arrived      | t
+departed     | t
+notes        | 
+-[ RECORD 2 ]+---------------------
+id           | 1
+name         | t
+moorage      | patch moorage name 3
+moorage_id   | 1
+duration     | PT1M
+stayed_at    | Anchor
+stayed_at_id | 2
+arrived      | t
+departed     | t
+notes        | new stay note 3
+
+api.moorages
+-[ RECORD 1 ]---+---------------------------------------------------
+id              | 1
+vessel_id       | t
+name            | patch moorage name 3
+country         | 
+stay_code       | 2
+stay_duration   | PT1M
+reference_count | 1
+latitude        | 60.0776666666667
+longitude       | 23.5308666666667
+geog            | 0101000020E6100000B9DEBBE0E687374052A938FBF0094E40
+home_flag       | t
+notes           | new moorage note 3
+-[ RECORD 2 ]---+---------------------------------------------------
+id              | 2
+vessel_id       | t
+name            | Norra hamnen
+country         | 
+stay_code       | 4
+stay_duration   | PT2M
+reference_count | 2
+latitude        | 59.9768833333333
+longitude       | 23.4321
+geog            | 0101000020E6100000029A081B9E6E3740455658830AFD4D40
+home_flag       | f
+notes           | 
+-[ RECORD 3 ]---+---------------------------------------------------
+id              | 3
+vessel_id       | t
+name            | Ekenäs
+country         | fi
+stay_code       | 1
+stay_duration   | 
+reference_count | 1
+latitude        | 59.86
+longitude       | 23.3657666666667
+geog            | 0101000020E6100000E84C5FE2A25D3740AE47E17A14EE4D40
+home_flag       | f
+notes           | 
+
+api.moorages_view
+-[ RECORD 1 ]-------+---------------------
+id                  | 2
+moorage             | Norra hamnen
+default_stay        | Dock
+default_stay_id     | 4
+total_stay          | 0
+total_duration      | PT2M
+arrivals_departures | 2
+-[ RECORD 2 ]-------+---------------------
+id                  | 1
+moorage             | patch moorage name 3
+default_stay        | Anchor
+default_stay_id     | 2
+total_stay          | 0
+total_duration      | PT1M
+arrivals_departures | 1
+

@@ -1,0 +1,76 @@
+{
+  "name": "PostgSail",
+  //"image": "mcr.microsoft.com/devcontainers/base:alpine",
+  "dockerComposeFile": ["docker-compose.dev.yml", "docker-compose.yml"],
+  "service": "dev",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+
+  // Use this environment variable if you need to bind mount your local source code into a new container.
+  "remoteEnv": {
+    "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}",
+    "POSTGRES_PASSWORD": "${localEnv:POSTGRES_PASSWORD}",
+    "POSTGRES_USER": "${localEnv:POSTGRES_USER}",
+    "POSTGRES_DB": "${localEnv:POSTGRES_DB}",
+    "PGSAIL_AUTHENTICATOR_PASSWORD": "${localEnv:PGSAIL_AUTHENTICATOR_PASSWORD}"
+  },
+  "containerEnv": {
+    //"GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}",
+    //"GITHUB_USER": "${localEnv:GITHUB_USER}"
+  },
+
+  // Features to add to the dev container. More info: https://containers.dev/features.
+  // "features": {},
+
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  // "forwardPorts": [],
+  "forwardPorts": ["db:5432", "api:3000", "pgadmin:5050", "web:8080"],
+
+  // Use 'portsAttributes' to set default properties for specific forwarded ports.
+  // More info: https://containers.dev/implementors/json_reference/#port-attributes
+  "portsAttributes": {
+    "3000": {
+      "label": "api",
+      "onAutoForward": "notify"
+    },
+    "5050": {
+      "label": "pgadmin",
+      "onAutoForward": "notify"
+    },
+    "5342": {
+      "label": "database",
+      "onAutoForward": "notify"
+    },
+    "8080": {
+      "label": "web",
+      "onAutoForward": "notify"
+    }
+  },
+
+  // Use 'postCreateCommand' to run commands after the container is created.
+  // "postCreateCommand": "docker --version",
+
+  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+  // "remoteUser": "root"
+
+  // Configure tool-specific properties.
+  "customizations": {
+    // Configure properties specific to VS Code.
+    "vscode": {
+      "settings": {
+        "terminal.integrated.profiles.linux": {
+          "zsh": {
+            "path": "/bin/bash"
+          }
+        },
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "editor.formatOnSave": true
+      },
+      "extensions": [
+        "streetsidesoftware.code-spell-checker",
+        "esbenp.prettier-vscode",
+        "ckolkman.vscode-postgres",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  }
+}

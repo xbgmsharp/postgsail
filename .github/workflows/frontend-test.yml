@@ -1,0 +1,66 @@
+name: Test services db, api, web
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/**'
+    branches:
+      - 'main'
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'frontend/**'
+    tags:
+      - "*"
+  workflow_dispatch:
+
+jobs:
+  ci-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: 'true'
+
+      - name: Set env
+        run: cp .env.example .env
+
+      - name: Pull Docker images
+        run: docker compose -f docker-compose.dev.yml -f docker-compose.yml pull db api web_tests
+
+      - name: Build Docker images
+        run: docker compose -f docker-compose.dev.yml -f docker-compose.yml build web_dev
+
+      - name: Run PostgSail Web tests
+        # Environment variables
+        env:
+          # The hostname used to communicate with the PostgreSQL service container
+          PGHOST: localhost
+          PGPORT: 5432
+          PGDATABASE: signalk
+          PGUSER: username
+          PGPASSWORD: password
+        run: |
+          set -eu
+          source .env
+          docker-compose stop || true
+          docker-compose rm || true
+          docker-compose up -d db && sleep 30 && docker-compose up -d api && sleep 5
+          docker-compose ps -a
+          echo "Test PostgSail Web Unit Test"
+          docker compose -f docker-compose.dev.yml -f docker-compose.yml up -d web_dev && sleep 100
+          docker compose -f docker-compose.dev.yml -f docker-compose.yml logs web_dev
+          docker compose ps -a
+          curl http://localhost:8080/
+          docker compose -f docker-compose.dev.yml -f docker-compose.yml up web_tests --abort-on-container-exit --exit-code-from web_tests
+          if [ $? != 0 ];
+          then
+              echo "Error running frontend-tests"
+              exit 1
+          fi
+      - name: Show the logs
+        if: always()
+        run: |
+          docker-compose logs

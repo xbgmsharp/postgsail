@@ -1,0 +1,73 @@
+name: Test services db, api
+
+on:
+  pull_request:
+    paths:
+      - 'initdb/**'
+      - 'tests/**'
+    branches:
+      - 'main'
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'initdb/**'
+      - 'tests/**'
+    tags:
+        - "*"
+  workflow_dispatch:
+
+jobs:
+  smoketest:
+    name: tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the source
+        uses: actions/checkout@v3
+
+      - name: Set env
+        run: cp .env.example .env
+
+      - name: Pull Docker images
+        run: docker-compose pull db api
+
+      - name: Build Docker images
+        run: docker-compose -f docker-compose.dev.yml -f docker-compose.yml build tests
+
+      - name: Install psql
+        run: sudo apt install postgresql-client
+
+      - name: Run PostgSail Database & API tests
+        # Environment variables
+        env:
+          # The hostname used to communicate with the PostgreSQL service container
+          PGHOST: localhost
+          PGPORT: 5432
+          PGDATABASE: signalk
+          PGUSER: username
+          PGPASSWORD: password
+        run: |
+          set -eu
+          source .env
+          docker-compose stop || true
+          docker-compose rm || true
+          docker-compose up -d db && sleep 30 && docker-compose up -d api && sleep 5
+          docker-compose ps -a
+          echo ${PGSAIL_API_URL}
+          curl ${PGSAIL_API_URL}
+          psql -c "select 1"
+          echo "Test PostgreSQL version"
+          psql -c "SELECT version();"
+          echo "Test PostgSail version"
+          psql -c "SELECT value FROM app_settings WHERE name = 'app.version';"
+          echo "Test PostgSail Unit Test"
+          docker compose -f docker-compose.dev.yml -f docker-compose.yml up tests --abort-on-container-exit --exit-code-from tests
+          if [ $? != 0 ];
+          then
+              echo "Error running db-tests"
+              exit 1
+          fi
+      - name: Show the logs
+        if: always()
+        run: |
+          docker-compose logs

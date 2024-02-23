@@ -1,0 +1,2 @@
+
+Simple and scalable architecture.

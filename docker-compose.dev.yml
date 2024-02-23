@@ -1,0 +1,135 @@
+version: "3.9"
+
+services:
+  dev:
+    container_name: dev
+    image: mcr.microsoft.com/devcontainers/base:ubuntu
+    volumes:
+      - ../:/workspaces:cached
+      - /var/run/docker.sock:/var/run/docker.sock
+    #network_mode: service:db
+    links:
+      - "api:postgrest"
+      - "db:database"
+      #- "web_dev:web_dev"
+    command: sleep infinity
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    restart: unless-stopped
+    volumes:
+      - data:/var/lib/pgadmin
+      - ./pgadmin_servers.json:/servers.json:ro
+    links:
+      - "db:database"
+    ports:
+      - 5050:5050
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+      - PGADMIN_LISTEN_ADDRESS=0.0.0.0
+      - PGADMIN_LISTEN_PORT=5050
+      - PGADMIN_SERVER_JSON_FILE=/servers.json
+      - PGADMIN_DISABLE_POSTFIX=true
+    depends_on:
+      - db
+    logging:
+      options:
+        max-size: 10m
+
+  swagger:
+    image: swaggerapi/swagger-ui
+    container_name: swagger
+    restart: unless-stopped
+    links:
+      - "api:postgrest"
+    ports:
+      - "8181:8080"
+    expose:
+      - "8080"
+    environment:
+      - API_URL=http://api:3000/
+    depends_on:
+      - db
+      - api
+    logging:
+      options:
+        max-size: 10m
+
+  tests:
+    image: xbgmsharp/postgsail-tests
+    build:
+      context: ./tests
+      dockerfile: Dockerfile
+    container_name: tests
+    volumes:
+      - ./tests:/mnt
+    working_dir: /mnt
+    command: 'bash tests.sh'
+    links:
+      - "api:postgrest"
+      - "db:database"
+    env_file: .env
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+      - PGSAIL_API_URI=http://api:3000
+      - PGSAIL_DB_URI=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/signalk
+    depends_on:
+      - db
+      - api
+    logging:
+      options:
+        max-size: 10m
+
+  web_dev:
+    image: xbgmsharp/postgsail-vuestic:dev
+    build:
+      context: https://github.com/xbgmsharp/vuestic-postgsail.git#live
+      dockerfile: Dockerfile_dev
+    container_name: web_dev
+    hostname: web_dev
+    restart: unless-stopped
+    volumes:
+      - ./frontend:/app
+    links:
+      - "api:postgrest"
+    ports:
+      - 8080:8080
+    env_file: .env
+    environment:
+      - VITE_PGSAIL_URL=http://api:3000
+      - VITE_APP_INCLUDE_DEMOS=false
+      - VITE_APP_BUILD_VERSION=true
+      - VITE_APP_TITLE=${VITE_APP_TITLE}
+    depends_on:
+      - db
+      - api
+    logging:
+      options:
+        max-size: 10m
+
+  web_tests:
+    image: cypress/included
+    container_name: web_tests
+    restart: unless-stopped
+    volumes:
+      - ./frontend/e2e:/e2e
+    links:
+      - "api:postgrest"
+      - "web_dev:frontend"
+    env_file: .env
+    environment:
+      - CYPRESS_BASE_URL=http://web_dev:8080
+    depends_on:
+      - db
+      - api
+      - web_dev
+    logging:
+      options:
+        max-size: 10m
+
+volumes:
+  data: {}
