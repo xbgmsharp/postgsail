@@ -54,9 +54,9 @@ To understand the why and how, you might want to read [Why.md](https://github.co
 ## Architecture
 A simple scalable architecture:
 
-![Architecture overview](https://raw.githubusercontent.com/xbgmsharp/postgsail/main/PostgSail.png "Architecture overview")
+For more clarity and visibility the complete [Architecture overview](https://github.com/xbgmsharp/postgsail/blob/main/docs/README.md).
 
-For more clarity and visibility the complete [Entity-Relationship Diagram (ERD)](https://github.com/xbgmsharp/postgsail/tree/main/ERD/README.md) is export as PNG and SVG file.
+For more clarity and visibility the complete [Entity-Relationship Diagram (ERD)](https://github.com/xbgmsharp/postgsail/blob/main/docs/ERD/README.md) is export as Mermaid, PNG and SVG file.
 
 ## Cloud
 
@@ -132,8 +132,9 @@ You can connect to the database via a web gui like [pgadmin](https://www.pgadmin
 Then launch the web frontend, execute:
 
 ```bash
-$ docker compose build web
+$ docker compose up web
 ```
+The frontend should be accessible via port HTTP/8080.
 
 ### SQL Configuration
 

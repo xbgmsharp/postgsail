@@ -4,7 +4,7 @@ The Entity-Relationship Diagram (ERD) provides a graphical representation of dat
 ## A global overview
 Auto generated Mermaid diagram using [mermerd](https://github.com/KarnerTh/mermerd) and [MermaidJs](https://github.com/mermaid-js/mermaid).
 
-![PostgSail SQL Schema](https://github.com/xbgmsharp/postgsail/tree/main/docs/ERD/postgsail.md "PostgSail SQL Schema")
+[PostgSail SQL Schema](https://github.com/xbgmsharp/postgsail/tree/main/docs/ERD/postgsail.md "PostgSail SQL Schema")
 
 ## Further
 There is 3 main schemas:
@@ -45,7 +45,7 @@ There is 3 main schemas:
 ## Ingest flowchart
 ```mermaid
 graph LR
-    A[SignalK] -- HTTP POST --> B{PostGREST}
+    A[SignalK] -- HTTP POST --> B{PostgREST}
     B -- SQL --> C{PostgreSQL}
     C --> D((metadata trigger))
     C --> E((metrics trigger))
@@ -57,7 +57,7 @@ graph LR
 
 ## pg_cron flowchart
 ```mermaid
-graph LR
+flowchart TD
     A[pg_cron] --> B((cron_new_notification))
     A --> C((cron_pre_logbook))
     A --> D((cron_new_logbook))
