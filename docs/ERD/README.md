@@ -54,3 +54,22 @@ graph LR
     E --> H{tbl.logs}
     E --> I{tbl.stays}
 ```
+
+## pg_cron flowchart
+```mermaid
+graph LR
+    A[pg_cron] --> B((cron_new_notification))
+    A --> C((cron_pre_logbook))
+    A --> D((cron_new_logbook))
+    A --> E((cron_new_stay))
+    A --> F((cron_monitor_offline))
+    A --> G((cron_monitor_online))
+    C --> K{Validate logbook details}
+    D --> L{Update logbook details}
+    E --> M{Update stay details}
+    L --> N{Update Moorages details}
+    M --> N{Update Moorages details}
+    B --> O{Update account,vessel,otp}
+    F --> P{Update metadata}
+    G --> P
+```
