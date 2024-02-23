@@ -122,6 +122,7 @@ services:
         - VITE_APP_INCLUDE_DEMOS=false
         - VITE_APP_BUILD_VERSION=true
         - VITE_APP_TITLE=${VITE_APP_TITLE}
+        - VITE_GRAFANA_URL=${VITE_GRAFANA_URL}
     hostname: web
     container_name: web
     restart: unless-stopped
@@ -135,6 +136,7 @@ services:
       - VITE_APP_INCLUDE_DEMOS=false
       - VITE_APP_BUILD_VERSION=true
       - VITE_APP_TITLE=${VITE_APP_TITLE}
+      - VITE_GRAFANA_URL=${VITE_GRAFANA_URL}
     depends_on:
       - db
       - api
