@@ -65,7 +65,7 @@ export const {
 						"article2Title": "Boat Monitoring",
 						"article2Body": `- Check your vessel from anywhere in the world in real-time.
 
-- Monitor windspeed, depth, baromteter, temperatures and more
+- Monitor wind, depth, barometer, temperatures and more
 
 - See historical (up-to 7 days) data
 
@@ -106,7 +106,7 @@ export const {
 						"checkListElementDescription2": "Monitor your boat.",
 						"checkListElementDescription3": "Log your trips.",
 						"checkListElementDescription4": "Go social",
-						"checkListElementDescription5": "Track your stats. Awesome statistics and graphs.",
+						"checkListElementDescription5": "Track your stats. Awesome statistics and graphs. Beautiful map",
 						"checkListElementDescription6": "Predictive failure.",
 						"checkListElementDescription7": "Control your boat remotely.",
 						"checkListElementDescription8": "Export to CSV, GPX, GeoJSON, KML and download your logs.",
@@ -203,7 +203,7 @@ export const {
 				"article2Title": "Boat Monitoring",
 				"article2Body": `- Check your vessel from anywhere in the world in real-time.
 
-- Monitor windspeed, depth, baromteter, temperatures and more
+- Monitor wind, depth, barometer, temperatures and more
 
 - See historical (up-to 7 days) data
 
@@ -340,7 +340,7 @@ export const {
 				"article2Title": "Boat Monitoring",
 				"article2Body": `- Check your vessel from anywhere in the world in real-time.
 
-- Monitor windspeed, depth, baromteter, temperatures and more
+- Monitor wind, depth, barometer, temperatures and more
 
 - See historical (up-to 7 days) data
 

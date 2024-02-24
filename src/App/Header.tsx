@@ -17,7 +17,7 @@ export const Header = memo(() => {
 	const { t } = useTranslation({ Header })
 	const { lang, setLang } = useLang();
 	return <GlHeader
-		title={<a {...routes.home().link}><h1><img src="./PostgsailLogo.svg" alt="SVG as an image" height={48}/></h1></a>}
+		title={<a {...routes.home().link}><h1><img src="./PostgsailLogo.svg" alt="Postgsail Logo" height={48}/></h1></a>}
 		links={[
 			{
 				"label": t("link2label"),
