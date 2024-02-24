@@ -1,21 +1,21 @@
 {
   "files": {
-    "main.js": "/static/js/main.6c7a097c.js",
-    "static/media/timelapse.png": "/static/media/timelapse.ce6208c83b8bed24a815.png",
-    "static/media/monitoring.png": "/static/media/monitoring.c3474b2b05f71e2dc913.png",
-    "static/media/article-page-example.png": "/static/media/article-page-example.70d6bd57ede0ada106fa.png",
-    "static/media/stats.png": "/static/media/stats.cc978ab82b50bc15aa41.png",
-    "static/media/pokemon.png": "/static/media/pokemon.ac632dd7fdb5aa28556b.png",
-    "static/media/logs.png": "/static/media/logs.d1605a06ac0989f3158a.png",
-    "static/media/webinaire.png": "/static/media/webinaire.0fb29383820e122217ca.png",
-    "static/media/data-visualisation.png": "/static/media/data-visualisation.c147fb3b112f51f096a2.png",
-    "static/media/kubernetes.png": "/static/media/kubernetes.52ea2430dfac2c2b029c.png",
-    "static/media/Grafana_logo.png": "/static/media/Grafana_logo.769e11f8842584108619.png",
-    "static/media/discord-mark-blue.png": "/static/media/discord-mark-blue.667df059ddf407979d68.png",
-    "index.html": "/index.html",
-    "main.6c7a097c.js.map": "/static/js/main.6c7a097c.js.map"
+    "main.js": "/postgsail/static/js/main.8a465018.js",
+    "static/media/timelapse.png": "/postgsail/static/media/timelapse.ce6208c83b8bed24a815.png",
+    "static/media/monitoring.png": "/postgsail/static/media/monitoring.c3474b2b05f71e2dc913.png",
+    "static/media/article-page-example.png": "/postgsail/static/media/article-page-example.70d6bd57ede0ada106fa.png",
+    "static/media/stats.png": "/postgsail/static/media/stats.cc978ab82b50bc15aa41.png",
+    "static/media/pokemon.png": "/postgsail/static/media/pokemon.ac632dd7fdb5aa28556b.png",
+    "static/media/logs.png": "/postgsail/static/media/logs.d1605a06ac0989f3158a.png",
+    "static/media/webinaire.png": "/postgsail/static/media/webinaire.0fb29383820e122217ca.png",
+    "static/media/data-visualisation.png": "/postgsail/static/media/data-visualisation.c147fb3b112f51f096a2.png",
+    "static/media/kubernetes.png": "/postgsail/static/media/kubernetes.52ea2430dfac2c2b029c.png",
+    "static/media/Grafana_logo.png": "/postgsail/static/media/Grafana_logo.769e11f8842584108619.png",
+    "static/media/discord-mark-blue.png": "/postgsail/static/media/discord-mark-blue.667df059ddf407979d68.png",
+    "index.html": "/postgsail/index.html",
+    "main.8a465018.js.map": "/postgsail/static/js/main.8a465018.js.map"
   },
   "entrypoints": [
-    "static/js/main.6c7a097c.js"
+    "static/js/main.8a465018.js"
   ]
 }
