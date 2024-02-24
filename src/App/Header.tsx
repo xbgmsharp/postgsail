@@ -8,7 +8,8 @@ import type { Language } from "i18n";
 const { LanguageSelect } = createLanguageSelect<Language>({
 	"languagesPrettyPrint": {
 		"en": "English",
-		"fr": "Francais"
+		"fr": "Francais",
+		"es": "Spanish"
 	}
 })
 
@@ -16,23 +17,19 @@ export const Header = memo(() => {
 	const { t } = useTranslation({ Header })
 	const { lang, setLang } = useLang();
 	return <GlHeader
-		title={<a {...routes.home().link}><h1>{t("headerTitle")}</h1></a>}
+		title={<a {...routes.home().link}><h1><img src="./PostgsailLogo.svg" alt="SVG as an image" height={48}/></h1></a>}
 		links={[
 			{
-				"label": t("link1label"),
-				...routes.pageExample().link
-			},
-			{
 				"label": t("link2label"),
-				"href": "https://example.com",
+				"href": "https://github.com/xbgmsharp/postgsail/",
 			},
 			{
 				"label": t("link3label"),
-				"href": "https://example.com",
+				"href": "https://github.com/xbgmsharp/postgsail/tree/main/docs",
 			},
 		]}
 		enableDarkModeSwitch={true}
-		githubRepoUrl="https://github.com/torvalds/linux"
+		githubRepoUrl="https://github.com/xbgmsharp/postgsail/"
 		githubButtonSize="large"
 		customItemEnd={{
 			"item": <LanguageSelect

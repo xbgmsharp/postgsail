@@ -8,20 +8,16 @@ export const Footer = memo(() => {
 	const { t } = useTranslation({ Footer })
 	return <GlFooter
 		bottomDivContent={t("license")}
-		email="email@email.com"
-		phoneNumber="+33545345676"
+		email="info@openplotter.cloud"
+		phoneNumber="+33652584319"
 		links={[
 			{
-				"label": t("link1label"),
-				...routes.pageExample().link
-			},
-			{
 				"label": t("link2label"),
-				"href": "https://example.com",
+				"href": "https://github.com/xbgmsharp/postgsail/",
 			},
 			{
 				"label": t("link3label"),
-				"href": "https://example.com",
+				"href": "https://github.com/xbgmsharp/postgsail/tree/main/docs",
 			},
 		]}
 	/>

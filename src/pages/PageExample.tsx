@@ -23,7 +23,38 @@ export const PageExample = memo(() => {
 			body={t("articleBody")}
 			buttonLabel={t("articleButtonLabel")}
 			buttonLink={{
-				"href": "https://example.com",
+				"href": "https://iot.openplotter.cloud",
+			}}
+			illustration={{
+				"type": "image",
+				"src": articlePng,
+				"hasShadow": false
+			}}
+			hasAnimation={true}
+		/>
+
+<GlArticle
+			title={t("article2Title")}
+			body={t("article2Body")}
+			buttonLabel={t("articleButtonLabel")}
+			buttonLink={{
+				"href": "https://iot.openplotter.cloud",
+			}}
+			illustration={{
+				"type": "image",
+				"src": articlePng,
+				"hasShadow": false
+			}}
+			illustrationPosition='left'
+			hasAnimation={true}
+		/>
+
+<GlArticle
+			title={t("article3Title")}
+			body={t("article3Body")}
+			buttonLabel={t("articleButtonLabel")}
+			buttonLink={{
+				"href": "https://iot.openplotter.cloud",
 			}}
 			illustration={{
 				"type": "image",
@@ -99,6 +130,12 @@ export const { i18n } = declareComponentKeys<
 	| "articleTitle"
 	| "articleBody"
 	| "articleButtonLabel"
+	| "article2Title"
+	| "article2Body"
+	| "article2ButtonLabel"
+	| "article3Title"
+	| "article3Body"
+	| "article3ButtonLabel"
 	| "projectCardTitle1"
 	| "projectCardTitle2"
 	| "projectCardTitle3"
