@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { GlFooter } from "gitlanding/GlFooter";
-import { routes } from "router";
+//import { routes } from "router";
 import { declareComponentKeys, useTranslation } from "i18n";
 
 

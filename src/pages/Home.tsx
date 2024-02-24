@@ -31,7 +31,7 @@ import demoGif from "assets/img/demo.gif";
 import timelapsePng from "assets/img/timelapse.png";
 import monitoringPng from "assets/img/monitoring.png";
 import logsPng from "assets/img/logs.png";
-import mapPng from "assets/img/map.png";
+//import mapPng from "assets/img/map.png";
 import statsPng from "assets/img/stats.png";
 
 export const Home = memo(() => {
