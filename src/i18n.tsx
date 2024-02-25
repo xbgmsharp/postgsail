@@ -52,8 +52,8 @@ export const {
 						"card1Title": "Open Source",
 						"card2Title": "Join the community",
 						"card3Title": "Customize",
-						"card1Paragraph": `Source code is available on Github.`,
-						"card2Paragraph": `Get support and exchange on Discord.`,
+						"card1Paragraph": `All code is available as open-source on Github. Collaborative cloud development environments (CDEs).`,
+						"card2Paragraph": `Get support and exchange on Discord. Missing a feature? just ask!`,
 						"card3Paragraph": `Create and manage your own dashboards.`,
 						"articleTitle": "Timelapse",
 						"articleBody": `- See your real-time or historical track(s) via animated timelapse

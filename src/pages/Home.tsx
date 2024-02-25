@@ -33,6 +33,8 @@ import monitoringPng from "assets/img/monitoring.png";
 import logsPng from "assets/img/logs.png";
 //import mapPng from "assets/img/map.png";
 import statsPng from "assets/img/stats.png";
+import demoMp4 from "assets/demo.mp4"
+import PostgsailLogo from "assets/PostgsailLogo.svg"
 
 export const Home = memo(() => {
 	const { t } = useTranslation({ Home });
@@ -51,7 +53,7 @@ export const Home = memo(() => {
 					"type": "video",
 					"sources": [
 					  {
-						"src": "demo.mp4",
+						"src": demoMp4,
 						"type": "video/mp4"
 					  }
 					]

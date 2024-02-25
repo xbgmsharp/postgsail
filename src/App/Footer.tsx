@@ -19,6 +19,10 @@ export const Footer = memo(() => {
 				"label": t("link3label"),
 				"href": "https://github.com/xbgmsharp/postgsail/tree/main/docs",
 			},
+			{
+				"label": "Support",
+				"href": "https://discord.gg/cpGqA5sZ",
+			},
 		]}
 	/>
 })

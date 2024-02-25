@@ -4,6 +4,7 @@ import { routes } from "router";
 import { declareComponentKeys, useTranslation, useLang } from "i18n";
 import { createLanguageSelect } from "onyxia-ui/LanguageSelect";
 import type { Language } from "i18n";
+import PostgsailLogo from "assets/PostgsailLogo.svg"
 
 const { LanguageSelect } = createLanguageSelect<Language>({
 	"languagesPrettyPrint": {
@@ -17,7 +18,7 @@ export const Header = memo(() => {
 	const { t } = useTranslation({ Header })
 	const { lang, setLang } = useLang();
 	return <GlHeader
-		title={<a {...routes.home().link}><h1><img src="./PostgsailLogo.svg" alt="Postgsail Logo" height={48}/></h1></a>}
+		title={<a {...routes.home().link}><h1><img src={PostgsailLogo} alt="Postgsail Logo" height={48}/></h1></a>}
 		links={[
 			{
 				"label": t("link2label"),
@@ -31,6 +32,7 @@ export const Header = memo(() => {
 		enableDarkModeSwitch={true}
 		githubRepoUrl="https://github.com/xbgmsharp/postgsail/"
 		githubButtonSize="large"
+		showGithubStarCount={true}
 		customItemEnd={{
 			"item": <LanguageSelect
 				language={lang}
