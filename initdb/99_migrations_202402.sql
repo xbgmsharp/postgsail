@@ -826,6 +826,70 @@ COMMENT ON TRIGGER new_vessel_trim
   ON auth.vessels
   IS 'Trim space vessel name';
 
+CREATE or REPLACE FUNCTION public.logbook_update_geojson_fn(IN _id integer, IN _start text, IN _end text,
+    OUT _track_geojson JSON
+ ) AS $logbook_geojson$
+    declare
+     log_geojson jsonb;
+     metrics_geojson jsonb;
+     _map jsonb;
+    begin
+        -- GeoJson Feature Logbook linestring
+        SELECT
+            ST_AsGeoJSON(log.*) into log_geojson
+        FROM
+           ( SELECT
+                id,name,
+                distance,
+                duration,
+                avg_speed,
+                max_speed,
+                max_wind_speed,
+                _from_time,
+                _to_time
+                _from_moorage_id,
+                _to_moorage_id,
+                notes,
+                track_geom
+                FROM api.logbook
+                WHERE id = _id
+           ) AS log;
+        -- GeoJson Feature Metrics point
+        SELECT
+            json_agg(ST_AsGeoJSON(t.*)::json) into metrics_geojson
+        FROM (
+            ( SELECT
+                time,
+                courseovergroundtrue,
+                speedoverground,
+                windspeedapparent,
+                longitude,latitude,
+                '' AS notes,
+                coalesce(metrics->'environment.wind.speedTrue', null) as truewindspeed,
+                coalesce(metrics->'environment.wind.directionTrue', null) as truewinddirection,
+                coalesce(status, null) as status,
+                st_makepoint(longitude,latitude) AS geo_point
+                FROM api.metrics m
+                WHERE m.latitude IS NOT NULL
+                    AND m.longitude IS NOT NULL
+                    AND time >= _start::TIMESTAMPTZ
+                    AND time <= _end::TIMESTAMPTZ
+                    AND vessel_id = current_setting('vessel.id', false)
+                ORDER BY m.time ASC
+            )
+        ) AS t;
+
+        -- Merge jsonb
+        SELECT log_geojson::jsonb || metrics_geojson::jsonb into _map;
+        -- output
+        SELECT
+            json_build_object(
+                'type', 'FeatureCollection',
+                'features', _map
+            ) into _track_geojson;
+    END;
+$logbook_geojson$ LANGUAGE plpgsql;
+
 -- Update version
 UPDATE public.app_settings
 	SET value='0.7.0'
