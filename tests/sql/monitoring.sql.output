@@ -36,3 +36,15 @@ Test monitoring_humidity for user
 -[ RECORD 1 ]
 count | 0
 
+Test metersToKnots
+-[ RECORD 1 ]-+-----
+meterstoknots | 1.94
+
+Test radiantToDegrees
+-[ RECORD 1 ]----+---
+radianttodegrees | 57
+
+Test valToPercent
+-[ RECORD 1 ]+----
+valtopercent | 100
+
