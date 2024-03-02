@@ -215,7 +215,7 @@ api.moorages
 id              | 1
 vessel_id       | t
 name            | patch moorage name 3
-country         | 
+country         | fi
 stay_code       | 2
 stay_duration   | PT1M
 reference_count | 1
@@ -228,7 +228,7 @@ notes           | new moorage note 3
 id              | 2
 vessel_id       | t
 name            | Norra hamnen
-country         | 
+country         | fi
 stay_code       | 4
 stay_duration   | PT2M
 reference_count | 2
