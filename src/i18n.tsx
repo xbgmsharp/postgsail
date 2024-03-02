@@ -173,15 +173,15 @@ export const {
 			},
 			"Header": {
 				"headerTitle": "PostgSail",
-				"link1label": "Exemple de page",
-				"link2label": "Lien 2",
-				"link3label": "Lien 3"
+				"link1label": "Example page",
+				"link2label": "GitHub",
+				"link3label": "Documentation"
 			},
 			"Footer": {
 				"license": "License Apache",
-				"link1label": "Exemple de page",
-				"link2label": "Lien 2",
-				"link3label": "Lien 3"
+				"link1label": "Example page",
+				"link2label": "GitHub",
+				"link3label": "Documentation"
 			},
 			"Home": {
 				"heroTitle": "Cloud, hosted and fully–managed, designed for all your needs.",
@@ -306,19 +306,19 @@ export const {
 		/* spell-checker: disable */
 		"es": {
 			"FourOhFour": {
-				"not found": "Page non trouvée"
+				"not found": "Página no encontrada"
 			},
 			"Header": {
 				"headerTitle": "PostgSail",
-				"link1label": "Exemple de page",
-				"link2label": "Lien 2",
-				"link3label": "Lien 3"
+				"link1label": "Example page",
+				"link2label": "GitHub",
+				"link3label": "Documentation"
 			},
 			"Footer": {
 				"license": "License Apache",
-				"link1label": "Exemple de page",
-				"link2label": "Lien 2",
-				"link3label": "Lien 3"
+				"link1label": "Example page",
+				"link2label": "GitHub",
+				"link3label": "Documentation"
 			},
 			"Home": {
 				"heroTitle": "Cloud, hosted and fully–managed, designed for all your needs.",

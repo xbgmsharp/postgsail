@@ -3,7 +3,7 @@ import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { useRoute } from "../router";
 import { Home } from "../pages/Home";
-import { PageExample } from "../pages/PageExample";
+//import { PageExample } from "../pages/PageExample";
 import { FourOhFour } from "../pages/FourOFour";
 import { ThemeProvider } from "../theme";
 
@@ -22,9 +22,9 @@ export function App() {
 					(()=>{
 						switch(route.name){
 							case "home": return <Home />;
-							case "pageExample": return <PageExample />;
-							case "postgsail": return <Home />;
-							default : return <FourOhFour />;
+							//case "pageExample": return <PageExample />;
+							//default : return <FourOhFour />;
+							default : return <Home />;
 						}
 					})()
 				}
