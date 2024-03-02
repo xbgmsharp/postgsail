@@ -51,3 +51,12 @@ select count(*) from api.monitoring_temperatures;
 -- Test monitoring for user
 --select * from api.monitoring_humidity;
 select count(*) from api.monitoring_humidity;
+
+\echo 'Test metersToKnots'
+select public.metersToKnots(1);
+
+\echo 'Test radiantToDegrees'
+select public.radiantToDegrees(1);
+
+\echo 'Test valToPercent'
+select public.valToPercent(1);
