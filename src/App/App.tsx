@@ -4,7 +4,7 @@ import { Footer } from "./Footer";
 import { useRoute } from "../router";
 import { Home } from "../pages/Home";
 //import { PageExample } from "../pages/PageExample";
-import { FourOhFour } from "../pages/FourOFour";
+//import { FourOhFour } from "../pages/FourOFour";
 import { ThemeProvider } from "../theme";
 
 export function App() {
