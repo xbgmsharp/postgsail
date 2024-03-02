@@ -1,22 +1,17 @@
 {
   "files": {
-    "main.js": "./static/js/main.43c2eb61.js",
-    "static/media/timelapse.png": "./static/media/timelapse.ce6208c83b8bed24a815.png",
-    "static/media/demo.mp4": "./static/media/demo.129abcade2a4fd793dff.mp4",
-    "static/media/monitoring.png": "./static/media/monitoring.c3474b2b05f71e2dc913.png",
-    "static/media/article-page-example.png": "./static/media/article-page-example.70d6bd57ede0ada106fa.png",
-    "static/media/stats.png": "./static/media/stats.cc978ab82b50bc15aa41.png",
-    "static/media/pokemon.png": "./static/media/pokemon.ac632dd7fdb5aa28556b.png",
-    "static/media/logs.png": "./static/media/logs.d1605a06ac0989f3158a.png",
-    "static/media/webinaire.png": "./static/media/webinaire.0fb29383820e122217ca.png",
-    "static/media/data-visualisation.png": "./static/media/data-visualisation.c147fb3b112f51f096a2.png",
-    "static/media/kubernetes.png": "./static/media/kubernetes.52ea2430dfac2c2b029c.png",
-    "static/media/discord-mark-blue.png": "./static/media/discord-mark-blue.667df059ddf407979d68.png",
-    "static/media/PostgsailLogo.svg": "./static/media/PostgsailLogo.132516ec587bf04cd61e19103b9c54f8.svg",
-    "index.html": "./index.html",
-    "main.43c2eb61.js.map": "./static/js/main.43c2eb61.js.map"
+    "main.js": "/postgsail/static/js/main.a80ee3e3.js",
+    "static/media/timelapse.png": "/postgsail/static/media/timelapse.ce6208c83b8bed24a815.png",
+    "static/media/demo.mp4": "/postgsail/static/media/demo.129abcade2a4fd793dff.mp4",
+    "static/media/monitoring.png": "/postgsail/static/media/monitoring.c3474b2b05f71e2dc913.png",
+    "static/media/stats.png": "/postgsail/static/media/stats.cc978ab82b50bc15aa41.png",
+    "static/media/logs.png": "/postgsail/static/media/logs.d1605a06ac0989f3158a.png",
+    "static/media/discord-mark-blue.png": "/postgsail/static/media/discord-mark-blue.667df059ddf407979d68.png",
+    "static/media/PostgsailLogo.svg": "/postgsail/static/media/PostgsailLogo.132516ec587bf04cd61e19103b9c54f8.svg",
+    "index.html": "/postgsail/index.html",
+    "main.a80ee3e3.js.map": "/postgsail/static/js/main.a80ee3e3.js.map"
   },
   "entrypoints": [
-    "static/js/main.43c2eb61.js"
+    "static/js/main.a80ee3e3.js"
   ]
 }
