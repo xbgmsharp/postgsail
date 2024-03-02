@@ -5,8 +5,8 @@ import {makeThisModuleAnExecutableRouteLister} from "github-pages-plugin-for-typ
 
 export const routeDefs = {
 	"home": defineRoute("/"),
-	//"pageExample": defineRoute("/page-example"),
-	//"postgsail": defineRoute("/"),
+	"pageExample": defineRoute("/page-example"),
+	"postgsail": defineRoute("/"),
 };
 
 makeThisModuleAnExecutableRouteLister(routeDefs);
