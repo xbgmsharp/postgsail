@@ -14,7 +14,7 @@ select current_database();
 \echo 'Force timezone, just in case'
 set timezone to 'UTC';
 
-CREATE OR REPLACE FUNCTION process_lat_lon_fn(IN lon NUMERIC, IN lat NUMERIC,
+CREATE OR REPLACE FUNCTION public.process_lat_lon_fn(IN lon NUMERIC, IN lat NUMERIC,
     OUT moorage_id INTEGER,
     OUT moorage_type INTEGER,
     OUT moorage_name TEXT,
@@ -199,6 +199,138 @@ LANGUAGE plpgsql IMMUTABLE;
 COMMENT ON FUNCTION
     public.metersToKnots
     IS 'convert speed meters/s To Knots';
+
+CREATE OR REPLACE FUNCTION logbook_update_extra_json_fn(IN _id integer, IN _start text, IN _end text,
+    OUT _extra_json JSON
+    ) AS $logbook_extra_json$
+    declare
+        obs_json jsonb default '{ "seaState": -1, "cloudCoverage": -1, "visibility": -1}'::jsonb;
+        log_json jsonb default '{}'::jsonb;
+        runtime_json jsonb default '{}'::jsonb;
+        metrics_json jsonb default '{}'::jsonb;
+        metric_rec record;
+    BEGIN
+        -- Calculate 'navigation.log' metrics
+        WITH
+            start_trip as (
+                -- Fetch 'navigation.log' start, first entry
+                SELECT key, value
+                FROM api.metrics m,
+                        jsonb_each_text(m.metrics)
+                WHERE key ILIKE 'navigation.log'
+                    AND time = _start::TIMESTAMPTZ
+                    AND vessel_id = current_setting('vessel.id', false)
+            ),
+            end_trip as (
+                -- Fetch 'navigation.log' end, last entry
+                SELECT key, value
+                FROM api.metrics m,
+                        jsonb_each_text(m.metrics)
+                WHERE key ILIKE 'navigation.log'
+                    AND time = _end::TIMESTAMPTZ
+                    AND vessel_id = current_setting('vessel.id', false)
+            ),
+            nm as (
+                -- calculate distance and convert meter to nautical miles
+                SELECT ((end_trip.value::NUMERIC - start_trip.value::numeric) * 0.00053996) as trip from start_trip,end_trip
+            )
+        -- Generate JSON
+        SELECT jsonb_build_object('navigation.log', trip) INTO log_json FROM nm;
+        RAISE NOTICE '-> logbook_update_extra_json_fn navigation.log: %', log_json;
+
+        -- Calculate engine hours from propulsion.%.runTime first entry
+        FOR metric_rec IN
+            SELECT key, value
+                FROM api.metrics m,
+                        jsonb_each_text(m.metrics)
+                WHERE key ILIKE 'propulsion.%.runTime'
+                    AND time = _start::TIMESTAMPTZ
+                    AND vessel_id = current_setting('vessel.id', false)
+        LOOP
+            -- Engine Hours in seconds
+            RAISE NOTICE '-> logbook_update_extra_json_fn propulsion.*.runTime: %', metric_rec;
+            with
+            end_runtime AS (
+                -- Fetch 'propulsion.*.runTime' last entry
+                SELECT key, value
+                    FROM api.metrics m,
+                            jsonb_each_text(m.metrics)
+                    WHERE key ILIKE metric_rec.key
+                        AND time = _end::TIMESTAMPTZ
+                        AND vessel_id = current_setting('vessel.id', false)
+            ),
+            runtime AS (
+                -- calculate runTime Engine Hours as ISO duration
+                --SELECT (end_runtime.value::numeric - metric_rec.value::numeric) AS value FROM end_runtime
+                SELECT (((end_runtime.value::numeric - metric_rec.value::numeric) / 3600) * '1 hour'::interval)::interval as value FROM end_runtime
+            )
+            -- Generate JSON
+            SELECT jsonb_build_object(metric_rec.key, runtime.value) INTO runtime_json FROM runtime;
+            RAISE NOTICE '-> logbook_update_extra_json_fn key: %, value: %', metric_rec.key, runtime_json;
+        END LOOP;
+
+        -- Update logbook with extra value and return json
+        SELECT COALESCE(log_json::JSONB, '{}'::jsonb) || COALESCE(runtime_json::JSONB, '{}'::jsonb) INTO metrics_json;
+        SELECT jsonb_build_object('metrics', metrics_json, 'observations', obs_json) INTO _extra_json;
+        RAISE NOTICE '-> logbook_update_extra_json_fn log_json: %, runtime_json: %, _extra_json: %', log_json, runtime_json, _extra_json;
+    END;
+$logbook_extra_json$ LANGUAGE plpgsql;
+
+DROP FUNCTION IF EXISTS public.logbook_update_gpx_fn();
+
+CREATE FUNCTION metadata_upsert_trigger_fn() RETURNS trigger AS $metadata_upsert$
+    DECLARE
+        metadata_id integer;
+        metadata_active boolean;
+    BEGIN
+        -- Set client_id to new value to allow RLS
+        --PERFORM set_config('vessel.client_id', NEW.client_id, false);
+        -- UPSERT - Insert vs Update for Metadata
+        --RAISE NOTICE 'metadata_upsert_trigger_fn';
+        --PERFORM set_config('vessel.id', NEW.vessel_id, true);
+        --RAISE WARNING 'metadata_upsert_trigger_fn [%] [%]', current_setting('vessel.id', true), NEW;
+        SELECT m.id,m.active INTO metadata_id, metadata_active
+            FROM api.metadata m
+            WHERE m.vessel_id IS NOT NULL AND m.vessel_id = current_setting('vessel.id', true);
+        --RAISE NOTICE 'metadata_id is [%]', metadata_id;
+        IF metadata_id IS NOT NULL THEN
+            -- send notification if boat is back online
+            IF metadata_active is False THEN
+                -- Add monitor online entry to process queue for later notification
+                INSERT INTO process_queue (channel, payload, stored, ref_id)
+                    VALUES ('monitoring_online', metadata_id, now(), current_setting('vessel.id', true));
+            END IF;
+            -- Update vessel metadata
+            UPDATE api.metadata
+                SET
+                    name = NEW.name,
+                    mmsi = NEW.mmsi,
+                    client_id = NEW.client_id,
+                    length = NEW.length,
+                    beam = NEW.beam,
+                    height = NEW.height,
+                    ship_type = NEW.ship_type,
+                    plugin_version = NEW.plugin_version,
+                    signalk_version = NEW.signalk_version,
+                    platform = REGEXP_REPLACE(NEW.platform, '[^a-zA-Z0-9\(\) ]', '', 'g'),
+                    configuration = NEW.configuration,
+                    -- time = NEW.time, ignore the time sent by the vessel as it is out of sync sometimes.
+                    time = NOW(), -- overwrite the time sent by the vessel
+                    active = true
+                WHERE id = metadata_id;
+            RETURN NULL; -- Ignore insert
+        ELSE
+            IF NEW.vessel_id IS NULL THEN
+                -- set vessel_id from jwt if not present in INSERT query
+                NEW.vessel_id := current_setting('vessel.id');
+            END IF;
+            -- Ignore and overwrite the time sent by the vessel
+            NEW.time := NOW();
+            -- Insert new vessel metadata
+            RETURN NEW; -- Insert new vessel metadata
+        END IF;
+    END;
+$metadata_upsert$ LANGUAGE plpgsql;
 
 -- Update version
 UPDATE public.app_settings
