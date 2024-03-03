@@ -26,7 +26,7 @@ export const Header = memo(() => {
 			},
 			{
 				"label": t("link3label"),
-				"href": "https://github.com/xbgmsharp/postgsail/tree/main/docs",
+				"href": "https://github.com/xbgmsharp/postgsail/blob/main/README.md",
 			},
 		]}
 		enableDarkModeSwitch={true}
