@@ -278,7 +278,7 @@ $logbook_extra_json$ LANGUAGE plpgsql;
 
 DROP FUNCTION IF EXISTS public.logbook_update_gpx_fn();
 
-CREATE FUNCTION metadata_upsert_trigger_fn() RETURNS trigger AS $metadata_upsert$
+CREATE OR REPLACE FUNCTION metadata_upsert_trigger_fn() RETURNS trigger AS $metadata_upsert$
     DECLARE
         metadata_id integer;
         metadata_active boolean;
