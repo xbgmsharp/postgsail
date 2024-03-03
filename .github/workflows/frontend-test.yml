@@ -31,7 +31,11 @@ jobs:
         run: docker compose -f docker-compose.dev.yml -f docker-compose.yml pull db api web_tests
 
       - name: Build Docker images
-        run: docker compose -f docker-compose.dev.yml -f docker-compose.yml build web_dev
+        run: |
+          set -eu
+          source .env
+          docker compose -f docker-compose.dev.yml -f docker-compose.yml build web_dev
+          docker compose -f docker-compose.dev.yml -f docker-compose.yml build web
 
       - name: Run PostgSail Web tests
         # Environment variables
