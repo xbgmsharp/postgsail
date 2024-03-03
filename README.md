@@ -40,6 +40,7 @@ postgsail-telegram-bot:
 - Awesome statistics and graphs.
 - Create and manage your own dashboards.
 - Windy PWS (Personal Weather Station).
+- Engine Hours Logger.
 - Anything missing? just ask!
 
 ## Context
