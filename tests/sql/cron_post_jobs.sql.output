@@ -28,7 +28,7 @@ avg_speed      | 3.6357142857142852
 max_speed      | 6.1
 max_wind_speed | 22.1
 notes          | 
-extra          | {"metrics": {"propulsion.main.runTime": 10}, "observations": {"seaState": -1, "visibility": -1, "cloudCoverage": -1}}
+extra          | {"metrics": {"propulsion.main.runTime": "PT10S"}, "observations": {"seaState": -1, "visibility": -1, "cloudCoverage": -1}}
 -[ RECORD 2 ]--+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 name           | Norra hamnen to Ekenäs
 _from_time     | t
@@ -41,7 +41,7 @@ avg_speed      | 5.4523809523809526
 max_speed      | 6.5
 max_wind_speed | 37.2
 notes          | 
-extra          | {"metrics": {"propulsion.main.runTime": 11}, "observations": {"seaState": -1, "visibility": -1, "cloudCoverage": -1}}
+extra          | {"metrics": {"propulsion.main.runTime": "PT11S"}, "observations": {"seaState": -1, "visibility": -1, "cloudCoverage": -1}}
 
 stays
 -[ RECORD 1 ]
@@ -91,12 +91,12 @@ DROP TABLE
 stats_logs_fn | 
 
 update_logbook_observations_fn
--[ RECORD 1 ]----------------------------------------------------------------------------------------------------------------
-extra | {"metrics": {"propulsion.main.runTime": 10}, "observations": {"seaState": -1, "visibility": -1, "cloudCoverage": -1}}
+-[ RECORD 1 ]---------------------------------------------------------------------------------------------------------------------
+extra | {"metrics": {"propulsion.main.runTime": "PT10S"}, "observations": {"seaState": -1, "visibility": -1, "cloudCoverage": -1}}
 
 -[ RECORD 1 ]------------------+--
 update_logbook_observations_fn | t
 
--[ RECORD 1 ]---------------------------------------------------------------------------------------------------------------
-extra | {"metrics": {"propulsion.main.runTime": 10}, "observations": {"seaState": -1, "visibility": -1, "cloudCoverage": 1}}
+-[ RECORD 1 ]--------------------------------------------------------------------------------------------------------------------
+extra | {"metrics": {"propulsion.main.runTime": "PT10S"}, "observations": {"seaState": -1, "visibility": -1, "cloudCoverage": 1}}
 
