@@ -332,6 +332,131 @@ CREATE OR REPLACE FUNCTION metadata_upsert_trigger_fn() RETURNS trigger AS $meta
     END;
 $metadata_upsert$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION public.cron_windy_fn() RETURNS void AS $$
+DECLARE
+    windy_rec record;
+    default_last_metric TIMESTAMPTZ := NOW() - interval '1 day';
+    last_metric TIMESTAMPTZ := NOW();
+    metric_rec record;
+    windy_metric jsonb;
+    app_settings jsonb;
+    user_settings jsonb;
+    windy_pws jsonb;
+BEGIN
+    -- Check for new observations pending update
+    RAISE NOTICE 'cron_process_windy_fn';
+    -- Gather url from app settings
+    app_settings := get_app_settings_fn();
+    -- Find users with Windy active and with an active vessel
+    -- Map account id to Windy Station ID
+    FOR windy_rec in
+        SELECT
+            a.id,a.email,v.vessel_id,v.name,
+            COALESCE((a.preferences->'windy_last_metric')::TEXT, default_last_metric::TEXT) as last_metric
+            FROM auth.accounts a
+            LEFT JOIN auth.vessels AS v ON v.owner_email = a.email
+            LEFT JOIN api.metadata AS m ON m.vessel_id = v.vessel_id
+            WHERE (a.preferences->'public_windy')::boolean = True
+                AND m.active = True
+    LOOP
+        RAISE NOTICE '-> cron_process_windy_fn for [%]', windy_rec;
+        PERFORM set_config('vessel.id', windy_rec.vessel_id, false);
+        --RAISE WARNING 'public.cron_process_windy_rec_fn() scheduler vessel.id %, user.id', current_setting('vessel.id', false), current_setting('user.id', false);
+        -- Gather user settings
+        user_settings := get_user_settings_from_vesselid_fn(windy_rec.vessel_id::TEXT);
+        RAISE NOTICE '-> cron_process_windy_fn checking user_settings [%]', user_settings;
+        -- Get all metrics from the last windy_last_metric avg by 5 minutes
+        -- TODO json_agg to send all data in once, but issue with py jsonb transformation decimal.
+        FOR metric_rec in
+            SELECT time_bucket('5 minutes', m.time) AS time_bucket,
+                    avg((m.metrics->'environment.outside.temperature')::numeric) AS temperature,
+                    avg((m.metrics->'environment.outside.pressure')::numeric) AS pressure,
+                    avg((m.metrics->'environment.outside.relativeHumidity')::numeric) AS rh,
+                    avg((m.metrics->'environment.wind.directionTrue')::numeric) AS winddir,
+                    avg((m.metrics->'environment.wind.speedTrue')::numeric) AS wind,
+                    max((m.metrics->'environment.wind.speedTrue')::numeric) AS gust,
+                    last(latitude, time) AS lat,
+                    last(longitude, time) AS lng
+                FROM api.metrics m
+                WHERE vessel_id = windy_rec.vessel_id
+                    AND m.time >= windy_rec.last_metric::TIMESTAMPTZ
+                GROUP BY time_bucket
+                ORDER BY time_bucket ASC LIMIT 100
+        LOOP
+            RAISE NOTICE '-> cron_process_windy_fn checking metrics [%]', metric_rec;
+            IF metric_rec.wind is null or metric_rec.temperature is null THEN
+                -- Ignore when there is no metrics.
+                -- Send notification
+                PERFORM send_notification_fn('windy_error'::TEXT, user_settings::JSONB);
+                -- Disable windy
+                PERFORM api.update_user_preferences_fn('{public_windy}'::TEXT, 'false'::TEXT);
+                RETURN;
+            END IF;
+            -- https://community.windy.com/topic/8168/report-your-weather-station-data-to-windy
+            -- temp from kelvin to celcuis
+            -- winddir from radiant to degres
+            -- rh from ratio to percentage
+            SELECT jsonb_build_object(
+                'dateutc', metric_rec.time_bucket,
+                'station', windy_rec.id,
+                'name', windy_rec.name,
+                'lat', metric_rec.lat,
+                'lon', metric_rec.lng,
+                'wind', metric_rec.wind,
+                'gust', metric_rec.gust,
+                'pressure', metric_rec.pressure,
+                'winddir', radiantToDegrees(metric_rec.winddir::numeric),
+                'temp', kelvinToCel(metric_rec.temperature::numeric),
+                'rh', valToPercent(metric_rec.rh::numeric)
+                ) INTO windy_metric;
+            RAISE NOTICE '-> cron_process_windy_fn checking windy_metrics [%]', windy_metric;
+            SELECT windy_pws_py_fn(windy_metric, user_settings, app_settings) into windy_pws;
+            RAISE NOTICE '-> cron_process_windy_fn Windy PWS [%]', ((windy_pws->'header')::JSONB ? 'id');
+            IF NOT((user_settings->'settings')::JSONB ? 'windy') and ((windy_pws->'header')::JSONB ? 'id') then
+                RAISE NOTICE '-> cron_process_windy_fn new Windy PWS [%]', (windy_pws->'header')::JSONB->>'id';
+                -- Send metrics to Windy
+                PERFORM api.update_user_preferences_fn('{windy}'::TEXT, ((windy_pws->'header')::JSONB->>'id')::TEXT);
+                -- Send notification
+                PERFORM send_notification_fn('windy'::TEXT, user_settings::JSONB);
+                -- Refresh user settings after first success
+                user_settings := get_user_settings_from_vesselid_fn(windy_rec.vessel_id::TEXT);
+            END IF;
+            -- Record last metrics time
+            SELECT metric_rec.time_bucket INTO last_metric;
+        END LOOP;
+        PERFORM api.update_user_preferences_fn('{windy_last_metric}'::TEXT, last_metric::TEXT);
+    END LOOP;
+END;
+$$ language plpgsql;
+
+DROP FUNCTION public.delete_vessel_fn;
+CREATE OR REPLACE FUNCTION public.delete_vessel_fn(IN _vessel_id TEXT) RETURNS JSONB
+AS $delete_vessel$
+DECLARE
+  total_metrics INTEGER;
+  del_metrics INTEGER;
+  del_logs INTEGER;
+  del_stays INTEGER;
+  del_moorages INTEGER;
+  del_queue INTEGER;
+  out_json JSONB;
+BEGIN
+    select count(*) INTO total_metrics from api.metrics m where vessel_id = _vessel_id;
+    WITH deleted AS (delete from api.metrics m where vessel_id = _vessel_id RETURNING *) SELECT count(*) INTO del_metrics FROM deleted;
+    WITH deleted AS (delete from api.logbook l where vessel_id = _vessel_id RETURNING *) SELECT count(*) INTO del_logs FROM deleted;
+    WITH deleted AS (delete from api.stays s where vessel_id = _vessel_id RETURNING *) SELECT count(*) INTO del_stays FROM deleted;
+    WITH deleted AS (delete from api.moorages m where vessel_id = _vessel_id RETURNING *) SELECT count(*) INTO del_moorages FROM deleted;
+    WITH deleted AS (delete from public.process_queue m where ref_id = _vessel_id RETURNING *) SELECT count(*) INTO del_queue FROM deleted;
+    SELECT jsonb_build_object('total_metrics', total_metrics,
+                            'del_metrics', del_metrics,
+                            'del_logs', del_logs,
+                            'del_stays', del_stays,
+                            'del_moorages', del_moorages,
+                            'del_queue', del_queue) INTO out_json;
+    RETURN out_json;
+END
+$delete_vessel$ language plpgsql;
+
 -- Update version
 UPDATE public.app_settings
 	SET value='0.7.1'
