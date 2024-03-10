@@ -457,6 +457,42 @@ BEGIN
 END
 $delete_vessel$ language plpgsql;
 
+DROP FUNCTION public.cron_process_no_activity_fn;
+CREATE OR REPLACE FUNCTION public.cron_process_no_activity_fn() RETURNS void AS $no_activity$
+DECLARE
+    no_activity_rec record;
+    user_settings jsonb;
+    total_metrics INTEGER;
+    total_logs INTEGER;
+    del_metrics INTEGER;
+    out_json JSONB;
+BEGIN
+    -- Check for vessel with no activity for more than 230 days
+    RAISE NOTICE 'cron_process_no_activity_fn';
+    FOR no_activity_rec in
+        SELECT
+            v.owner_email,m.name,m.vessel_id,m.time,a.first
+            FROM auth.accounts a
+            LEFT JOIN auth.vessels v ON v.owner_email = a.email
+            LEFT JOIN api.metadata m ON v.vessel_id = m.vessel_id
+            WHERE m.time < NOW() AT TIME ZONE 'UTC' - INTERVAL '230 DAYS'
+                AND v.owner_email <> 'demo@openplotter.cloud'
+            ORDER BY m.time DESC
+    LOOP
+        RAISE NOTICE '-> cron_process_no_activity_rec_fn for [%]', no_activity_rec;
+        SELECT json_build_object('email', no_activity_rec.owner_email, 'recipient', no_activity_rec.first) into user_settings;
+        RAISE NOTICE '-> debug cron_process_no_activity_rec_fn [%]', user_settings;
+        -- Send notification
+        PERFORM send_notification_fn('no_activity'::TEXT, user_settings::JSONB);
+        SELECT count(*) INTO total_metrics from api.metrics where vessel_id = no_activity_rec.vessel_id;
+        WITH deleted AS (delete from api.metrics m where vessel_id = no_activity_rec.vessel_id RETURNING *) SELECT count(*) INTO del_metrics FROM deleted;
+        SELECT count(*) INTO total_logs from api.logbook where vessel_id = no_activity_rec.vessel_id;
+        SELECT jsonb_build_object('total_metrics', total_metrics, 'total_logs', total_logs, 'del_metrics', del_metrics) INTO out_json;
+        RAISE NOTICE '-> debug cron_process_no_activity_rec_fn [%]', out_json;
+    END LOOP;
+END;
+$no_activity$ language plpgsql;
+
 -- Update version
 UPDATE public.app_settings
 	SET value='0.7.1'
