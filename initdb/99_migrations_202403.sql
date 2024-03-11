@@ -457,7 +457,7 @@ BEGIN
 END
 $delete_vessel$ language plpgsql;
 
-DROP FUNCTION public.cron_process_no_activity_fn;
+DROP FUNCTION IF EXISTS public.cron_process_no_activity_fn();
 CREATE OR REPLACE FUNCTION public.cron_process_no_activity_fn() RETURNS void AS $no_activity$
 DECLARE
     no_activity_rec record;
