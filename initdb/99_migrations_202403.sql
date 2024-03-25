@@ -456,6 +456,10 @@ BEGIN
     RETURN out_json;
 END
 $delete_vessel$ language plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.delete_vessel_fn
+    IS 'Delete all vessel data (metrics,logbook,stays,moorages,process_queue) for a vessel_id';
 
 DROP FUNCTION IF EXISTS public.cron_process_no_activity_fn();
 CREATE OR REPLACE FUNCTION public.cron_process_no_activity_fn() RETURNS void AS $no_activity$
@@ -492,6 +496,31 @@ BEGIN
     END LOOP;
 END;
 $no_activity$ language plpgsql;
+
+DROP FUNCTION public.delete_account_fn(text,text);
+CREATE OR REPLACE FUNCTION public.delete_account_fn(IN _email TEXT, IN _vessel_id TEXT) RETURNS JSONB
+AS $delete_account$
+DECLARE
+    del_vessel_data JSONB;
+    del_meta INTEGER;
+    del_vessel INTEGER;
+    del_account INTEGER;
+    out_json JSONB;
+BEGIN
+    SELECT public.delete_vessel_fn(_vessel_id) INTO del_vessel_data;
+    WITH deleted AS (delete from api.metadata where vessel_id = _vessel_id RETURNING *) SELECT count(*) INTO del_meta FROM deleted;
+    WITH deleted AS (delete from auth.vessels where vessel_id = _vessel_id RETURNING *) SELECT count(*) INTO del_vessel FROM deleted;
+    WITH deleted AS (delete from auth.accounts where email = _email RETURNING *) SELECT count(*) INTO del_account FROM deleted;
+    SELECT jsonb_build_object('del_metadata', del_meta,
+                            'del_vessel', del_vessel,
+                            'del_account', del_account) || del_vessel_data INTO out_json;
+    RETURN out_json;
+END
+$delete_account$ language plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.delete_account_fn
+    IS 'Delete all data for a account by email and vessel_id';
 
 -- Update version
 UPDATE public.app_settings
