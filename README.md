@@ -41,6 +41,7 @@ postgsail-telegram-bot:
 - Create and manage your own dashboards.
 - Windy PWS (Personal Weather Station).
 - Engine Hours Logger.
+- Polar performance.
 - Anything missing? just ask!
 
 ## Context
@@ -216,7 +217,7 @@ docker-compose -f docker-compose-optional.yml up
 
 ### Software reference
 
-Out of the box iot platform using docker with the following software:
+An out of the box IoT platform using Docker (could be extend to K3 or K8) with the following software:
 
 - [Signal K server, a Free and Open Source universal marine data exchange format](https://signalk.org)
 - [PostgreSQL, open source object-relational database system](https://postgresql.org)
