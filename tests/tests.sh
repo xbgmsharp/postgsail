@@ -195,8 +195,8 @@ fi
 
 # Generate and update mermaid schema documentation
 /root/go/bin/mermerd --runConfig ../docs/ERD/mermerdConfig.yaml
-echo $?
-echo 0
+#echo $?
+#echo 0
 if [ $? -eq 0 ]; then
     cp postgsail.md ../docs/ERD/postgsail.md
     echo postgsail.md OK
@@ -204,3 +204,5 @@ else
     echo postgsail.md FAILED
     exit 1
 fi
+
+#npm i -D schemalint && npx schemalint
