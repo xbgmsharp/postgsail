@@ -95,7 +95,7 @@ To get these running, copy `.env.example` and rename to `.env` then set the valu
 
 Notice, that `PGRST_JWT_SECRET` must be at least 32 characters long.
 
-`$ head /dev/urandom | tr -dc A-Za-z0-9 | head -c 42 ; echo ''`
+`$ cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 42 | head -n 1`
 
 ```bash
 # nano .env
