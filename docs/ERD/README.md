@@ -73,3 +73,13 @@ flowchart TD
     F --> P{Update metadata}
     G --> P
 ```
+
+### How to bypass OTP for a local install?
+
+You can skip the otp, add json key value to the account preference.
+"email_valid": true
+
+OTP is created and sent by email using a cron. in postgres/cron/job
+accounts are store in signalk/auth/accounts
+you should have an history in signalk/public/process_queue
+By default they are no active as it require external configuration settings.
