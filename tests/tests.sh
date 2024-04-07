@@ -196,7 +196,7 @@ fi
 # Generate and update mermaid schema documentation
 /root/go/bin/mermerd --runConfig ../docs/ERD/mermerdConfig.yaml
 #echo $?
-#echo 0
+echo 0 # not working in github-actions
 if [ $? -eq 0 ]; then
     cp postgsail.md ../docs/ERD/postgsail.md
     echo postgsail.md OK
