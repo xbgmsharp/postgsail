@@ -73,6 +73,11 @@ flowchart TD
     F --> P{Update metadata}
     G --> P
 ```
+By default they are no active job as it require external configuration settings (SMTP, PushOver, Telegram)
+To active all cron.job run the following SQL command.
+```SQL
+UPDATE cron.job SET active = True;
+```
 
 ### How to bypass OTP for a local install?
 
@@ -80,14 +85,11 @@ You can skip the otp, add or update json key value to the account preference.
 "email_valid": true
 
 OTP is created and sent by email using a cron in postgres/cron/job
+
 accounts are store in table signalk/auth/accounts
+
 You should have an history in table signalk/public/process_queue
 
-By default they are no active job as it require external configuration settings (SMTP, PushOver, Telegram)
-To active all cron.job run the following SQL command.
-```SQL
-UPDATE cron.job SET active = True;
-```
 ### How to turn off signups
 
 If you just want to use this as a standalone application and don't want people to be able to sign up for an account.
