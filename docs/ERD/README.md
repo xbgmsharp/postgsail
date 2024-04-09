@@ -7,7 +7,7 @@ Auto generated Mermaid diagram using [mermerd](https://github.com/KarnerTh/merme
 [PostgSail SQL Schema](https://github.com/xbgmsharp/postgsail/tree/main/docs/ERD/postgsail.md "PostgSail SQL Schema")
 
 ## Further
-There is 3 main schemas:
+There is 3 main schemas into the signalk database:
 - API Schema:
   - tables
     - metrics
@@ -76,10 +76,22 @@ flowchart TD
 
 ### How to bypass OTP for a local install?
 
-You can skip the otp, add json key value to the account preference.
+You can skip the otp, add or update json key value to the account preference.
 "email_valid": true
 
-OTP is created and sent by email using a cron. in postgres/cron/job
-accounts are store in signalk/auth/accounts
-you should have an history in signalk/public/process_queue
-By default they are no active as it require external configuration settings.
+OTP is created and sent by email using a cron in postgres/cron/job
+accounts are store in table signalk/auth/accounts
+You should have an history in table signalk/public/process_queue
+
+By default they are no active job as it require external configuration settings (SMTP, PushOver, Telegram)
+To active all cron.job run the following SQL command.
+```SQL
+UPDATE cron.job SET active = True;
+```
+### How to turn off signups
+
+If you just want to use this as a standalone application and don't want people to be able to sign up for an account.
+
+```SQL
+revoke execute on function api.signup(text,text,text,text) to api_anonymous;
+```
