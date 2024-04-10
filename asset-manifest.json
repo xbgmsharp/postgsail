@@ -1,6 +1,6 @@
 {
   "files": {
-    "main.js": "/postgsail/static/js/main.2d3d46f9.js",
+    "main.js": "/postgsail/static/js/main.14ca5c89.js",
     "static/media/timelapse.png": "/postgsail/static/media/timelapse.ce6208c83b8bed24a815.png",
     "static/media/demo.mp4": "/postgsail/static/media/demo.129abcade2a4fd793dff.mp4",
     "static/media/monitoring.png": "/postgsail/static/media/monitoring.c3474b2b05f71e2dc913.png",
@@ -9,9 +9,9 @@
     "static/media/discord-mark-blue.png": "/postgsail/static/media/discord-mark-blue.667df059ddf407979d68.png",
     "static/media/PostgsailLogo.svg": "/postgsail/static/media/PostgsailLogo.132516ec587bf04cd61e19103b9c54f8.svg",
     "index.html": "/postgsail/index.html",
-    "main.2d3d46f9.js.map": "/postgsail/static/js/main.2d3d46f9.js.map"
+    "main.14ca5c89.js.map": "/postgsail/static/js/main.14ca5c89.js.map"
   },
   "entrypoints": [
-    "static/js/main.2d3d46f9.js"
+    "static/js/main.14ca5c89.js"
   ]
 }
