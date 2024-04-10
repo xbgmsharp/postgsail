@@ -202,7 +202,7 @@ export const Home = memo(() => {
 						discordIcon
 					]}
 					link={{
-						"href": "https://discord.gg/cpGqA5sZ",
+						"href": "https://discord.gg/uuZrwz4dCS",
 					}}
 				/>
 
