@@ -45,7 +45,7 @@ Notice, that `PGRST_JWT_SECRET` must be at least 32 characters long.
 
 `$ cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 42 | head -n 1`
 
-`PGSAIL_APP_URL` is the url in you connect to in your browser.
+`PGSAIL_APP_URL` is the URL you connect to from your browser.
 
 `PGSAIL_API_URL` is the URL where `PGSAIL_APP_URL` connect to.
 
