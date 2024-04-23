@@ -127,7 +127,7 @@ UPDATE app_settings
     WHERE name = 'app.email_server';
 ```
 
-As it is all about SQL, [Read more](https://github.com/xbgmsharp/postgsail/docs/ERD/README) about the database and explore your data.
+As it is all about SQL, [Read more](https://github.com/xbgmsharp/postgsail/blob/main/docs/ERD/README.md) about the database and explore your data.
 
 ### Ingest data
 

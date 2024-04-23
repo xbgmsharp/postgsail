@@ -73,7 +73,7 @@ flowchart TD
     F --> P{Update metadata}
     G --> P
 ```
-The job not process by default because if you don't have the correct settings set (SMTP, PushOver, Telegram), you might enter in a loop with error and you can be blocked or banned from the external services.
+cron job are not process by default because if you don't have the correct settings set (SMTP, PushOver, Telegram), you might enter in a loop with error and you could be blocked or banned from the external services.
 
 Therefor by default they are no active job as it require external configuration settings (SMTP, PushOver, Telegram).
 To activate all cron.job run the following SQL command:
