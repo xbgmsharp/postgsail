@@ -53,10 +53,26 @@ Notice, that `PGRST_JWT_SECRET` must be at least 32 characters long.
 
 To summarize:
 ```mermaid
-graph LR
-    A[YOU] -- HTTP --> B{PGSAIL_APP_URL}
-    B -- HTTP --> C{PGSAIL_API_URL}
-    C -- SQL --> D{PGRST_DB_URI}
+flowchart LR
+    subgraph frontend
+        direction TB
+        A(PGSAIL_APP_URL)
+        B(PGSAIL_API_URL)
+    end
+    subgraph backend
+        direction TB
+        B(PGSAIL_API_URL) -- SQL --> C(PGRST_DB_URI)
+    end
+    %% ^ These subgraphs are identical, except for the links to them:
+
+    %% Link *to* subgraph1: subgraph1 direction is maintained
+
+    User -- HTTP --> A
+    User -- HTTP --> B
+    %% Link *within* subgraph2:
+    %% subgraph2 inherits the direction of the top-level graph (LR)
+
+    Boat -- HTTP --> B
 ```
 
 ### Deploy
