@@ -13,13 +13,17 @@
     <a href="https://github.com/xbgmsharp/postgsail/blob/main/docs/README.md"><strong>Explore the docs »</strong></a>
     <br/>
     <br/>
-    <a href="https://iot.openplotter.cloud/demo">View Demo</a>
+    <a href="#about-the-project">View Demo</a>
     .
     <a href="https://github.com/xbgmsharp/postgsail/issues">Report Bug</a>
     .
     <a href="https://github.com/xbgmsharp/postgsail/issues">Request Feature</a>
     .
-    <a href="https:/xbgmsharp.github.io/postgsail/">Check the website</a>
+    <a href="https:/xbgmsharp.github.io/postgsail/">Website</a>
+    .
+    <a href="https://github.com/sponsors/xbgmsharp">Sponsors</a>
+    .
+    <a href="https://discord.gg/uuZrwz4dCS">Discord</a>
   </p>
 </p>
 
@@ -97,7 +101,7 @@ To understand the why and how, you might want to read [Why.md](https://github.co
 
 ## Cloud-hosted PostgSail
 
-Remove the hassle of running PostgSail yourself. Here you can skip the technical setup, the maintenance work and server costs by getting PostgSail on our reliable and secure PostgSail Cloud. Register and try for free at https://iot.openplotter.cloud/.
+Remove the hassle of running PostgSail yourself. Here you can skip the technical setup, the maintenance work and server costs by getting PostgSail on our reliable and secure PostgSail Cloud. Register and try for free at [iot.openplotter.cloud](https://iot.openplotter.cloud/).
 
 ## On-Premise (for free)
 
