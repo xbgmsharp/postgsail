@@ -73,10 +73,16 @@ flowchart TD
     F --> P{Update metadata}
     G --> P
 ```
-By default they are no active job as it require external configuration settings (SMTP, PushOver, Telegram)
-To active all cron.job run the following SQL command.
-```SQL
+The job not process by default because if you don't have the correct settings set (SMTP, PushOver, Telegram), you might enter in a loop with error and you can be blocked or banned from the external services.
+
+Therefor by default they are no active job as it require external configuration settings (SMTP, PushOver, Telegram).
+To activate all cron.job run the following SQL command:
+```sql
 UPDATE cron.job SET active = True;
+```
+Be sure to review your postgsail settings via SQL in the table `app_settings`:
+```sql
+SELECT * FROM app_settings;
 ```
 
 ### How to bypass OTP for a local install?
@@ -89,6 +95,9 @@ OTP is created and sent by email using a cron in postgres/cron/job
 accounts are store in table signalk/auth/accounts
 
 You should have an history in table signalk/public/process_queue
+```sql
+select * from public.process_queue;
+```
 
 ### How to turn off signups
 
