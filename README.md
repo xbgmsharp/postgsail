@@ -18,6 +18,8 @@
     <a href="https://github.com/xbgmsharp/postgsail/issues">Report Bug</a>
     .
     <a href="https://github.com/xbgmsharp/postgsail/issues">Request Feature</a>
+    .
+    <a href="https:/xbgmsharp.github.io/postgsail/">Check the website</a>
   </p>
 </p>
 
