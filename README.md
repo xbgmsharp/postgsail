@@ -57,7 +57,7 @@ postgsail-telegram-bot:
 
 ## About The Project
 
-![PostgSail Demo](https://github.com/xbgmsharp/signalk-postgsail/blob/main/demo.mp4)
+https://github.com/xbgmsharp/signalk-postgsail/assets/1498985/b2669c39-11ad-4a50-9f91-9397f9057ee8
 
 Effortless cloud based solution for storing and sharing your SignalK data. Allow you to effortlessly log your sails and monitor your boat with historical data.
 
