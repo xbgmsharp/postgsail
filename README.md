@@ -10,7 +10,7 @@
     PostgSail is an open-source alternative to traditional vessel data management!
     <br/>
     <br/>
-    <a href="https://github.com/xbgmsharp/postgsail/docs/"><strong>Explore the docs »</strong></a>
+    <a href="https://github.com/xbgmsharp/postgsail/blob/main/docs/README.md"><strong>Explore the docs »</strong></a>
     <br/>
     <br/>
     <a href="https://iot.openplotter.cloud/demo">View Demo</a>
@@ -68,7 +68,7 @@ It is all about SQL, object-relational, time-series, spatial databases with a bi
 PostgSail is an open-source alternative to traditional vessel data management.
 It is based on a well known open-source technology stack, Signalk, PostgreSQL, TimescaleDB, PostGIS, PostgREST. It does perfectly integrate with standard monitoring tool stack like Grafana.
 
-To understand the why and how, you might want to read [Why.md](https://github.com/xbgmsharp/postgsail/tree/main/Why.md)
+To understand the why and how, you might want to read [Why.md](https://github.com/xbgmsharp/postgsail/blob/main/Why.md)
 
 ## Cloud-hosted PostgSail
 
@@ -102,7 +102,7 @@ Contributions are what make the open source community such an amazing place to b
 
 ## License
 
-Distributed under the Apache License Version 2.0. See [LICENSE](https://github.com/xbgmsharp/postgsail/blob/main/LICENSE.md) for more information.
+Distributed under the Apache License Version 2.0. See [LICENSE](https://github.com/xbgmsharp/postgsail/blob/main/LICENSE) for more information.
 
 ## Acknowledgements
 

@@ -13,6 +13,7 @@ For more clarity and visibility the complete [Entity-Relationship Diagram (ERD)]
 
 A full-featured development environment.
 
+### Development
 #### With CodeSandbox
 
 - Develop on [![CodeSandbox Ready-to-Code](https://img.shields.io/badge/CodeSandbox-Ready--to--Code-blue?logo=codesandbox)](https://codesandbox.io/p/github/xbgmsharp/postgsail/main)
@@ -26,7 +27,9 @@ A full-featured development environment.
 #### With Docker Dev Environments
 - [Open in Docker dev-envs!](https://open.docker.com/dashboard/dev-envs?url=https://github.com/xbgmsharp/postgsail/)
 
-### pre-deploy configuration
+
+### On-premise (self-hosted)
+#### pre-deploy configuration
 
 To get these running, copy `.env.example` and rename to `.env` then set the value accordingly.
 
@@ -34,12 +37,26 @@ To get these running, copy `.env.example` and rename to `.env` then set the valu
 # cp .env.example .env
 ```
 
+```bash
+# nano .env
+```
+
 Notice, that `PGRST_JWT_SECRET` must be at least 32 characters long.
 
 `$ cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 42 | head -n 1`
 
-```bash
-# nano .env
+`PGSAIL_APP_URL` is the url in you connect to in your browser.
+
+`PGSAIL_API_URL` is the URL where `PGSAIL_APP_URL` connect to.
+
+`PGRST_DB_URI` is the URI where the `PGSAIL_API_URL` connect to.
+
+To summarize:
+```mermaid
+graph LR
+    A[YOU] -- HTTP --> B{PGSAIL_APP_URL}
+    B -- HTTP --> C{PGSAIL_API_URL}
+    C -- SQL --> D{PGRST_DB_URI}
 ```
 
 ### Deploy
@@ -93,6 +110,8 @@ UPDATE app_settings
         value = 'new_value'
     WHERE name = 'app.email_server';
 ```
+
+As it is all about SQL, [Read more](https://github.com/xbgmsharp/postgsail/docs/ERD/README) about the database and explore your data.
 
 ### Ingest data
 
