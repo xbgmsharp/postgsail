@@ -2,7 +2,7 @@
 
 ## Architecture
 
-Simple and scalable architecture.
+Efficient, simple and scalable architecture.
 
 ![Architecture overview](https://raw.githubusercontent.com/xbgmsharp/postgsail/main/PostgSail.png "Architecture overview")
 
@@ -10,10 +10,10 @@ Simple and scalable architecture.
 For more clarity and visibility the complete [Entity-Relationship Diagram (ERD)](https://github.com/xbgmsharp/postgsail/blob/main/docs/ERD/README.md) is export as Mermaid, PNG and SVG file.
 
 ## Using PostgSail
+### Development
 
 A full-featured development environment.
 
-### Development
 #### With CodeSandbox
 
 - Develop on [![CodeSandbox Ready-to-Code](https://img.shields.io/badge/CodeSandbox-Ready--to--Code-blue?logo=codesandbox)](https://codesandbox.io/p/github/xbgmsharp/postgsail/main)
@@ -29,6 +29,7 @@ A full-featured development environment.
 
 
 ### On-premise (self-hosted)
+
 #### pre-deploy configuration
 
 To get these running, copy `.env.example` and rename to `.env` then set the value accordingly.
@@ -80,7 +81,7 @@ flowchart LR
 By default there is no network set and all data are store in a docker volume.
 You can update the default settings by editing `docker-compose.yml` and `docker-compose.dev.yml` to your need.
 
-First let's initialize the database.
+Now let's initialize the database.
 
 #### Step 1. Initialize database
 
@@ -92,7 +93,7 @@ $ docker compose up db
 
 #### Step 2. Start backend (db, api)
 
-Then launch the full stack (db, api) backend, execute:
+Then launch the full backend stack (db, api), execute:
 
 ```bash
 $ docker compose up db api

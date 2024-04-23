@@ -47,6 +47,7 @@ postgsail-telegram-bot:
 
 - [Table Of Contents](#table-of-contents)
 - [About The Project](#about-the-project)
+- [Features](#features)
 - [Cloud-hosted PostgSail](#cloud-hosted-postgsail)
 - [On-Premise (for free)](#on-premise-for-free)
 - [Roadmap](#roadmap)
@@ -70,6 +71,28 @@ It is based on a well known open-source technology stack, Signalk, PostgreSQL, T
 
 To understand the why and how, you might want to read [Why.md](https://github.com/xbgmsharp/postgsail/blob/main/Why.md)
 
+## Features
+
+- Automatically log your voyages without manually starting or stopping a trip.
+- Automatically capture the details of your voyages (boat speed, heading, wind speed, etc).
+- Timelapse video your trips, with or without time control.
+- Add custom notes to your logs.
+- Export to CSV, GPX, GeoJSON, KML and download your logs.
+- Aggregate your trip statistics: Longest voyage, time spent at anchorages, home ports etc.
+- See your moorages on a global map, with incoming and outgoing voyages from each trip.
+- Monitor your boat (position, depth, wind, temperature, battery charge status, etc.) remotely.
+- History: view trends.
+- Alert monitoring: get notification on low voltage or low fuel remotely.
+- Notification via email or PushOver, Telegram.
+- Offline mode.
+- Low Bandwidth mode.
+- Awesome statistics and graphs.
+- Create and manage your own dashboards.
+- Windy PWS (Personal Weather Station).
+- Engine Hours Logger.
+- Polar performance.
+- Anything missing? just ask!
+
 ## Cloud-hosted PostgSail
 
 Remove the hassle of running PostgSail yourself. Here you can skip the technical setup, the maintenance work and server costs by getting PostgSail on our reliable and secure PostgSail Cloud. Register and try for free at https://iot.openplotter.cloud/.
@@ -87,7 +110,7 @@ Join the community, Get support and exchange on [Discord](https://discord.gg/uuZ
 ## Contributing
 
 Contributions are what make the open source community such an amazing place to be learn, inspire, and create. Any contributions you make are **greatly appreciated**.
-* If you have suggestions for adding or removing projects, feel free to [open an issue](https://github.com/xbgmsharp/postgsail/issues/new) to discuss it, or directly create a pull request after you edit the *README.md* file with necessary changes.
+* If you have suggestions for features, feel free to [open an issue](https://github.com/xbgmsharp/postgsail/issues/new) to discuss it, or directly create a pull request with necessary changes.
 * Please make sure you check your spelling and grammar.
 * Create individual PR for each suggestion.
 * Please also read through the [Code Of Conduct](https://github.com/xbgmsharp/postgsail/blob/main/CODE_OF_CONDUCT.md) before posting your first idea as well.
@@ -113,3 +136,4 @@ An out of the box IoT platform using Docker (could be extend to K3 or K8) with t
 - [TimescaleDB, Time-series data extends PostgreSQL](https://www.timescale.com)
 - [PostGIS, a spatial database extender for PostgreSQL object-relational database.](https://postgis.net/)
 - [Grafana, open observability platform | Grafana Labs](https://grafana.com)
+- And many more
