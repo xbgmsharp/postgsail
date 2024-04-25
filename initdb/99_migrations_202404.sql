@@ -208,7 +208,8 @@ CREATE OR REPLACE FUNCTION api.timelapse2_fn(
         _geojson jsonb;
     BEGIN
         -- Using sub query to force id order by time
-        -- Merge GIS track_geom into a GeoJSON Points
+        -- User can now directly edit the json to add comment or remove track point
+        -- Merge json track_geojson with Geometry Point into a single GeoJSON Points
         IF start_log IS NOT NULL AND public.isnumeric(start_log::text) AND public.isnumeric(end_log::text) THEN
             SELECT jsonb_agg(
                         jsonb_build_object('type', 'Feature',
@@ -216,12 +217,11 @@ CREATE OR REPLACE FUNCTION api.timelapse2_fn(
                                             'geometry', jsonb_build_object( 'coordinates', f->'geometry'->'coordinates', 'type', 'Point'))
                     ) INTO _geojson
             FROM (
-                SELECT jsonb_array_elements(track_geojson->'features') AS f, m.name AS m_name
-                    FROM api.logbook, api.moorages m
+                SELECT jsonb_array_elements(track_geojson->'features') AS f
+                    FROM api.logbook l
                     WHERE l.id >= start_log
                         AND l.id <= end_log
                         AND l.track_geojson IS NOT NULL
-                        AND l._from_moorage_id = m.id
                     ORDER BY l._from_time ASC
             ) AS sub
             WHERE (f->'geometry'->>'type') = 'Point';
@@ -232,12 +232,11 @@ CREATE OR REPLACE FUNCTION api.timelapse2_fn(
                                             'geometry', jsonb_build_object( 'coordinates', f->'geometry'->'coordinates', 'type', 'Point'))
                     ) INTO _geojson
             FROM (
-                SELECT jsonb_array_elements(track_geojson->'features') AS f, m.name AS m_name
-                    FROM api.logbook, api.moorages m
+                SELECT jsonb_array_elements(track_geojson->'features') AS f
+                    FROM api.logbook l
                     WHERE l._from_time >= start_date::TIMESTAMPTZ
                         AND l._to_time <= end_date::TIMESTAMPTZ + interval '23 hours 59 minutes'
                         AND l.track_geojson IS NOT NULL
-                        AND l._from_moorage_id = m.id
                     ORDER BY l._from_time ASC
             ) AS sub
             WHERE (f->'geometry'->>'type') = 'Point';
@@ -248,10 +247,9 @@ CREATE OR REPLACE FUNCTION api.timelapse2_fn(
                                             'geometry', jsonb_build_object( 'coordinates', f->'geometry'->'coordinates', 'type', 'Point'))
                     ) INTO _geojson
             FROM (
-                SELECT jsonb_array_elements(track_geojson->'features') AS f, m.name AS m_name
-                    FROM api.logbook, api.moorages m
+                SELECT jsonb_array_elements(track_geojson->'features') AS f
+                    FROM api.logbook l
                     WHERE l.track_geojson IS NOT NULL
-                    AND l._from_moorage_id = m.id
                     ORDER BY l._from_time ASC
             ) AS sub
             WHERE (f->'geometry'->>'type') = 'Point';
