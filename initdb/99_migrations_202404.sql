@@ -256,7 +256,7 @@ CREATE OR REPLACE FUNCTION api.timelapse2_fn(
         END IF;
         -- Return a GeoJSON MultiLineString
         -- result _geojson [null, null]
-        raise WARNING 'result _geojson %' , _geojson;
+        --RAISE WARNING 'result _geojson %' , _geojson;
         SELECT jsonb_build_object(
             'type', 'FeatureCollection',
             'features', _geojson ) INTO geojson;
@@ -266,6 +266,132 @@ $timelapse2$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION
     api.timelapse2_fn
     IS 'Export all selected logs geojson `track_geojson` to a geojson as points including properties';
+
+DROP FUNCTION IF EXISTS process_logbook_queue_fn;
+CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void AS $process_logbook_queue$
+    DECLARE
+        logbook_rec record;
+        from_name text;
+        to_name text;
+        log_name text;
+        from_moorage record;
+        to_moorage record;
+        avg_rec record;
+        geo_rec record;
+        log_settings jsonb;
+        user_settings jsonb;
+        geojson jsonb;
+        extra_json jsonb;
+        from_moorage_note jsonb;
+        to_moorage_note jsonb;
+    BEGIN
+        -- If _id is not NULL
+        IF _id IS NULL OR _id < 1 THEN
+            RAISE WARNING '-> process_logbook_queue_fn invalid input %', _id;
+            RETURN;
+        END IF;
+        -- Get the logbook record with all necessary fields exist
+        SELECT * INTO logbook_rec
+            FROM api.logbook
+            WHERE active IS false
+                AND id = _id
+                AND _from_lng IS NOT NULL
+                AND _from_lat IS NOT NULL
+                AND _to_lng IS NOT NULL
+                AND _to_lat IS NOT NULL;
+        -- Ensure the query is successful
+        IF logbook_rec.vessel_id IS NULL THEN
+            RAISE WARNING '-> process_logbook_queue_fn invalid logbook %', _id;
+            RETURN;
+        END IF;
+
+        PERFORM set_config('vessel.id', logbook_rec.vessel_id, false);
+        --RAISE WARNING 'public.process_logbook_queue_fn() scheduler vessel.id %, user.id', current_setting('vessel.id', false), current_setting('user.id', false);
+
+        -- Calculate logbook data average and geo
+        -- Update logbook entry with the latest metric data and calculate data
+        avg_rec := logbook_update_avg_fn(logbook_rec.id, logbook_rec._from_time::TEXT, logbook_rec._to_time::TEXT);
+        geo_rec := logbook_update_geom_distance_fn(logbook_rec.id, logbook_rec._from_time::TEXT, logbook_rec._to_time::TEXT);
+
+        -- Do we have an existing moorage within 300m of the new log
+        -- generate logbook name, concat _from_location and _to_location from moorage name
+        from_moorage := process_lat_lon_fn(logbook_rec._from_lng::NUMERIC, logbook_rec._from_lat::NUMERIC);
+        to_moorage := process_lat_lon_fn(logbook_rec._to_lng::NUMERIC, logbook_rec._to_lat::NUMERIC);
+        SELECT CONCAT(from_moorage.moorage_name, ' to ' , to_moorage.moorage_name) INTO log_name;
+
+        -- Process `propulsion.*.runTime` and `navigation.log`
+        -- Calculate extra json
+        extra_json := logbook_update_extra_json_fn(logbook_rec.id, logbook_rec._from_time::TEXT, logbook_rec._to_time::TEXT);
+
+        RAISE NOTICE 'Updating valid logbook entry logbook id:[%] start:[%] end:[%]', logbook_rec.id, logbook_rec._from_time, logbook_rec._to_time;
+        UPDATE api.logbook
+            SET
+                duration = (logbook_rec._to_time::TIMESTAMPTZ - logbook_rec._from_time::TIMESTAMPTZ),
+                avg_speed = avg_rec.avg_speed,
+                max_speed = avg_rec.max_speed,
+                max_wind_speed = avg_rec.max_wind_speed,
+                _from = from_moorage.moorage_name,
+                _from_moorage_id = from_moorage.moorage_id,
+                _to_moorage_id = to_moorage.moorage_id,
+                _to = to_moorage.moorage_name,
+                name = log_name,
+                track_geom = geo_rec._track_geom,
+                distance = geo_rec._track_distance,
+                extra = extra_json,
+                notes = NULL -- reset pre_log process
+            WHERE id = logbook_rec.id;
+
+        -- GeoJSON require track_geom field
+        geojson := logbook_update_geojson_fn(logbook_rec.id, logbook_rec._from_time::TEXT, logbook_rec._to_time::TEXT);
+        UPDATE api.logbook
+            SET
+                track_geojson = geojson
+            WHERE id = logbook_rec.id;
+        -- Add moorage name as note for the second and last entry of the GeoJSON
+        -- Update the note properties of the second feature with geometry point
+        select format('{"notes": "%s"}', from_moorage.moorage_name) into from_moorage_note;
+        -- Update the properties of the second feature with geometry point
+        UPDATE api.logbook
+        SET track_geojson = jsonb_set(
+            track_geojson,
+            '{features, 1, properties, notes}',
+            (track_geojson -> 'features' -> 1 -> 'properties' || from_moorage_note)::jsonb
+        )
+        WHERE id = logbook_rec.id
+            AND track_geojson -> 'features' -> 1 -> 'geometry' ->> 'type' = 'Point';
+
+        -- Update the note properties of the last feature with geometry point
+        select format('{"notes": "%s"}', to_moorage.moorage_name) into to_moorage_note;
+        UPDATE api.logbook
+        SET track_geojson = jsonb_set(
+            track_geojson,
+            '{features, -1, properties, notes}',
+            (track_geojson -> 'features' -> -1 -> 'properties' || to_moorage_note)::jsonb
+        )
+        WHERE id = logbook_rec.id
+            AND track_geojson -> 'features' -> -1 -> 'geometry' ->> 'type' = 'Point';
+
+        -- Prepare notification, gather user settings
+        SELECT json_build_object('logbook_name', log_name, 'logbook_link', logbook_rec.id) into log_settings;
+        user_settings := get_user_settings_from_vesselid_fn(logbook_rec.vessel_id::TEXT);
+        SELECT user_settings::JSONB || log_settings::JSONB into user_settings;
+        RAISE NOTICE '-> debug process_logbook_queue_fn get_user_settings_from_vesselid_fn [%]', user_settings;
+        RAISE NOTICE '-> debug process_logbook_queue_fn log_settings [%]', log_settings;
+        -- Send notification
+        PERFORM send_notification_fn('logbook'::TEXT, user_settings::JSONB);
+        -- Process badges
+        RAISE NOTICE '-> debug process_logbook_queue_fn user_settings [%]', user_settings->>'email'::TEXT;
+        PERFORM set_config('user.email', user_settings->>'email'::TEXT, false);
+        PERFORM badges_logbook_fn(logbook_rec.id, logbook_rec._to_time::TEXT);
+        PERFORM badges_geom_fn(logbook_rec.id, logbook_rec._to_time::TEXT);
+    END;
+$process_logbook_queue$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.process_logbook_queue_fn
+    IS 'Update logbook details when completed, logbook_update_avg_fn, logbook_update_geom_distance_fn, reverse_geocode_py_fn';
+
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA api TO user_role;
 
 -- Update version
 UPDATE public.app_settings
