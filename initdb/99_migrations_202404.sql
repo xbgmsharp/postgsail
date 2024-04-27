@@ -347,29 +347,34 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
             SET
                 track_geojson = geojson
             WHERE id = logbook_rec.id;
-        -- Add moorage name as note for the second and last entry of the GeoJSON
-        -- Update the note properties of the second feature with geometry point
-        select format('{"notes": "%s"}', from_moorage.moorage_name) into from_moorage_note;
-        -- Update the properties of the second feature with geometry point
+
+        -- Add moorage name as note for the third and last entry of the GeoJSON
+        SELECT format('{"notes": "%s"}', from_moorage.moorage_name) into from_moorage_note;
+        -- Update the properties of the third feature, the second with geometry point
         UPDATE api.logbook
-        SET track_geojson = jsonb_set(
-            track_geojson,
-            '{features, 1, properties, notes}',
-            (track_geojson -> 'features' -> 1 -> 'properties' || from_moorage_note)::jsonb
-        )
-        WHERE id = logbook_rec.id
-            AND track_geojson -> 'features' -> 1 -> 'geometry' ->> 'type' = 'Point';
+            SET track_geojson = jsonb_set(
+                track_geojson,
+                '{features, 2, properties}',
+                (track_geojson -> 'features' -> 2 -> 'properties' || from_moorage_note)::jsonb
+            )
+            WHERE id = logbook_rec.id
+                AND track_geojson -> 'features' -> 2 -> 'geometry' ->> 'type' = 'Point';
 
         -- Update the note properties of the last feature with geometry point
-        select format('{"notes": "%s"}', to_moorage.moorage_name) into to_moorage_note;
+        SELECT format('{"notes": "%s"}', to_moorage.moorage_name) into to_moorage_note;
         UPDATE api.logbook
-        SET track_geojson = jsonb_set(
-            track_geojson,
-            '{features, -1, properties, notes}',
-            (track_geojson -> 'features' -> -1 -> 'properties' || to_moorage_note)::jsonb
-        )
-        WHERE id = logbook_rec.id
-            AND track_geojson -> 'features' -> -1 -> 'geometry' ->> 'type' = 'Point';
+            SET track_geojson = jsonb_set(
+                track_geojson,
+                '{features, -1, properties}',
+                CASE
+                    WHEN COALESCE((track_geojson -> 'features' -> -1 -> 'properties' ->> 'notes'), '') = '' THEN
+                        (track_geojson -> 'features' -> -1 -> 'properties' || to_moorage_note)::jsonb
+                    ELSE
+                        track_geojson -> 'features' -> -1 -> 'properties'
+                END
+            )
+            WHERE id = logbook_rec.id
+                AND track_geojson -> 'features' -> -1 -> 'geometry' ->> 'type' = 'Point';
 
         -- Prepare notification, gather user settings
         SELECT json_build_object('logbook_name', log_name, 'logbook_link', logbook_rec.id) into log_settings;
