@@ -29,4 +29,4 @@ ALTER ROLE grafana WITH PASSWORD '${PGSAIL_GRAFANA_PASSWORD}';
 ALTER ROLE grafana_auth WITH PASSWORD '${PGSAIL_GRAFANA_AUTH_PASSWORD}';
 END
 
-curl -XPOST -Hx-pgsail:${PGSAIL_VERSION} https://api.openplotter.cloud/rpc/telemetry_fn
+curl -s -XPOST -Hx-pgsail:${PGSAIL_VERSION} https://api.openplotter.cloud/rpc/telemetry_fn
