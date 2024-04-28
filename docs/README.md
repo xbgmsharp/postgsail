@@ -111,6 +111,8 @@ Then launch the web frontend, execute:
 ```bash
 $ docker compose up web
 ```
+This step can take some time as it will first do a build to generate the static website based on your settings.
+
 The frontend should be accessible via port HTTP/8080.
 
 ### SQL Configuration
