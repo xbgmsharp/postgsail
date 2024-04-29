@@ -18,7 +18,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./db-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
       - ./initdb:/docker-entrypoint-initdb.d
     logging:
       options:
@@ -71,8 +71,8 @@ services:
     links:
       - "db:database"
     volumes:
-      - data:/var/lib/grafana
-      - data:/var/log/grafana
+      - grafana-data:/var/lib/grafana
+      - grafana-data:/var/log/grafana
       - ./grafana:/etc/grafana
     ports:
       - "3001:3000"
@@ -145,4 +145,5 @@ services:
         max-size: 10m
 
 volumes:
-  data: {}
+  grafana-data: {}
+  postgres-data: {}
