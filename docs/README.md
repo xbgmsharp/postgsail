@@ -78,8 +78,7 @@ flowchart LR
 
 ### Deploy
 
-By default there is no network set and all data are store in a docker volume.
-You can update the default settings by editing `docker-compose.yml` and `docker-compose.dev.yml` to your need.
+There is two compose files used. You can update the default settings by editing `docker-compose.yml` and `docker-compose.dev.yml` to your need.
 
 Now let's initialize the database.
 
@@ -103,6 +102,10 @@ The API should be accessible via port HTTP/3000.
 The database should be accessible via port TCP/5432.
 
 You can connect to the database via a web gui like [pgadmin](https://www.pgadmin.org/) or you can use a client [dbeaver](https://dbeaver.io/).
+```bash
+$ docker compose -f docker-compose.yml -f docker-compose.dev.yml pgadmin
+```
+Then connect to the web UI on port HTTP/5050.
 
 #### Step 3. Start frontend (web)
 
@@ -114,6 +117,8 @@ $ docker compose up web
 This step can take some time as it will first do a build to generate the static website based on your settings.
 
 The frontend should be accessible via port HTTP/8080.
+
+Users are collaborating on an installation guide, [Self-hosted-installation-guide](https://github.com/xbgmsharp/postgsail/wiki/Self-hosted-installation-guide)
 
 ### SQL Configuration
 
