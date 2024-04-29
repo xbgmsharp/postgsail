@@ -11,6 +11,9 @@ select current_database();
 -- connect to the DB
 \c signalk
 
+\echo 'Timing mode is enabled'
+\timing
+
 \echo 'Force timezone, just in case'
 set timezone to 'UTC';
 
@@ -82,8 +85,8 @@ BEGIN
 	           RETURN;
 	        end if;
             -- https://community.windy.com/topic/8168/report-your-weather-station-data-to-windy
-            -- temp from kelvin to celcuis
-            -- winddir from radiant to degres
+            -- temp from kelvin to Celsius
+            -- winddir from radiant to degrees
             -- rh from ratio to percentage
             SELECT jsonb_build_object(
                 'dateutc', metric_rec.time_bucket,
@@ -210,6 +213,14 @@ CREATE OR REPLACE FUNCTION api.timelapse2_fn(
         -- Using sub query to force id order by time
         -- User can now directly edit the json to add comment or remove track point
         -- Merge json track_geojson with Geometry Point into a single GeoJSON Points
+        --raise WARNING 'input % % %' , start_log, end_log, public.isnumeric(end_log::text);
+        IF start_log IS NOT NULL AND end_log IS NULL THEN
+            end_log := start_log;
+        END IF;
+        IF start_date IS NOT NULL AND end_date IS NULL THEN
+            end_date := start_date;
+        END IF;
+        --raise WARNING 'input % % %' , start_log, end_log, public.isnumeric(end_log::text);
         IF start_log IS NOT NULL AND public.isnumeric(start_log::text) AND public.isnumeric(end_log::text) THEN
             SELECT jsonb_agg(
                         jsonb_build_object('type', 'Feature',
@@ -267,8 +278,12 @@ COMMENT ON FUNCTION
     api.timelapse2_fn
     IS 'Export all selected logs geojson `track_geojson` to a geojson as points including properties';
 
-DROP FUNCTION IF EXISTS process_logbook_queue_fn;
-CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void AS $process_logbook_queue$
+-- Allow timelapse2_fn execution for user_role and api_anonymous (public replay)
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA api TO user_role;
+GRANT EXECUTE ON FUNCTION api.timelapse2_fn TO api_anonymous;
+
+DROP FUNCTION IF EXISTS public.process_logbook_queue_fn;
+CREATE OR REPLACE FUNCTION public.process_logbook_queue_fn(IN _id integer) RETURNS void AS $process_logbook_queue$
     DECLARE
         logbook_rec record;
         from_name text;
@@ -282,6 +297,7 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         user_settings jsonb;
         geojson jsonb;
         extra_json jsonb;
+        trip_note jsonb;
         from_moorage_note jsonb;
         to_moorage_note jsonb;
     BEGIN
@@ -348,6 +364,18 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
                 track_geojson = geojson
             WHERE id = logbook_rec.id;
 
+        -- Add trip details  name as note for the first geometry point entry from the GeoJSON
+        SELECT format('{"trip": { "name": "%s", "duration": "%s", "distance": "%s" }}', logbook_rec.name, logbook_rec.duration, logbook_rec.distance) into trip_note;
+	    -- Update the properties of the first feature
+        UPDATE api.logbook
+            SET track_geojson = jsonb_set(
+                track_geojson,
+                '{features, 1, properties}',
+                (track_geojson -> 'features' -> 1 -> 'properties' || trip_note)::jsonb
+            )
+            WHERE id = logbook_rec.id
+                and track_geojson -> 'features' -> 1 -> 'geometry' ->> 'type' = 'Point';
+
         -- Add moorage name as note for the third and last entry of the GeoJSON
         SELECT format('{"notes": "%s"}', from_moorage.moorage_name) into from_moorage_note;
         -- Update the properties of the third feature, the second with geometry point
@@ -396,7 +424,200 @@ COMMENT ON FUNCTION
     public.process_logbook_queue_fn
     IS 'Update logbook details when completed, logbook_update_avg_fn, logbook_update_geom_distance_fn, reverse_geocode_py_fn';
 
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA api TO user_role;
+-- Update the pre.check for the new timelapse function
+CREATE OR REPLACE FUNCTION public.check_jwt() RETURNS void AS $$
+-- Prevent unregister user or unregister vessel access
+-- Allow anonymous access
+-- Need to be refactor and simplify, specially the anonymous part.
+DECLARE
+  _role name;
+  _email text;
+  anonymous record;
+  _path name;
+  _vid text;
+  _vname text;
+  boat TEXT;
+  _pid INTEGER := 0; -- public_id
+  _pvessel TEXT := NULL; -- public_type
+  _ptype TEXT := NULL; -- public_type
+  _ppath BOOLEAN := False; -- public_path
+  _pvalid BOOLEAN := False; -- public_valid
+  _pheader text := NULL; -- public_header
+  valid_public_type BOOLEAN := False;
+  account_rec record;
+  vessel_rec record;
+BEGIN
+  -- Extract email and role from jwt token
+  --RAISE WARNING 'check_jwt jwt %', current_setting('request.jwt.claims', true);
+  SELECT current_setting('request.jwt.claims', true)::json->>'email' INTO _email;
+  PERFORM set_config('user.email', _email, false);
+  SELECT current_setting('request.jwt.claims', true)::json->>'role' INTO _role;
+  --RAISE WARNING 'jwt email %', current_setting('request.jwt.claims', true)::json->>'email';
+  --RAISE WARNING 'jwt role %', current_setting('request.jwt.claims', true)::json->>'role';
+  --RAISE WARNING 'cur_user %', current_user;
+
+  --TODO SELECT current_setting('request.jwt.uid', true)::json->>'uid' INTO _user_id;
+  --TODO RAISE WARNING 'jwt user_id %', current_setting('request.jwt.uid', true)::json->>'uid';
+  --TODO SELECT current_setting('request.jwt.vid', true)::json->>'vid' INTO _vessel_id;
+  --TODO RAISE WARNING 'jwt vessel_id %', current_setting('request.jwt.vid', true)::json->>'vid';
+  IF _role = 'user_role' THEN
+    -- Check the user exist in the accounts table
+    SELECT * INTO account_rec
+        FROM auth.accounts
+        WHERE auth.accounts.email = _email;
+    IF account_rec.email IS NULL THEN
+        RAISE EXCEPTION 'Invalid user'
+            USING HINT = 'Unknown user or password';
+    END IF;
+    -- Set session variables
+    PERFORM set_config('user.id', account_rec.user_id, false);
+    SELECT current_setting('request.path', true) into _path;
+    --RAISE WARNING 'req path %', current_setting('request.path', true);
+    -- Function allow without defined vessel like for anonymous role
+    IF _path ~ '^\/rpc\/(login|signup|recover|reset)$' THEN
+        RETURN;
+    END IF;
+    -- Function allow without defined vessel as user role
+    -- openapi doc, user settings, otp code and vessel registration
+    IF _path = '/rpc/settings_fn'
+        OR _path = '/rpc/register_vessel'
+        OR _path = '/rpc/update_user_preferences_fn'
+        OR _path = '/rpc/versions_fn'
+        OR _path = '/rpc/email_fn'
+        OR _path = '/' THEN
+        RETURN;
+    END IF;
+    -- Check a vessel and user exist
+    SELECT auth.vessels.* INTO vessel_rec
+        FROM auth.vessels, auth.accounts
+        WHERE auth.vessels.owner_email = auth.accounts.email
+            AND auth.accounts.email = _email;
+    -- check if boat exist yet?
+    IF vessel_rec.owner_email IS NULL THEN
+        -- Return http status code 551 with message
+        RAISE sqlstate 'PT551' using
+            message = 'Vessel Required',
+            detail = 'Invalid vessel',
+            hint = 'Unknown vessel';
+        --RETURN; -- ignore if not exist
+    END IF;
+    -- Redundant?
+    IF vessel_rec.vessel_id IS NULL THEN
+        RAISE EXCEPTION 'Invalid vessel'
+            USING HINT = 'Unknown vessel id';
+    END IF;
+    -- Set session variables
+    PERFORM set_config('vessel.id', vessel_rec.vessel_id, false);
+    PERFORM set_config('vessel.name', vessel_rec.name, false);
+    --RAISE WARNING 'public.check_jwt() user_role vessel.id [%]', current_setting('vessel.id', false);
+    --RAISE WARNING 'public.check_jwt() user_role vessel.name [%]', current_setting('vessel.name', false);
+  ELSIF _role = 'vessel_role' THEN
+    SELECT current_setting('request.path', true) into _path;
+    --RAISE WARNING 'req path %', current_setting('request.path', true);
+    -- Function allow without defined vessel like for anonymous role
+    IF _path ~ '^\/rpc\/(oauth_\w+)$' THEN
+        RETURN;
+    END IF;
+    -- Extract vessel_id from jwt token
+    SELECT current_setting('request.jwt.claims', true)::json->>'vid' INTO _vid;
+    -- Check the vessel and user exist
+    SELECT auth.vessels.* INTO vessel_rec
+        FROM auth.vessels, auth.accounts
+        WHERE auth.vessels.owner_email = auth.accounts.email
+            AND auth.accounts.email = _email
+            AND auth.vessels.vessel_id = _vid;
+    IF vessel_rec.owner_email IS NULL THEN
+        RAISE EXCEPTION 'Invalid vessel'
+            USING HINT = 'Unknown vessel owner_email';
+    END IF;
+    PERFORM set_config('vessel.id', vessel_rec.vessel_id, false);
+    PERFORM set_config('vessel.name', vessel_rec.name, false);
+    --RAISE WARNING 'public.check_jwt() user_role vessel.name %', current_setting('vessel.name', false);
+    --RAISE WARNING 'public.check_jwt() user_role vessel.id %', current_setting('vessel.id', false);
+  ELSIF _role = 'api_anonymous' THEN
+    --RAISE WARNING 'public.check_jwt() api_anonymous';
+    -- Check if path is a valid allow anonymous path
+    SELECT current_setting('request.path', true) ~ '^/(logs_view|log_view|rpc/timelapse_fn|rpc/timelapse2_fn|monitoring_view|stats_logs_view|stats_moorages_view|rpc/stats_logs_fn)$' INTO _ppath;
+    if _ppath is True then
+        -- Check is custom header is present and valid
+        SELECT current_setting('request.headers', true)::json->>'x-is-public' into _pheader;
+        RAISE WARNING 'public.check_jwt() api_anonymous _pheader [%]', _pheader;
+        if _pheader is null then
+            RAISE EXCEPTION 'Invalid public_header'
+                USING HINT = 'Stop being so evil and maybe you can log in';
+        end if;
+        SELECT convert_from(decode(_pheader, 'base64'), 'utf-8')
+                            ~ '\w+,public_(logs|logs_list|stats|timelapse|monitoring),\d+$' into _pvalid;
+        RAISE WARNING 'public.check_jwt() api_anonymous _pvalid [%]', _pvalid;
+        if _pvalid is null or _pvalid is False then
+            RAISE EXCEPTION 'Invalid public_valid'
+                USING HINT = 'Stop being so evil and maybe you can log in';
+        end if;
+        WITH regex AS (
+            SELECT regexp_match(
+                        convert_from(
+                            decode(_pheader, 'base64'), 'utf-8'),
+                        '(\w+),(public_(logs|logs_list|stats|timelapse|monitoring)),(\d+)$') AS match
+            )
+        SELECT match[1], match[2], match[4] into _pvessel, _ptype, _pid
+            FROM regex;
+        RAISE WARNING 'public.check_jwt() api_anonymous [%] [%] [%]', _pvessel, _ptype, _pid;
+        if _pvessel is not null and _ptype is not null then
+            -- Everything seem fine, get the vessel_id base on the vessel name.
+            SELECT _ptype::name = any(enum_range(null::public_type)::name[]) INTO valid_public_type;
+            IF valid_public_type IS False THEN
+                -- Ignore entry if type is invalid
+                RAISE EXCEPTION 'Invalid public_type'
+                    USING HINT = 'Stop being so evil and maybe you can log in';
+            END IF;
+            -- Check if boat name match public_vessel name
+            boat := '^' || _pvessel || '$';
+            IF _ptype ~ '^public_(logs|timelapse)$' AND _pid > 0 THEN
+                WITH log as (
+                    SELECT vessel_id from api.logbook l where l.id = _pid
+                )
+                SELECT v.vessel_id, v.name into anonymous
+                    FROM auth.accounts a, auth.vessels v, jsonb_each_text(a.preferences) as prefs, log l
+                    WHERE v.vessel_id = l.vessel_id
+                        AND a.email = v.owner_email
+                        AND a.preferences->>'public_vessel'::text ~* boat
+                        AND prefs.key = _ptype::TEXT
+                        AND prefs.value::BOOLEAN = true;
+                RAISE WARNING '-> ispublic_fn public_logs output boat:[%], type:[%], result:[%]', _pvessel, _ptype, anonymous;
+                IF anonymous.vessel_id IS NOT NULL THEN
+                    PERFORM set_config('vessel.id', anonymous.vessel_id, false);
+                    PERFORM set_config('vessel.name', anonymous.name, false);
+                    RETURN;
+                END IF;
+            ELSE
+                SELECT v.vessel_id, v.name into anonymous
+                        FROM auth.accounts a, auth.vessels v, jsonb_each_text(a.preferences) as prefs
+                        WHERE a.email = v.owner_email
+                            AND a.preferences->>'public_vessel'::text ~* boat
+                            AND prefs.key = _ptype::TEXT
+                            AND prefs.value::BOOLEAN = true;
+                RAISE WARNING '-> ispublic_fn output boat:[%], type:[%], result:[%]', _pvessel, _ptype, anonymous;
+                IF anonymous.vessel_id IS NOT NULL THEN
+                    PERFORM set_config('vessel.id', anonymous.vessel_id, false);
+                    PERFORM set_config('vessel.name', anonymous.name, false);
+                    RETURN;
+                END IF;
+            END IF;
+            RAISE sqlstate 'PT404' using message = 'unknown resource';
+        END IF; -- end anonymous path
+    END IF;
+  ELSIF _role <> 'api_anonymous' THEN
+    RAISE EXCEPTION 'Invalid role'
+      USING HINT = 'Stop being so evil and maybe you can log in';
+  END IF;
+END
+$$ language plpgsql security definer;
+-- Description
+COMMENT ON FUNCTION
+    public.check_jwt
+    IS 'PostgREST API db-pre-request check, set_config according to role (api_anonymous,vessel_role,user_role)';
+
+GRANT EXECUTE ON FUNCTION public.check_jwt() TO api_anonymous;
 
 -- Update version
 UPDATE public.app_settings
