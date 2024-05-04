@@ -82,17 +82,25 @@ UPDATE cron.job SET active = True;
 ```
 Be sure to review your postgsail settings via SQL in the table `app_settings`:
 ```sql
-SELECT * FROM app_settings;
+SELECT * FROM public.app_settings;
 ```
 
 ### How to bypass OTP for a local install?
 
 You can skip the otp, add or update json key value to the account preference.
+```json
 "email_valid": true
+```
 
-OTP is created and sent by email using a cron in postgres/cron/job
+OTP is created and sent by email using a cron in postgres/cron/job.
+```sql
+SELECT * FROM auth.otp;
+```
 
 accounts are store in table signalk/auth/accounts
+```sql
+SELECT * FROM auth.accounts;
+```
 
 You should have an history in table signalk/public/process_queue
 ```sql
