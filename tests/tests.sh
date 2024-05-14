@@ -182,6 +182,19 @@ else
     exit 1
 fi
 
+# logbook SQL unit tests
+psql ${PGSAIL_DB_URI} < sql/logbook.sql > output/logbook.sql.output
+diff sql/logbook.sql.output output/logbook.sql.output > /dev/null
+#diff -u sql/logbook.sql.output output/logbook.sql.output | wc -l
+#echo 0
+if [ $? -eq 0 ]; then
+    echo SQL logbook.sql OK
+else
+    echo SQL logbook.sql FAILED
+    diff -u sql/logbook.sql.output output/logbook.sql.output
+    exit 1
+fi
+
 # Download and update openapi documentation
 wget ${PGSAIL_API_URI} -O openapi.json
 #echo 0
