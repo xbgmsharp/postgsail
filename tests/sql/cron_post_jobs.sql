@@ -64,6 +64,11 @@ SELECT extra FROM api.logbook l WHERE id = 1 AND vessel_id = current_setting('ve
 SELECT api.update_logbook_observations_fn(1, '{"observations":{"cloudCoverage":1}}'::TEXT);
 SELECT extra FROM api.logbook l WHERE id = 1 AND vessel_id = current_setting('vessel.id', false);
 
+\echo 'add tags to logbook'
+SELECT extra FROM api.logbook l WHERE id = 1 AND vessel_id = current_setting('vessel.id', false);
+SELECT api.update_logbook_observations_fn(1, '{"tags": ["tag_name"]}'::TEXT);
+SELECT extra FROM api.logbook l WHERE id = 1 AND vessel_id = current_setting('vessel.id', false);
+
 -- Check export
 --\echo 'check logbook export fn'
 --SELECT api.export_logbook_geojson_fn(1);
