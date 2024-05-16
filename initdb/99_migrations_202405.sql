@@ -66,7 +66,7 @@ begin
   END IF;
 
   -- Track IP per user to avoid abuse
-  RAISE WARNING 'api.login debug: [%],[%]', client_ip, login.email;
+  --RAISE WARNING 'api.login debug: [%],[%]', client_ip, login.email;
   IF client_ip IS NOT NULL THEN
     UPDATE auth.accounts a SET preferences = jsonb_recursive_merge(a.preferences, jsonb_build_object('ip', client_ip)) WHERE a.email = login.email;
   END IF;
@@ -178,6 +178,8 @@ CREATE OR REPLACE FUNCTION api.merge_logbook_fn(IN id_start integer, IN id_end i
 	    -- Process `propulsion.*.runTime` and `navigation.log`
         -- Calculate extra json
         extra_json := logbook_update_extra_json_fn(logbook_rec_start.id, logbook_rec_start._from_time::TEXT, logbook_rec_end._to_time::TEXT);
+        -- add the avg_wind_speed
+        extra_json := extra_json || jsonb_build_object('avg_wind_speed', avg_rec.avg_wind_speed);
 
        	-- generate logbook name, concat _from_location and _to_location from moorage name
        	SELECT CONCAT(logbook_rec_start._from, ' to ', logbook_rec_end._to) INTO log_name;
@@ -366,6 +368,46 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
             SET
                 track_geojson = geojson
             WHERE id = logbook_rec.id;
+
+        -- Add trip details name as note for the first geometry point entry from the GeoJSON
+        SELECT format('{"trip": { "name": "%s", "duration": "%s", "distance": "%s" }}', logbook_rec.name, logbook_rec.duration, logbook_rec.distance) into trip_note;
+        -- Update the properties of the first feature
+        UPDATE api.logbook
+            SET track_geojson = jsonb_set(
+                track_geojson,
+                '{features, 1, properties}',
+                (track_geojson -> 'features' -> 1 -> 'properties' || trip_note)::jsonb
+            )
+            WHERE id = logbook_rec.id
+                and track_geojson -> 'features' -> 1 -> 'geometry' ->> 'type' = 'Point';
+
+        -- Add moorage name as note for the third and last entry of the GeoJSON
+        SELECT format('{"notes": "%s"}', from_moorage.moorage_name) into from_moorage_note;
+        -- Update the properties of the third feature, the second with geometry point
+        UPDATE api.logbook
+            SET track_geojson = jsonb_set(
+                track_geojson,
+                '{features, 2, properties}',
+                (track_geojson -> 'features' -> 2 -> 'properties' || from_moorage_note)::jsonb
+            )
+            WHERE id = logbook_rec.id
+                AND track_geojson -> 'features' -> 2 -> 'geometry' ->> 'type' = 'Point';
+
+        -- Update the note properties of the last feature with geometry point
+        SELECT format('{"notes": "%s"}', to_moorage.moorage_name) into to_moorage_note;
+        UPDATE api.logbook
+            SET track_geojson = jsonb_set(
+                track_geojson,
+                '{features, -1, properties}',
+                CASE
+                    WHEN COALESCE((track_geojson -> 'features' -> -1 -> 'properties' ->> 'notes'), '') = '' THEN
+                        (track_geojson -> 'features' -> -1 -> 'properties' || to_moorage_note)::jsonb
+                    ELSE
+                        track_geojson -> 'features' -> -1 -> 'properties'
+                END
+            )
+            WHERE id = logbook_rec.id
+                AND track_geojson -> 'features' -> -1 -> 'geometry' ->> 'type' = 'Point';
 
         -- Prepare notification, gather user settings
         SELECT json_build_object('logbook_name', log_name, 'logbook_link', logbook_rec.id) into log_settings;
