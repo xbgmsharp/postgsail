@@ -303,6 +303,9 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         user_settings jsonb;
         geojson jsonb;
         extra_json jsonb;
+        trip_note jsonb;
+        from_moorage_note jsonb;
+        to_moorage_note jsonb;
     BEGIN
         -- If _id is not NULL
         IF _id IS NULL OR _id < 1 THEN
