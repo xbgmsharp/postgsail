@@ -77,7 +77,7 @@ delete_logbook_fn | t
 -[ RECORD 1 ]-----+--
 delete_logbook_fn | t
 
-Delete logbook for user kapla
+Merge logbook for user kapla
 -[ RECORD 1 ]----+-
 merge_logbook_fn | 
 

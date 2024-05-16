@@ -31,8 +31,8 @@ SELECT name,_from_time IS NOT NULL AS _from_time,_to_time IS NOT NULL AS _to_tim
 -- Delete logbook for user
 \echo 'Delete logbook for user kapla'
 SELECT api.delete_logbook_fn(5); -- delete Tropics Zone
-SELECT api.delete_logbook_fn(6); -- delete Tropics Zone
+SELECT api.delete_logbook_fn(6); -- delete Alaska Zone
 
 -- Merge logbook for user
-\echo 'Delete logbook for user kapla'
+\echo 'Merge logbook for user kapla'
 SELECT api.merge_logbook_fn(1,2);
