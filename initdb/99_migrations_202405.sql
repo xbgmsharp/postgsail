@@ -303,9 +303,6 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
         user_settings jsonb;
         geojson jsonb;
         extra_json jsonb;
-        trip_note jsonb;
-        from_moorage_note jsonb;
-        to_moorage_note jsonb;
     BEGIN
         -- If _id is not NULL
         IF _id IS NULL OR _id < 1 THEN
@@ -365,52 +362,15 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
                 notes = NULL -- reset pre_log process
             WHERE id = logbook_rec.id;
 
-        -- GeoJSON require track_geom field
+        -- GeoJSON require track_geom field geometry linestring
         geojson := logbook_update_geojson_fn(logbook_rec.id, logbook_rec._from_time::TEXT, logbook_rec._to_time::TEXT);
         UPDATE api.logbook
             SET
                 track_geojson = geojson
             WHERE id = logbook_rec.id;
 
-        -- Add trip details name as note for the first geometry point entry from the GeoJSON
-        SELECT format('{"trip": { "name": "%s", "duration": "%s", "distance": "%s" }}', logbook_rec.name, logbook_rec.duration, logbook_rec.distance) into trip_note;
-        -- Update the properties of the first feature
-        UPDATE api.logbook
-            SET track_geojson = jsonb_set(
-                track_geojson,
-                '{features, 1, properties}',
-                (track_geojson -> 'features' -> 1 -> 'properties' || trip_note)::jsonb
-            )
-            WHERE id = logbook_rec.id
-                and track_geojson -> 'features' -> 1 -> 'geometry' ->> 'type' = 'Point';
-
-        -- Add moorage name as note for the third and last entry of the GeoJSON
-        SELECT format('{"notes": "%s"}', from_moorage.moorage_name) into from_moorage_note;
-        -- Update the properties of the third feature, the second with geometry point
-        UPDATE api.logbook
-            SET track_geojson = jsonb_set(
-                track_geojson,
-                '{features, 2, properties}',
-                (track_geojson -> 'features' -> 2 -> 'properties' || from_moorage_note)::jsonb
-            )
-            WHERE id = logbook_rec.id
-                AND track_geojson -> 'features' -> 2 -> 'geometry' ->> 'type' = 'Point';
-
-        -- Update the note properties of the last feature with geometry point
-        SELECT format('{"notes": "%s"}', to_moorage.moorage_name) into to_moorage_note;
-        UPDATE api.logbook
-            SET track_geojson = jsonb_set(
-                track_geojson,
-                '{features, -1, properties}',
-                CASE
-                    WHEN COALESCE((track_geojson -> 'features' -> -1 -> 'properties' ->> 'notes'), '') = '' THEN
-                        (track_geojson -> 'features' -> -1 -> 'properties' || to_moorage_note)::jsonb
-                    ELSE
-                        track_geojson -> 'features' -> -1 -> 'properties'
-                END
-            )
-            WHERE id = logbook_rec.id
-                AND track_geojson -> 'features' -> -1 -> 'geometry' ->> 'type' = 'Point';
+        -- GeoJSON Timelapse require track_geojson geometry point
+        PERFORM public.logbook_timelapse_geojson_fn(logbook_rec);
 
         -- Prepare notification, gather user settings
         SELECT json_build_object('logbook_name', log_name, 'logbook_link', logbook_rec.id) into log_settings;
@@ -431,6 +391,133 @@ $process_logbook_queue$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION
     public.process_logbook_queue_fn
     IS 'Update logbook details when completed, logbook_update_avg_fn, logbook_update_geom_distance_fn, reverse_geocode_py_fn';
+
+-- Add avg_wind_speed to logbook geojson
+-- Add back truewindspeed and truewinddirection to logbook geojson
+DROP FUNCTION public.logbook_update_geojson_fn;
+CREATE FUNCTION public.logbook_update_geojson_fn(IN _id integer, IN _start text, IN _end text,
+    OUT _track_geojson JSON
+ ) AS $logbook_geojson$
+    declare
+     log_geojson jsonb;
+     metrics_geojson jsonb;
+     _map jsonb;
+    begin
+        -- GeoJson Feature Logbook linestring
+        SELECT
+            ST_AsGeoJSON(log.*) into log_geojson
+        FROM
+           ( SELECT
+                id,name,
+                distance,
+                duration,
+                avg_speed,
+                max_speed,
+                max_wind_speed,
+                _from_time,
+                _to_time
+                _from_moorage_id,
+                _to_moorage_id,
+                notes,
+                extra['avg_wind_speed'] as avg_wind_speed,
+                track_geom
+                FROM api.logbook
+                WHERE id = _id
+           ) AS log;
+        -- GeoJson Feature Metrics point
+        SELECT
+            json_agg(ST_AsGeoJSON(t.*)::json) into metrics_geojson
+        FROM (
+            ( SELECT
+                time,
+                courseovergroundtrue,
+                speedoverground,
+                windspeedapparent,
+                longitude,latitude,
+                '' AS notes,
+                coalesce(metersToKnots((metrics->'environment.wind.speedTrue')::NUMERIC), null) as truewindspeed,
+                coalesce(radiantToDegrees((metrics->'environment.wind.directionTrue')::NUMERIC), null) as truewinddirection,
+                coalesce(status, null) as status,
+                st_makepoint(longitude,latitude) AS geo_point
+                FROM api.metrics m
+                WHERE m.latitude IS NOT NULL
+                    AND m.longitude IS NOT NULL
+                    AND time >= _start::TIMESTAMPTZ
+                    AND time <= _end::TIMESTAMPTZ
+                    AND vessel_id = current_setting('vessel.id', false)
+                ORDER BY m.time ASC
+            )
+        ) AS t;
+
+        -- Merge jsonb
+        SELECT log_geojson::jsonb || metrics_geojson::jsonb into _map;
+        -- output
+        SELECT
+            json_build_object(
+                'type', 'FeatureCollection',
+                'features', _map
+            ) into _track_geojson;
+    END;
+$logbook_geojson$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.logbook_update_geojson_fn
+    IS 'Update log details with geojson';
+
+-- Add properties to the geojson for timelapse purpose
+CREATE FUNCTION public.logbook_timelapse_geojson_fn(IN logbook_rec record) returns void
+AS $logbook_timelapse$
+    declare
+        first_feature_note JSONB;
+        second_feature_note JSONB;
+        last_feature_note JSONB;
+    begin
+        raise warning '-> logbook_rec: %', logbook_rec;
+        select format('{"trip": { "name": "%s", "duration": "%s", "distance": "%s" }}', logbook_rec.name, logbook_rec.duration, logbook_rec.distance) into first_feature_note;
+        select format('{"notes": "%s"}', logbook_rec._from) into second_feature_note;
+        select format('{"notes": "%s"}', logbook_rec._to) into last_feature_note;
+        raise warning '-> logbook_rec: % % %', first_feature_note, second_feature_note, last_feature_note;
+
+        -- Update the properties of the first feature, the second with geometry point
+        UPDATE api.logbook
+            SET track_geojson = jsonb_set(
+                track_geojson,
+                '{features, 1, properties}',
+                (track_geojson -> 'features' -> 1 -> 'properties' || first_feature_note)::jsonb
+            )
+            WHERE id = logbook_rec.id
+                and track_geojson -> 'features' -> 1 -> 'geometry' ->> 'type' = 'Point';
+
+        -- Update the properties of the third feature, the second with geometry point
+        UPDATE api.logbook
+            SET track_geojson = jsonb_set(
+                track_geojson,
+                '{features, 2, properties}',
+                (track_geojson -> 'features' -> 2 -> 'properties' || second_feature_note)::jsonb
+            )
+            where id = logbook_rec.id
+                and track_geojson -> 'features' -> 2 -> 'geometry' ->> 'type' = 'Point';
+
+        -- Update the properties of the last feature with geometry point
+        UPDATE api.logbook
+            SET track_geojson = jsonb_set(
+                track_geojson,
+                '{features, -1, properties}',
+                CASE
+                    WHEN COALESCE((track_geojson -> 'features' -> -1 -> 'properties' ->> 'notes'), '') = '' THEN
+                        (track_geojson -> 'features' -> -1 -> 'properties' || last_feature_note)::jsonb
+                    ELSE
+                        track_geojson -> 'features' -> -1 -> 'properties'
+                END
+            )
+            WHERE id = logbook_rec.id
+                and track_geojson -> 'features' -> -1 -> 'geometry' ->> 'type' = 'Point';
+end;
+$logbook_timelapse$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.logbook_timelapse_geojson_fn
+    IS 'Update logbook geojson, Add properties to some geojson features for timelapse purpose';
 
 -- Allow to run query for user_role
 GRANT SELECT ON ALL TABLES IN SCHEMA api TO user_role;
