@@ -31,6 +31,8 @@ declare
   _email text := email;
   _user_id text := null;
   _user_disable boolean := false;
+  headers   json := current_setting('request.headers', true)::json;
+  client_ip text := coalesce(headers->>'x-client-ip', NULL);
 begin
   -- check email and password
   select auth.user_role(email, pass) into _role;
@@ -61,6 +63,12 @@ begin
   IF _email_valid is null or _email_valid is False THEN
     INSERT INTO process_queue (channel, payload, stored, ref_id)
       VALUES ('email_otp', _email, now(), _user_id);
+  END IF;
+
+  -- Track IP per user to avoid abuse
+  RAISE WARNING 'api.login debug: [%],[%]', client_ip, login.email;
+  IF client_ip IS NOT NULL THEN
+    UPDATE auth.accounts a SET preferences = jsonb_recursive_merge(a.preferences, jsonb_build_object('ip', client_ip)) WHERE a.email = login.email;
   END IF;
 
   -- Get app_jwt_secret
@@ -420,7 +428,7 @@ COMMENT ON FUNCTION
     IS 'init by pg_cron, check for signalk plugin version and notify for upgrade';
 
 INSERT INTO public.email_templates ("name",email_subject,email_content,pushover_title,pushover_message)
-	VALUES ('skplugin_upgrade','PostgSail Signalk plugin upgrade',E'Hello __RECIPIENT__,\nSorry!Please upgrade your postgsail signalk plugin. Be sure to contact me if you encounter any issue.','PostgSail Signalk plugin upgrade!',E'Please upgrade your postgsail signalk plugin.');
+	VALUES ('skplugin_upgrade','PostgSail Signalk plugin upgrade',E'Hello __RECIPIENT__,\nPlease upgrade your postgsail signalk plugin. Be sure to contact me if you encounter any issue.','PostgSail Signalk plugin upgrade!',E'Please upgrade your postgsail signalk plugin.');
 
 -- Update version
 UPDATE public.app_settings
@@ -429,7 +437,8 @@ UPDATE public.app_settings
 
 \c postgres
 
--- Notifications/Reminders of no vessel & no metadata & no activity
+-- Notifications/Reminders for old signalk plugin
 -- At 08:06 on Sunday.
 -- At 08:06 on every 4th day-of-month if it's on Sunday.
 SELECT cron.schedule('cron_skplugin_upgrade', '6 8 */4 * 0', 'select public.cron_process_skplugin_upgrade_fn()');
+UPDATE cron.job	SET database = 'postgres' WHERE jobname = 'cron_skplugin_upgrade';
