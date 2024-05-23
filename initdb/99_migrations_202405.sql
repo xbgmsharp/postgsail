@@ -21,6 +21,7 @@ INSERT INTO public.email_templates ("name",email_subject,email_content,pushover_
 	VALUES ('account_disable','PostgSail Account disable',E'Hello __RECIPIENT__,\nSorry!Your account is disable. Please contact me to solve the issue.','PostgSail Account disable!',E'Sorry!\nYour account is disable. Please contact me to solve the issue.');
 
 -- Check if user is disable due to abuse
+-- Track IP per user to avoid abuse
 create or replace function
 api.login(in email text, in pass text) returns auth.jwt_token as $$
 declare
@@ -370,7 +371,7 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
             WHERE id = logbook_rec.id;
 
         -- GeoJSON Timelapse require track_geojson geometry point
-        PERFORM public.logbook_timelapse_geojson_fn(logbook_rec);
+        PERFORM public.logbook_timelapse_geojson_fn(logbook_rec.id);
 
         -- Prepare notification, gather user settings
         SELECT json_build_object('logbook_name', log_name, 'logbook_link', logbook_rec.id) into log_settings;
@@ -465,18 +466,28 @@ COMMENT ON FUNCTION
     IS 'Update log details with geojson';
 
 -- Add properties to the geojson for timelapse purpose
-CREATE FUNCTION public.logbook_timelapse_geojson_fn(IN logbook_rec record) returns void
+CREATE FUNCTION public.logbook_timelapse_geojson_fn(IN _id INT) returns void
 AS $logbook_timelapse$
     declare
         first_feature_note JSONB;
         second_feature_note JSONB;
         last_feature_note JSONB;
+        logbook_rec record;
     begin
-        raise warning '-> logbook_rec: %', logbook_rec;
+        -- We need to fetch the processed logbook data.
+        SELECT name,duration,distance,_from,_to INTO logbook_rec
+            FROM api.logbook
+            WHERE active IS false
+                AND id = _id
+                AND _from_lng IS NOT NULL
+                AND _from_lat IS NOT NULL
+                AND _to_lng IS NOT NULL
+                AND _to_lat IS NOT NULL;
+        --raise warning '-> logbook_rec: %', logbook_rec;
         select format('{"trip": { "name": "%s", "duration": "%s", "distance": "%s" }}', logbook_rec.name, logbook_rec.duration, logbook_rec.distance) into first_feature_note;
         select format('{"notes": "%s"}', logbook_rec._from) into second_feature_note;
         select format('{"notes": "%s"}', logbook_rec._to) into last_feature_note;
-        raise warning '-> logbook_rec: % % %', first_feature_note, second_feature_note, last_feature_note;
+        --raise warning '-> logbook_rec: % % %', first_feature_note, second_feature_note, last_feature_note;
 
         -- Update the properties of the first feature, the second with geometry point
         UPDATE api.logbook
@@ -485,7 +496,7 @@ AS $logbook_timelapse$
                 '{features, 1, properties}',
                 (track_geojson -> 'features' -> 1 -> 'properties' || first_feature_note)::jsonb
             )
-            WHERE id = logbook_rec.id
+            WHERE id = _id
                 and track_geojson -> 'features' -> 1 -> 'geometry' ->> 'type' = 'Point';
 
         -- Update the properties of the third feature, the second with geometry point
@@ -495,7 +506,7 @@ AS $logbook_timelapse$
                 '{features, 2, properties}',
                 (track_geojson -> 'features' -> 2 -> 'properties' || second_feature_note)::jsonb
             )
-            where id = logbook_rec.id
+            where id = _id
                 and track_geojson -> 'features' -> 2 -> 'geometry' ->> 'type' = 'Point';
 
         -- Update the properties of the last feature with geometry point
@@ -510,7 +521,7 @@ AS $logbook_timelapse$
                         track_geojson -> 'features' -> -1 -> 'properties'
                 END
             )
-            WHERE id = logbook_rec.id
+            WHERE id = _id
                 and track_geojson -> 'features' -> -1 -> 'geometry' ->> 'type' = 'Point';
 end;
 $logbook_timelapse$ LANGUAGE plpgsql;
@@ -518,14 +529,6 @@ $logbook_timelapse$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION
     public.logbook_timelapse_geojson_fn
     IS 'Update logbook geojson, Add properties to some geojson features for timelapse purpose';
-
--- Allow to run query for user_role
-GRANT SELECT ON ALL TABLES IN SCHEMA api TO user_role;
-GRANT SELECT ON ALL TABLES IN SCHEMA api TO grafana;
-
--- Allow to run query for user_role
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA api TO user_role;
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA api TO grafana;
 
 -- CRON for signalk plugin upgrade
 -- The goal is to avoid error from old plugin version by enforcing upgrade.
@@ -561,6 +564,206 @@ COMMENT ON FUNCTION
 
 INSERT INTO public.email_templates ("name",email_subject,email_content,pushover_title,pushover_message)
 	VALUES ('skplugin_upgrade','PostgSail Signalk plugin upgrade',E'Hello __RECIPIENT__,\nPlease upgrade your postgsail signalk plugin. Be sure to contact me if you encounter any issue.','PostgSail Signalk plugin upgrade!',E'Please upgrade your postgsail signalk plugin.');
+
+-- Track IP per vessel to avoid abuse
+CREATE FUNCTION public.metadata_ip_trigger_fn() RETURNS trigger
+AS $metadata_ip_trigger$
+    DECLARE
+        headers   json := current_setting('request.headers', true)::json;
+        client_ip text := coalesce(headers->>'x-client-ip', NULL);
+    BEGIN
+        RAISE WARNING 'metadata_ip_trigger_fn [%] [%]', current_setting('vessel.id', true), client_ip;
+        IF client_ip IS NOT NULL THEN
+            UPDATE api.metadata
+                SET
+                     configuration = NEW.configuration || jsonb_build_object('ip', client_ip)
+                WHERE id = NEW.id;
+        END IF;
+        RETURN NULL;
+    END;
+$metadata_ip_trigger$ LANGUAGE plpgsql;
+COMMENT ON FUNCTION public.metadata_ip_trigger_fn() IS 'Add IP from vessel in metadata, track abuse';
+
+CREATE TRIGGER metadata_ip_trigger AFTER UPDATE ON api.metadata
+    FOR EACH ROW EXECUTE FUNCTION metadata_ip_trigger_fn();
+-- Description
+COMMENT ON TRIGGER
+    metadata_ip_trigger ON api.metadata
+    IS 'AFTER UPDATE ON api.metadata run function metadata_ip_trigger_fn for tracking vessel IP';
+
+CREATE FUNCTION public.logbook_active_geojson_fn(
+    OUT _track_geojson jsonb
+ ) AS $logbook_active_geojson$
+BEGIN
+    WITH log_active AS (
+        SELECT * FROM api.logbook WHERE active IS True
+    ),
+        log_gis_line AS (
+            SELECT ST_MakeLine(
+                ARRAY(
+                    SELECT st_makepoint(longitude,latitude) AS geo_point
+                        FROM api.metrics m, log_active l
+                        WHERE m.latitude IS NOT NULL
+                            AND m.longitude IS NOT NULL
+                            AND m.time >= l._from_time::TIMESTAMPTZ
+                            AND m.time <= l._to_time::TIMESTAMPTZ
+                        ORDER BY m.time ASC
+                )
+            )
+    ),
+        log_gis_point AS (
+            SELECT
+                ST_AsGeoJSON(t.*)::json AS GeoJSONPoint
+            FROM (
+                ( SELECT
+                    time,
+                    courseovergroundtrue,
+                    speedoverground,
+                    windspeedapparent,
+                    longitude,latitude,
+                    '' AS notes,
+                    coalesce(metersToKnots((metrics->'environment.wind.speedTrue')::NUMERIC), null) as truewindspeed,
+                    coalesce(radiantToDegrees((metrics->'environment.wind.directionTrue')::NUMERIC), null) as truewinddirection,
+                    coalesce(status, null) AS status,
+                    st_makepoint(longitude,latitude) AS geo_point
+                    FROM api.metrics m
+                    WHERE m.latitude IS NOT NULL
+                        AND m.longitude IS NOT NULL
+                    ORDER BY m.time DESC LIMIT 1
+                )
+            ) as t
+    ),
+    log_agg as (
+        SELECT
+            CASE WHEN log_gis_line.st_makeline IS NOT NULL THEN
+                ( SELECT jsonb_agg(ST_AsGeoJSON(log_gis_line.*)::json)::jsonb AS GeoJSONLine FROM log_gis_line )
+            ELSE
+                ( SELECT '[]'::json AS GeoJSONLine )::jsonb
+            END
+        FROM log_gis_line
+    )
+    SELECT
+            jsonb_build_object(
+                'type', 'FeatureCollection',
+                'features', log_agg.GeoJSONLine::jsonb || log_gis_point.GeoJSONPoint::jsonb
+                ) INTO _track_geojson FROM log_agg, log_gis_point;
+END;
+$logbook_active_geojson$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.logbook_active_geojson_fn
+    IS 'Create a GeoJSON with 2 features, LineString with a current active log and Point with the last position';
+
+-- Update monitoring view to support live trip and truewindspeed and truewinddirection to stationary GeoJSON.
+DROP VIEW IF EXISTS api.monitoring_view;
+CREATE VIEW api.monitoring_view WITH (security_invoker=true,security_barrier=true) AS
+    SELECT
+        time AS "time",
+        (NOW() AT TIME ZONE 'UTC' - time) > INTERVAL '70 MINUTES' as offline,
+        metrics-> 'environment.water.temperature' AS waterTemperature,
+        metrics-> 'environment.inside.temperature' AS insideTemperature,
+        metrics-> 'environment.outside.temperature' AS outsideTemperature,
+        metrics-> 'environment.wind.speedOverGround' AS windSpeedOverGround,
+        metrics-> 'environment.wind.directionTrue' AS windDirectionTrue,
+        metrics-> 'environment.inside.relativeHumidity' AS insideHumidity,
+        metrics-> 'environment.outside.relativeHumidity' AS outsideHumidity,
+        metrics-> 'environment.outside.pressure' AS outsidePressure,
+        metrics-> 'environment.inside.pressure' AS insidePressure,
+        metrics-> 'electrical.batteries.House.capacity.stateOfCharge' AS batteryCharge,
+        metrics-> 'electrical.batteries.House.voltage' AS batteryVoltage,
+        metrics-> 'environment.depth.belowTransducer' AS depth,
+        jsonb_build_object(
+            'type', 'Feature',
+            'geometry', ST_AsGeoJSON(st_makepoint(longitude,latitude))::jsonb,
+            'properties', jsonb_build_object(
+                'name', current_setting('vessel.name', false),
+                'latitude', m.latitude,
+                'longitude', m.longitude,
+                'time', m.time,
+                'speedoverground', m.speedoverground,
+                'windspeedapparent', m.windspeedapparent,
+                'truewindspeed', coalesce(metersToKnots((metrics->'environment.wind.speedTrue')::NUMERIC), null),
+                'truewinddirection', coalesce(radiantToDegrees((metrics->'environment.wind.directionTrue')::NUMERIC), null),
+                'status', coalesce(m.status, null)
+                )::jsonb ) AS geojson,
+        current_setting('vessel.name', false) AS name,
+        m.status,
+        CASE WHEN m.status <> 'moored' THEN (
+            SELECT public.logbook_active_geojson_fn() )
+        END AS live
+    FROM api.metrics m
+    ORDER BY time DESC LIMIT 1;
+COMMENT ON VIEW
+    api.monitoring_view
+    IS 'Monitoring static web view';
+
+-- Allow to access tables for user_role and grafana and api_anonymous
+GRANT SELECT ON ALL TABLES IN SCHEMA api TO user_role;
+GRANT SELECT ON ALL TABLES IN SCHEMA api TO grafana;
+GRANT SELECT ON TABLE api.monitoring_view TO user_role;
+GRANT SELECT ON TABLE api.monitoring_view TO api_anonymous;
+GRANT SELECT ON TABLE api.monitoring_view TO grafana;
+
+-- Allow to execute fn for user_role and grafana and api_anonymous
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA api TO user_role;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA api TO grafana;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO user_role;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO grafana;
+GRANT EXECUTE ON FUNCTION public.logbook_active_geojson_fn TO api_anonymous;
+GRANT EXECUTE ON FUNCTION public.metersToKnots TO api_anonymous;
+GRANT EXECUTE ON FUNCTION public.radiantToDegrees TO api_anonymous;
+
+-- Fix vessel name (Organization) ensure we have a value either from metadata tbl (signalk) or from vessel tbl
+CREATE OR REPLACE FUNCTION public.cron_process_grafana_fn() RETURNS void
+AS $cron_process_grafana_fn$
+DECLARE
+    process_rec record;
+    data_rec record;
+    app_settings jsonb;
+    user_settings jsonb;
+BEGIN
+    -- We run grafana provisioning only after the first received vessel metadata
+    -- Check for new vessel metadata pending grafana provisioning
+    RAISE NOTICE 'cron_process_grafana_fn';
+    FOR process_rec in
+        SELECT * from process_queue
+            where channel = 'grafana' and processed is null
+            order by stored asc
+    LOOP
+        RAISE NOTICE '-> cron_process_grafana_fn [%]', process_rec.payload;
+        -- Gather url from app settings
+        app_settings := get_app_settings_fn();
+        -- Get vessel details base on metadata id
+        SELECT
+            v.owner_email,coalesce(m.name,v.name) as name,m.vessel_id into data_rec
+            FROM auth.accounts a
+            LEFT JOIN auth.vessels v ON v.owner_email = a.email
+            LEFT JOIN api.metadata m ON v.vessel_id = m.vessel_id
+            WHERE m.id = process_rec.payload::INTEGER
+                AND m.vessel_id = v.vessel_id;
+        IF data_rec.vessel_id IS NULL OR data_rec.name IS NULL THEN
+            RAISE WARNING '-> DEBUG cron_process_grafana_fn grafana_py_fn error [%]', data_rec;
+            RETURN;
+        END IF;
+        -- as we got data from the vessel we can do the grafana provisioning.
+        RAISE DEBUG '-> DEBUG cron_process_grafana_fn grafana_py_fn provisioning [%]', data_rec;
+        PERFORM grafana_py_fn(data_rec.name, data_rec.vessel_id, data_rec.owner_email, app_settings);
+        -- Gather user settings
+        user_settings := get_user_settings_from_vesselid_fn(data_rec.vessel_id::TEXT);
+        RAISE DEBUG '-> DEBUG cron_process_grafana_fn get_user_settings_from_vesselid_fn [%]', user_settings;
+        -- add user in keycloak
+        PERFORM keycloak_auth_py_fn(data_rec.vessel_id, user_settings, app_settings);
+        -- Send notification
+        PERFORM send_notification_fn('grafana'::TEXT, user_settings::JSONB);
+        -- update process_queue entry as processed
+        UPDATE process_queue
+            SET
+                processed = NOW()
+            WHERE id = process_rec.id;
+        RAISE NOTICE '-> cron_process_grafana_fn updated process_queue table [%]', process_rec.id;
+    END LOOP;
+END;
+$cron_process_grafana_fn$ LANGUAGE plpgsql;
 
 -- Update version
 UPDATE public.app_settings
