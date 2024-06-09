@@ -30,6 +30,12 @@ A full-featured development environment.
 
 ### On-premise (self-hosted)
 
+This kind of deployment needs the [docker application](https://www.docker.com/) to be installed and running. Check this [tutorial](https://www.docker.com/101-tutorial).
+
+Docker run pre packaged application (aka images) which can be retrieved as sources (Dockerfile and resources) to build or already built from registries (private or public).
+
+PostgSail depends heavily on [PostgreSQL](https://www.postgresql.org/). Check this [tutorial](https://www.postgresql.org/docs/current/tutorial.html).
+
 #### pre-deploy configuration
 
 To get these running, copy `.env.example` and rename to `.env` then set the value accordingly.
