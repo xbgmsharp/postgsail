@@ -72,6 +72,8 @@ flowchart TD
     B --> O{Update account,vessel,otp}
     F --> P{Update metadata}
     G --> P
+    A --> Q((cron_post_logbook))
+    Q --> R{QGIS and notification}
 ```
 cron job are not process by default because if you don't have the correct settings set (SMTP, PushOver, Telegram), you might enter in a loop with error and you could be blocked or banned from the external services.
 
