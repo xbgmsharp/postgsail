@@ -256,6 +256,7 @@ AS SELECT id,
    FROM api.logbook l
   WHERE name IS NOT NULL AND _to_time IS NOT NULL
   ORDER BY _from_time DESC;
+-- Description
 COMMENT ON VIEW api.logs_view IS 'Logs web view';
 
 -- Update a logbook with avg wind speed
@@ -371,21 +372,14 @@ CREATE OR REPLACE FUNCTION process_logbook_queue_fn(IN _id integer) RETURNS void
             WHERE id = logbook_rec.id;
 
         -- GeoJSON Timelapse require track_geojson geometry point
+        -- Add properties to the geojson for timelapse purpose
         PERFORM public.logbook_timelapse_geojson_fn(logbook_rec.id);
 
-        -- Prepare notification, gather user settings
-        SELECT json_build_object('logbook_name', log_name, 'logbook_link', logbook_rec.id) into log_settings;
-        user_settings := get_user_settings_from_vesselid_fn(logbook_rec.vessel_id::TEXT);
-        SELECT user_settings::JSONB || log_settings::JSONB into user_settings;
-        RAISE NOTICE '-> debug process_logbook_queue_fn get_user_settings_from_vesselid_fn [%]', user_settings;
-        RAISE NOTICE '-> debug process_logbook_queue_fn log_settings [%]', log_settings;
-        -- Send notification
-        PERFORM send_notification_fn('logbook'::TEXT, user_settings::JSONB);
-        -- Process badges
-        RAISE NOTICE '-> debug process_logbook_queue_fn user_settings [%]', user_settings->>'email'::TEXT;
-        PERFORM set_config('user.email', user_settings->>'email'::TEXT, false);
-        PERFORM badges_logbook_fn(logbook_rec.id, logbook_rec._to_time::TEXT);
-        PERFORM badges_geom_fn(logbook_rec.id, logbook_rec._to_time::TEXT);
+        -- Add post logbook entry to process queue for notification and QGIS processing
+        -- Require as we need the logbook to be updated with SQL commit
+        INSERT INTO process_queue (channel, payload, stored, ref_id)
+            VALUES ('post_logbook', logbook_rec.id, NOW(), current_setting('vessel.id', true));
+
     END;
 $process_logbook_queue$ LANGUAGE plpgsql;
 -- Description
@@ -395,7 +389,7 @@ COMMENT ON FUNCTION
 
 -- Add avg_wind_speed to logbook geojson
 -- Add back truewindspeed and truewinddirection to logbook geojson
-DROP FUNCTION public.logbook_update_geojson_fn;
+DROP FUNCTION IF EXISTS public.logbook_update_geojson_fn;
 CREATE FUNCTION public.logbook_update_geojson_fn(IN _id integer, IN _start text, IN _end text,
     OUT _track_geojson JSON
  ) AS $logbook_geojson$
@@ -466,6 +460,7 @@ COMMENT ON FUNCTION
     IS 'Update log details with geojson';
 
 -- Add properties to the geojson for timelapse purpose
+DROP FUNCTION IF EXISTS public.logbook_timelapse_geojson_fn;
 CREATE FUNCTION public.logbook_timelapse_geojson_fn(IN _id INT) returns void
 AS $logbook_timelapse$
     declare
@@ -534,6 +529,7 @@ COMMENT ON FUNCTION
 -- The goal is to avoid error from old plugin version by enforcing upgrade.
 -- ERROR:  there is no unique or exclusion constraint matching the ON CONFLICT specification
 -- "POST /metadata?on_conflict=client_id HTTP/1.1" 400 137 "-" "postgsail.signalk v0.0.9"
+DROP FUNCTION IF EXISTS public.cron_process_skplugin_upgrade_fn;
 CREATE FUNCTION public.cron_process_skplugin_upgrade_fn() RETURNS void AS $skplugin_upgrade$
 DECLARE
     skplugin_upgrade_rec record;
@@ -565,6 +561,7 @@ COMMENT ON FUNCTION
 INSERT INTO public.email_templates ("name",email_subject,email_content,pushover_title,pushover_message)
 	VALUES ('skplugin_upgrade','PostgSail Signalk plugin upgrade',E'Hello __RECIPIENT__,\nPlease upgrade your postgsail signalk plugin. Be sure to contact me if you encounter any issue.','PostgSail Signalk plugin upgrade!',E'Please upgrade your postgsail signalk plugin.');
 
+DROP FUNCTION IF EXISTS public.metadata_ip_trigger_fn;
 -- Track IP per vessel to avoid abuse
 CREATE FUNCTION public.metadata_ip_trigger_fn() RETURNS trigger
 AS $metadata_ip_trigger$
@@ -582,15 +579,19 @@ AS $metadata_ip_trigger$
         RETURN NULL;
     END;
 $metadata_ip_trigger$ LANGUAGE plpgsql;
+-- Description
 COMMENT ON FUNCTION public.metadata_ip_trigger_fn() IS 'Add IP from vessel in metadata, track abuse';
 
-CREATE TRIGGER metadata_ip_trigger AFTER UPDATE ON api.metadata
-    FOR EACH ROW EXECUTE FUNCTION metadata_ip_trigger_fn();
+DROP TRIGGER IF EXISTS metadata_ip_trigger ON api.metadata;
+-- Generate an error
+--CREATE TRIGGER metadata_ip_trigger BEFORE UPDATE ON api.metadata
+--    FOR EACH ROW EXECUTE FUNCTION metadata_ip_trigger_fn();
 -- Description
-COMMENT ON TRIGGER
-    metadata_ip_trigger ON api.metadata
-    IS 'AFTER UPDATE ON api.metadata run function metadata_ip_trigger_fn for tracking vessel IP';
+--COMMENT ON TRIGGER
+--    metadata_ip_trigger ON api.metadata
+--    IS 'AFTER UPDATE ON api.metadata run function metadata_ip_trigger_fn for tracking vessel IP';
 
+DROP FUNCTION IF EXISTS public.logbook_active_geojson_fn;
 CREATE FUNCTION public.logbook_active_geojson_fn(
     OUT _track_geojson jsonb
  ) AS $logbook_active_geojson$
@@ -693,6 +694,7 @@ CREATE VIEW api.monitoring_view WITH (security_invoker=true,security_barrier=tru
         END AS live
     FROM api.metrics m
     ORDER BY time DESC LIMIT 1;
+-- Description
 COMMENT ON VIEW
     api.monitoring_view
     IS 'Monitoring static web view';
@@ -714,6 +716,7 @@ GRANT EXECUTE ON FUNCTION public.metersToKnots TO api_anonymous;
 GRANT EXECUTE ON FUNCTION public.radiantToDegrees TO api_anonymous;
 
 -- Fix vessel name (Organization) ensure we have a value either from metadata tbl (signalk) or from vessel tbl
+DROP FUNCTION IF EXISTS public.cron_process_grafana_fn;
 CREATE OR REPLACE FUNCTION public.cron_process_grafana_fn() RETURNS void
 AS $cron_process_grafana_fn$
 DECLARE
@@ -736,11 +739,9 @@ BEGIN
         -- Get vessel details base on metadata id
         SELECT
             v.owner_email,coalesce(m.name,v.name) as name,m.vessel_id into data_rec
-            FROM auth.accounts a
-            LEFT JOIN auth.vessels v ON v.owner_email = a.email
+            FROM auth.vessels v
             LEFT JOIN api.metadata m ON v.vessel_id = m.vessel_id
-            WHERE m.id = process_rec.payload::INTEGER
-                AND m.vessel_id = v.vessel_id;
+            WHERE m.id = process_rec.payload::INTEGER;
         IF data_rec.vessel_id IS NULL OR data_rec.name IS NULL THEN
             RAISE WARNING '-> DEBUG cron_process_grafana_fn grafana_py_fn error [%]', data_rec;
             RETURN;
@@ -764,6 +765,10 @@ BEGIN
     END LOOP;
 END;
 $cron_process_grafana_fn$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.cron_process_grafana_fn
+    IS 'init by pg_cron to check for new vessel pending grafana provisioning, if so perform grafana_py_fn';
 
 -- Update version
 UPDATE public.app_settings
