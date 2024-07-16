@@ -84,6 +84,7 @@ To understand the why and how, you might want to read [Why.md](https://github.co
 - Timelapse video your trips, with or without time control.
 - Add custom notes to your logs.
 - Export to CSV, GPX, GeoJSON, KML and download your logs.
+- Export your logs as image (PNG) or video (MP4).
 - Aggregate your trip statistics: Longest voyage, time spent at anchorages, home ports etc.
 - See your moorages on a global map, with incoming and outgoing voyages from each trip.
 - Monitor your boat (position, depth, wind, temperature, battery charge status, etc.) remotely.
