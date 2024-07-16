@@ -243,7 +243,7 @@ vessel_id       | t
 name            | Ekenäs
 country         | fi
 stay_code       | 1
-stay_duration   | 
+stay_duration   | PT0S
 reference_count | 1
 latitude        | 59.86
 longitude       | 23.3657666666667
@@ -267,5 +267,13 @@ default_stay        | Anchor
 default_stay_id     | 2
 total_stay          | 0
 total_duration      | PT1M
+arrivals_departures | 1
+-[ RECORD 3 ]-------+---------------------
+id                  | 3
+moorage             | Ekenäs
+default_stay        | Unknown
+default_stay_id     | 1
+total_stay          | 0
+total_duration      | PT0S
 arrivals_departures | 1
 

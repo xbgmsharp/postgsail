@@ -49,7 +49,7 @@ var moment = require('moment');
     ],
     user_views: [
         { url: '/stays_view', res_body_length: 2},
-        { url: '/moorages_view', res_body_length: 2},
+        { url: '/moorages_view', res_body_length: 3},
         { url: '/logs_view', res_body_length: 2},
         { url: '/log_view', res_body_length: 2},
         //{ url: '/stats_view', res_body_length: 1},
@@ -247,7 +247,7 @@ var moment = require('moment');
     ],
     user_views: [
         { url: '/stays_view', res_body_length: 2},
-        { url: '/moorages_view', res_body_length: 2},
+        { url: '/moorages_view', res_body_length: 4},
         { url: '/logs_view', res_body_length: 2},
         { url: '/log_view', res_body_length: 2},
         //{ url: '/stats_view', res_body_length: 1},
