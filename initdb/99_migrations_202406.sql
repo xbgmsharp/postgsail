@@ -19,7 +19,7 @@ set timezone to 'UTC';
 
 -- Add video timelapse notification message
 INSERT INTO public.email_templates ("name",email_subject,email_content,pushover_title,pushover_message)
-	VALUES ('video_ready','PostgSail Video ready',E'Hello __RECIPIENT__,\nYour video is ready __VIDEO_LINK__','PostgSail Video ready!',E'Your video is ready __VIDEO_LINK__');
+	VALUES ('video_ready','PostgSail Video ready',E'Hey,\nYour video is available at __VIDEO_LINK__.\nPlease make sure you download your video as it will delete in 7 days.','PostgSail Video ready!',E'Your video is ready __VIDEO_LINK__.');
 
 -- Generate and request the logbook image url to be cache on QGIS server.
 DROP FUNCTION IF EXISTS public.qgis_getmap_py_fn;
@@ -117,23 +117,23 @@ AS $qgis_getmap_py$
 		server_url = f"https://gis.openplotter.cloud/logs_{vessel_id}_{log_id}.png".format(vessel_id, log_id)
 	project_path = "/projects/postgsail5.qgz"
 	layer_name = "OpenStreetMap,SQLLayer"
-	plpy.notice('qgis_getmap_py vessel_id [{}], log_id [{}], extent [{}]'.format(vessel_id, log_id, extent))
+	#plpy.notice('qgis_getmap_py vessel_id [{}], log_id [{}], extent [{}]'.format(vessel_id, log_id, extent))
 
 	# Parse extent and scale factor
 	scaled_extent = apply_scale_factor(parse_extent_from_db(extent))
-	plpy.notice('qgis_getmap_py scaled_extent [{}]'.format(scaled_extent))
+	#plpy.notice('qgis_getmap_py scaled_extent [{}]'.format(scaled_extent))
 
 	fixed_width = 1080
 	fixed_height = 566
 	adjusted_extent = adjust_bbox_to_fixed_size(scaled_extent, fixed_width, fixed_height)
-	plpy.notice('qgis_getmap_py adjusted_extent [{}]'.format(adjusted_extent))
+	#plpy.notice('qgis_getmap_py adjusted_extent [{}]'.format(adjusted_extent))
 
 	getmap_url = generate_getmap_url(server_url, project_path, layer_name, adjusted_extent)
 	if logs_url == False:
 		filter_url = f"{getmap_url}&FILTER=SQLLayer:\"vessel_id\" = '{vessel_id}' AND \"id\" = {log_id}".format(getmap_url, vessel_id, log_id)
 	else:
 		filter_url = f"{getmap_url}&FILTER=SQLLayer:\"vessel_id\" = '{vessel_id}'".format(getmap_url, vessel_id)
-	plpy.notice('qgis_getmap_py getmap_url [{}]'.format(filter_url))
+	#plpy.notice('qgis_getmap_py getmap_url [{}]'.format(filter_url))
 
 	# Fetch image to be cache in qgis server
 	headers = {"User-Agent": "PostgSail", "From": "xbgmsharp@gmail.com"}
@@ -149,9 +149,9 @@ COMMENT ON FUNCTION
 
 -- Generate the logbook extent for the logbook image to access the QGIS server.
 DROP FUNCTION IF EXISTS public.qgis_bbox_py_fn;
-CREATE OR REPLACE FUNCTION public.qgis_bbox_py_fn(IN vessel_id TEXT DEFAULT NULL, IN log_id NUMERIC DEFAULT NULL, OUT bbox TEXT)
+CREATE OR REPLACE FUNCTION public.qgis_bbox_py_fn(IN vessel_id TEXT DEFAULT NULL, IN log_id NUMERIC DEFAULT NULL, IN width NUMERIC DEFAULT 1080, IN height NUMERIC DEFAULT 566, IN scaleout BOOLEAN DEFAULT True, OUT bbox TEXT)
 AS $qgis_bbox_py$
-
+	log_extent = None
 	# If we have a vessel_id then it is logs image map
 	if vessel_id:
 		# Use the shared cache to avoid preparing the log extent
@@ -204,10 +204,10 @@ AS $qgis_bbox_py$
 
 	def adjust_bbox_to_fixed_size(scaled_extent, fixed_width, fixed_height):
 	    min_x, min_y, max_x, max_y = scaled_extent
-	    bbox_width = max_x - min_x
-	    bbox_height = max_y - min_y
-	    bbox_aspect_ratio = bbox_width / bbox_height
-	    image_aspect_ratio = fixed_width / fixed_height
+	    bbox_width = float(max_x - min_x)
+	    bbox_height = float(max_y - min_y)
+	    bbox_aspect_ratio = float(bbox_width / bbox_height)
+	    image_aspect_ratio = float(fixed_width / fixed_height)
 	
 	    if bbox_aspect_ratio > image_aspect_ratio:
 	        # Adjust height to match aspect ratio
@@ -225,12 +225,17 @@ AS $qgis_bbox_py$
 	    adjusted_extent = (min_x, min_y, max_x, max_y)
 	    return adjusted_extent
 
+	if not log_extent:
+	    plpy.warning('Failed to get sql qgis_bbox_py log_id [{}], extent [{}]'.format(log_id, log_extent))
 	#plpy.notice('qgis_bbox_py log_id [{}], extent [{}]'.format(log_id, log_extent))
 	# Parse extent and apply ZoomOut scale factor
-	scaled_extent = apply_scale_factor(parse_extent_from_db(log_extent))
+	if scaleout:
+		scaled_extent = apply_scale_factor(parse_extent_from_db(log_extent))
+	else:
+		scaled_extent = parse_extent_from_db(log_extent)
 	#plpy.notice('qgis_bbox_py log_id [{}], scaled_extent [{}]'.format(log_id, scaled_extent))
-	fixed_width = 1080
-	fixed_height = 566
+	fixed_width = width # default 1080
+	fixed_height = height # default 566
 	adjusted_extent = adjust_bbox_to_fixed_size(scaled_extent, fixed_width, fixed_height)
 	#plpy.notice('qgis_bbox_py log_id [{}], adjusted_extent [{}]'.format(log_id, adjusted_extent))
 	min_x, min_y, max_x, max_y = adjusted_extent
@@ -248,10 +253,16 @@ COMMENT ON ROLE qgis_role IS
 -- Allow read on VIEWS on API schema
 GRANT USAGE ON SCHEMA api TO qgis_role;
 GRANT SELECT ON TABLE api.logbook TO qgis_role;
-GRANT ALL ON SCHEMA public TO qgis_role;
-GRANT EXECUTE ON FUNCTION public.qgis_bbox_py_fn TO qgis_role;
+GRANT USAGE ON SCHEMA public TO qgis_role;
+-- For all postgis fn, st_extent, st_transform
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO qgis_role;
+-- Allow qgis_role to select all logbook records
+CREATE POLICY logbook_qgis_role ON api.logbook TO qgis_role
+    USING (true)
+    WITH CHECK (false);
 
--- Add support for HTML email for logbook
+-- Add support for HTML email with image inline for logbook
+-- Add support for video link for maplapse
 DROP FUNCTION IF EXISTS public.send_email_py_fn;
 CREATE OR REPLACE FUNCTION public.send_email_py_fn(IN email_type TEXT, IN _user JSONB, IN app JSONB) RETURNS void
 AS $send_email_py$
@@ -288,6 +299,8 @@ AS $send_email_py$
         email_content = email_content.replace('__LOGBOOK_LINK__', str(_user['logbook_link']))
     if 'logbook_img' in _user and _user['logbook_img']:
         email_content = email_content.replace('__LOGBOOK_IMG__', str(_user['logbook_img']))
+    if 'video_link' in _user and _user['video_link']:
+        email_content = email_content.replace('__VIDEO_LINK__', str( _user['video_link']))
     if 'recipient' in _user and _user['recipient']:
         email_content = email_content.replace('__RECIPIENT__', _user['recipient'])
     if 'boat' in _user and _user['boat']:
@@ -381,6 +394,7 @@ COMMENT ON FUNCTION
     public.send_email_py_fn
     IS 'Send email notification using plpython3u';
 
+-- Add vessel_id key, expose vessel_id
 DROP FUNCTION IF EXISTS api.vessel_fn;
 CREATE OR REPLACE FUNCTION api.vessel_fn(OUT vessel JSON) RETURNS JSON
 AS $vessel$
@@ -552,12 +566,303 @@ COMMENT ON VIEW
     api.eventlogs_view
     IS 'Event logs view';
 
+-- CRON for new video notification
+DROP FUNCTION IF EXISTS public.cron_process_new_video_fn;
+CREATE FUNCTION public.cron_process_new_video_fn() RETURNS void AS $$
+declare
+    process_rec record;
+    metadata_rec record;
+    video_settings jsonb;
+    user_settings jsonb;
+begin
+    -- Check for new event notification pending update
+    RAISE NOTICE 'cron_process_new_video_fn';
+    FOR process_rec in
+        SELECT * FROM process_queue
+            WHERE channel = 'new_video'
+                AND processed IS NULL
+            ORDER BY stored ASC
+    LOOP
+        RAISE NOTICE '-> cron_process_new_video_fn for [%]', process_rec.payload;
+        SELECT * INTO metadata_rec
+            FROM api.metadata
+            WHERE vessel_id = process_rec.ref_id::TEXT;
+
+        IF metadata_rec.vessel_id IS NULL OR metadata_rec.vessel_id = '' THEN
+            RAISE WARNING '-> cron_process_new_video_fn invalid metadata record vessel_id %', vessel_id;
+            RAISE EXCEPTION 'Invalid metadata'
+                USING HINT = 'Unknown vessel_id';
+            RETURN;
+        END IF;
+        PERFORM set_config('vessel.id', metadata_rec.vessel_id, false);
+        RAISE DEBUG '-> DEBUG cron_process_new_video_fn vessel_id %', current_setting('vessel.id', false);
+        -- Prepare notification, gather user settings
+        SELECT json_build_object('video_link', CONCAT('https://videos.openplotter.cloud/', process_rec.payload)) into video_settings;
+        -- Gather user settings
+        user_settings := get_user_settings_from_vesselid_fn(metadata_rec.vessel_id::TEXT);
+        SELECT user_settings::JSONB || video_settings::JSONB into user_settings;
+        RAISE DEBUG '-> DEBUG cron_process_new_video_fn get_user_settings_from_vesselid_fn [%]', user_settings;
+        -- Send notification
+        PERFORM send_notification_fn('video_ready'::TEXT, user_settings::JSONB);
+        -- update process_queue entry as processed
+        UPDATE process_queue
+            SET
+                processed = NOW()
+            WHERE id = process_rec.id;
+        RAISE NOTICE '-> cron_process_new_video_fn updated process_queue table [%]', process_rec.id;
+    END LOOP;
+END;
+$$ language plpgsql;
+-- Description
+COMMENT ON FUNCTION
+    public.cron_process_new_video_fn
+    IS 'init by pg_cron to check for new video event pending notifications, if so perform process_notification_queue_fn';
+
+-- Add support for video link for maplapse
+DROP FUNCTION IF EXISTS public.send_pushover_py_fn;
+CREATE OR REPLACE FUNCTION public.send_pushover_py_fn(IN message_type TEXT, IN _user JSONB, IN app JSONB) RETURNS void
+AS $send_pushover_py$
+    """
+    https://pushover.net/api#messages
+    Send a notification to a pushover user
+    """
+    import requests
+
+    # Use the shared cache to avoid preparing the email metadata
+    if message_type in SD:
+        plan = SD[message_type]
+    # A prepared statement from Python
+    else:
+        plan = plpy.prepare("SELECT * FROM email_templates WHERE name = $1", ["text"])
+        SD[message_type] = plan
+
+    # Execute the statement with the message_type param and limit to 1 result
+    rv = plpy.execute(plan, [message_type], 1)
+    pushover_title = rv[0]['pushover_title']
+    pushover_message = rv[0]['pushover_message']
+
+    # Replace fields using input jsonb obj
+    if 'logbook_name' in _user and _user['logbook_name']:
+        pushover_message = pushover_message.replace('__LOGBOOK_NAME__', _user['logbook_name'])
+    if 'logbook_link' in _user and _user['logbook_link']:
+        pushover_message = pushover_message.replace('__LOGBOOK_LINK__', str(_user['logbook_link']))
+    if 'video_link' in _user and _user['video_link']:
+        pushover_message = pushover_message.replace('__VIDEO_LINK__', str( _user['video_link']))
+    if 'recipient' in _user and _user['recipient']:
+        pushover_message = pushover_message.replace('__RECIPIENT__', _user['recipient'])
+    if 'boat' in _user and _user['boat']:
+        pushover_message = pushover_message.replace('__BOAT__', _user['boat'])
+    if 'badge' in _user and _user['badge']:
+        pushover_message = pushover_message.replace('__BADGE_NAME__', _user['badge'])
+    if 'alert' in _user and _user['alert']:
+        pushover_message = pushover_message.replace('__ALERT__', _user['alert'])
+
+    if 'app.url' in app and app['app.url']:
+        pushover_message = pushover_message.replace('__APP_URL__', app['app.url'])
+
+    pushover_token = None
+    if 'app.pushover_app_token' in app and app['app.pushover_app_token']:
+        pushover_token = app['app.pushover_app_token']
+    else:
+        plpy.error('Error no pushover token defined, check app settings')
+        return None
+    pushover_user = None
+    if 'pushover_user_key' in _user and _user['pushover_user_key']:
+        pushover_user = _user['pushover_user_key']
+    else:
+        plpy.error('Error no pushover user token defined, check user settings')
+        return None
+
+    if message_type == 'logbook' and 'logbook_img' in _user and _user['logbook_img']:
+        # Send notification with gis image logbook as attachment
+        img_url = 'https://gis.openplotter.cloud/{}'.format(str(_user['logbook_img']))
+        response = requests.get(img_url, stream=True)
+        if response.status_code == 200:
+            r = requests.post("https://api.pushover.net/1/messages.json", data = {
+                "token": pushover_token,
+                "user": pushover_user,
+                "title": pushover_title,
+                "message": pushover_message
+            }, files = {
+                "attachment": (str(_user['logbook_img']), response.raw.data, "image/png")
+            })
+    else:
+        r = requests.post("https://api.pushover.net/1/messages.json", data = {
+                "token": pushover_token,
+                "user": pushover_user,
+                "title": pushover_title,
+                "message": pushover_message
+        })
+
+    #print(r.text)
+    # Return ?? or None if not found
+    #plpy.notice('Sent pushover successfully to [{}] [{}]'.format(r.text, r.status_code))
+    if r.status_code == 200:
+        plpy.notice('Sent pushover successfully to [{}] [{}] [{}]'.format(pushover_user, pushover_title, r.text))
+    else:
+        plpy.error('Failed to send pushover')
+    return None
+$send_pushover_py$ TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
+-- Description
+COMMENT ON FUNCTION
+    public.send_pushover_py_fn
+    IS 'Send pushover notification using plpython3u';
+
+-- Add support for video link for maplapse
+DROP FUNCTION IF EXISTS public.send_telegram_py_fn;
+CREATE OR REPLACE FUNCTION public.send_telegram_py_fn(IN message_type TEXT, IN _user JSONB, IN app JSONB) RETURNS void
+AS $send_telegram_py$
+    """
+    https://core.telegram.org/bots/api#sendmessage
+    Send a message to a telegram user or group specified on chatId
+    chat_id must be a number!
+    """
+    import requests
+    import json
+
+    # Use the shared cache to avoid preparing the email metadata
+    if message_type in SD:
+        plan = SD[message_type]
+    # A prepared statement from Python
+    else:
+        plan = plpy.prepare("SELECT * FROM email_templates WHERE name = $1", ["text"])
+        SD[message_type] = plan
+
+    # Execute the statement with the message_type param and limit to 1 result
+    rv = plpy.execute(plan, [message_type], 1)
+    telegram_title = rv[0]['pushover_title']
+    telegram_message = rv[0]['pushover_message']
+
+    # Replace fields using input jsonb obj
+    if 'logbook_name' in _user and _user['logbook_name']:
+        telegram_message = telegram_message.replace('__LOGBOOK_NAME__', _user['logbook_name'])
+    if 'logbook_link' in _user and _user['logbook_link']:
+        telegram_message = telegram_message.replace('__LOGBOOK_LINK__', str(_user['logbook_link']))
+    if 'video_link' in _user and _user['video_link']:
+        telegram_message = telegram_message.replace('__VIDEO_LINK__', str( _user['video_link']))
+    if 'recipient' in _user and _user['recipient']:
+        telegram_message = telegram_message.replace('__RECIPIENT__', _user['recipient'])
+    if 'boat' in _user and _user['boat']:
+        telegram_message = telegram_message.replace('__BOAT__', _user['boat'])
+    if 'badge' in _user and _user['badge']:
+        telegram_message = telegram_message.replace('__BADGE_NAME__', _user['badge'])
+    if 'alert' in _user and _user['alert']:
+        telegram_message = telegram_message.replace('__ALERT__', _user['alert'])
+
+    if 'app.url' in app and app['app.url']:
+        telegram_message = telegram_message.replace('__APP_URL__', app['app.url'])
+
+    telegram_token = None
+    if 'app.telegram_bot_token' in app and app['app.telegram_bot_token']:
+        telegram_token = app['app.telegram_bot_token']
+    else:
+        plpy.error('Error no telegram token defined, check app settings')
+        return None
+    telegram_chat_id = None
+    if 'telegram_chat_id' in _user and _user['telegram_chat_id']:
+        telegram_chat_id = _user['telegram_chat_id']
+    else:
+        plpy.error('Error no telegram user token defined, check user settings')
+        return None
+
+    # sendMessage via requests
+    headers = {'Content-Type': 'application/json',
+            'Proxy-Authorization': 'Basic base64'}
+    data_dict = {'chat_id': telegram_chat_id,
+                'text': telegram_message,
+                'parse_mode': 'HTML',
+                'disable_notification': False}
+    data = json.dumps(data_dict)
+    url = f'https://api.telegram.org/bot{telegram_token}/sendMessage'
+    r = requests.post(url, data=data, headers=headers)
+    if message_type == 'logbook' and 'logbook_img' in _user and _user['logbook_img']:
+        # Send gis image logbook
+        # https://core.telegram.org/bots/api#sendphoto
+        data_dict['photo'] = 'https://gis.openplotter.cloud/{}'.format(str(_user['logbook_img']))
+        del data_dict['text']
+        data = json.dumps(data_dict)
+        url = f'https://api.telegram.org/bot{telegram_token}/sendPhoto'
+        r = requests.post(url, data=data, headers=headers)
+
+    #print(r.text)
+    # Return something boolean?
+    #plpy.notice('Sent telegram successfully to [{}] [{}]'.format(r.text, r.status_code))
+    if r.status_code == 200:
+        plpy.notice('Sent telegram successfully to [{}] [{}] [{}]'.format(telegram_chat_id, telegram_title, r.text))
+    else:
+        plpy.error('Failed to send telegram')
+    return None
+$send_telegram_py$ TRANSFORM FOR TYPE jsonb LANGUAGE plpython3u;
+-- Description
+COMMENT ON FUNCTION
+    public.send_telegram_py_fn
+    IS 'Send a message to a telegram user or group specified on chatId using plpython3u';
+
+-- Add maplapse video record in queue
+DROP FUNCTION IF EXISTS api.maplapse_record_fn;
+CREATE OR REPLACE FUNCTION api.maplapse_record_fn(IN maplapse TEXT) RETURNS BOOLEAN
+AS $maplapse_record$
+    BEGIN
+        -- payload: 'Bromera,?start_log=8430&end_log=8491&height=100vh'
+        IF maplapse ~ '^(\w+)\,\?(start_log=\d+).*$' then
+            INSERT INTO process_queue (channel, payload, stored, ref_id)
+                VALUES ('maplapse_video', maplapse, NOW(), current_setting('vessel.id', true));
+            RETURN True;
+        ELSE
+            RETURN False;
+        END IF;
+    END;
+$maplapse_record$ language plpgsql security definer;
+-- Description
+COMMENT ON FUNCTION
+    api.maplapse_record_fn
+    IS 'Add maplapse video record in queue';
+
+CREATE ROLE maplapse_role WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 10 LOGIN PASSWORD 'mysecretpassword';
+COMMENT ON ROLE maplapse_role IS
+    'Role use by maplapse external cronjob to connect and lookup the process_queue table.';
+GRANT USAGE ON SCHEMA public TO maplapse_role;
+GRANT SELECT,UPDATE,INSERT ON TABLE public.process_queue TO maplapse_role;
+GRANT USAGE, SELECT ON SEQUENCE public.process_queue_id_seq TO maplapse_role;
+-- Allow maplapse_role to select,update,insert on tbl process_queue
+CREATE POLICY public_maplapse_role ON public.process_queue TO maplapse_role
+    USING (true)
+    WITH CHECK (true);
+
 -- Allow to execute fn for user_role and grafana
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA api TO user_role;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA api TO grafana;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO user_role;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO grafana;
 GRANT SELECT ON TABLE api.eventlogs_view TO user_role;
+
+-- Update grafana role SQl connection to 30
+ALTER ROLE grafana WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 30 LOGIN;
+
+-- Alter moorages table with default duration of 0.
+ALTER TABLE api.moorages ALTER COLUMN stay_duration SET DEFAULT 'PT0S';
+-- Update moorage_view to default with duration of 0
+DROP VIEW IF EXISTS api.moorage_view;
+CREATE OR REPLACE VIEW api.moorage_view WITH (security_invoker=true,security_barrier=true) AS -- TODO
+    SELECT id,
+        m.name AS Name,
+        sa.description AS Default_Stay,
+        sa.stay_code AS Default_Stay_Id,
+        m.home_flag AS Home,
+        EXTRACT(DAY FROM justify_hours ( COALESCE(m.stay_duration, 'PT0S') )) AS Total_Stay,
+        COALESCE(m.stay_duration, 'PT0S') AS Total_Duration,
+        m.reference_count AS Arrivals_Departures,
+        m.notes
+--        m.geog
+    FROM api.moorages m, api.stays_at sa
+-- m.stay_duration is only process on a stay
+-- default with duration of 0sec
+    WHERE geog IS NOT NULL
+        AND m.stay_code = sa.stay_code;
+-- Description
+COMMENT ON VIEW
+    api.moorage_view
+    IS 'Moorage details web view';
 
 -- Update version
 UPDATE public.app_settings
@@ -566,6 +871,9 @@ UPDATE public.app_settings
 
 \c postgres
 
--- Create a every 7 minutes or minute job cron_process_new_logbook_fn ??
+-- Create a every 7 minutes for cron_process_post_logbook_fn
 SELECT cron.schedule('cron_post_logbook', '*/7 * * * *', 'select public.cron_process_post_logbook_fn()');
 UPDATE cron.job SET database = 'signalk' where jobname = 'cron_post_logbook';
+-- Create a every 15 minutes for cron_process_post_logbook_fn
+SELECT cron.schedule('cron_new_video', '*/15 * * * *', 'select public.cron_process_new_video_fn()');
+UPDATE cron.job SET database = 'signalk' where jobname = 'cron_new_video';
