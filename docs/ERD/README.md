@@ -89,9 +89,15 @@ SELECT * FROM public.app_settings;
 
 ### How to bypass OTP for a local install?
 
-You can skip the otp, add or update json key value to the account preference.
+To can skip the otp process, add or update the following json key value to the account preference.
 ```json
 "email_valid": true
+```
+SQL query
+```sql
+UPDATE auth.accounts
+	SET preferences='{"email_valid": true}'::jsonb || preferences
+	WHERE email='your.email@domain.com';
 ```
 
 OTP is created and sent by email using a cron in postgres/cron/job.
@@ -99,14 +105,14 @@ OTP is created and sent by email using a cron in postgres/cron/job.
 SELECT * FROM auth.otp;
 ```
 
-accounts are store in table signalk/auth/accounts
+Accounts are store in table signalk/auth/accounts
 ```sql
 SELECT * FROM auth.accounts;
 ```
 
 You should have an history in table signalk/public/process_queue
 ```sql
-select * from public.process_queue;
+SELECT * from public.process_queue;
 ```
 
 ### How to turn off signups
