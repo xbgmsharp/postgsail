@@ -866,7 +866,7 @@ COMMENT ON VIEW
 
 -- Update version
 UPDATE public.app_settings
-	SET value='0.7.3'
+	SET value='0.7.4'
 	WHERE "name"='app.version';
 
 \c postgres
