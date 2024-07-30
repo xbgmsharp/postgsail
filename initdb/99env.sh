@@ -19,6 +19,8 @@ INSERT INTO app_settings (name, value) VALUES
         ('app.telegram_bot_token', '${PGSAIL_TELEGRAM_BOT_TOKEN}'),
         ('app.grafana_admin_uri', '${PGSAIL_GRAFANA_ADMIN_URI}'),
         ('app.keycloak_uri', '${PGSAIL_KEYCLOAK_URI}'),
+        ('app.gis_url', '${PGSAIL_QGIS_URL}'),
+        ('app.videos_url', '${PGSAIL_VIDEOS_URL}'),
         ('app.url', '${PGSAIL_APP_URL}'),
         ('app.version', '${PGSAIL_VERSION}');
 -- Update comment with version
@@ -27,6 +29,8 @@ COMMENT ON DATABASE signalk IS 'PostgSail version ${PGSAIL_VERSION}';
 ALTER ROLE authenticator WITH PASSWORD '${PGSAIL_AUTHENTICATOR_PASSWORD}';
 ALTER ROLE grafana WITH PASSWORD '${PGSAIL_GRAFANA_PASSWORD}';
 ALTER ROLE grafana_auth WITH PASSWORD '${PGSAIL_GRAFANA_AUTH_PASSWORD}';
+ALTER ROLE qgis_role WITH PASSWORD '${PGSAIL_GRAFANA_AUTH_PASSWORD}';
+ALTER ROLE maplapse_role WITH PASSWORD '${PGSAIL_GRAFANA_AUTH_PASSWORD}';
 END
 
 curl -s -XPOST -Hx-pgsail:${PGSAIL_VERSION} https://api.openplotter.cloud/rpc/telemetry_fn
