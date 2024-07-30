@@ -74,6 +74,10 @@ flowchart TD
     G --> P
     A --> Q((cron_post_logbook))
     Q --> R{QGIS and notification}
+    A --> S((cron_video))
+    A --> U((cron_alert))
+    S --> T{notification}
+    U --> T{notification}
 ```
 cron job are not process by default because if you don't have the correct settings set (SMTP, PushOver, Telegram), you might enter in a loop with error and you could be blocked or banned from the external services.
 
