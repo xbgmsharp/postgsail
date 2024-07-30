@@ -195,6 +195,32 @@ else
     exit 1
 fi
 
+# qgis SQL unit tests
+psql ${PGSAIL_DB_URI} < sql/qgis.sql > output/qgis.sql.output
+diff sql/qgis.sql.output output/qgis.sql.output > /dev/null
+#diff -u sql/qgis.sql.output output/qgis.sql.output | wc -l
+#echo 0
+if [ $? -eq 0 ]; then
+    echo SQL qgis.sql OK
+else
+    echo SQL qgis.sql FAILED
+    diff -u sql/qgis.sql.output output/qgis.sql.output
+    exit 1
+fi
+
+# maplapse SQL unit tests
+psql ${PGSAIL_DB_URI} < sql/maplapse.sql > output/maplapse.sql.output
+diff sql/maplapse.sql.output output/maplapse.sql.output > /dev/null
+#diff -u sql/maplapse.sql.output output/maplapse.sql.output | wc -l
+#echo 0
+if [ $? -eq 0 ]; then
+    echo SQL maplapse.sql OK
+else
+    echo SQL maplapse.sql FAILED
+    diff -u sql/maplapse.sql.output output/maplapse.sql.output
+    exit 1
+fi
+
 # Download and update openapi documentation
 wget ${PGSAIL_API_URI} -O openapi.json
 #echo 0
