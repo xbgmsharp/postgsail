@@ -741,7 +741,7 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO vessel_role;
 
 -- Update version
 UPDATE public.app_settings
-	SET value='0.7.4'
+	SET value='0.7.5'
 	WHERE "name"='app.version';
 
 \c postgres
