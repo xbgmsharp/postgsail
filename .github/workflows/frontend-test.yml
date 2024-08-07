@@ -49,10 +49,10 @@ jobs:
         run: |
           set -eu
           source .env
-          docker-compose stop || true
-          docker-compose rm || true
-          docker-compose up -d db && sleep 30 && docker-compose up -d api && sleep 5
-          docker-compose ps -a
+          docker compose stop || true
+          docker compose rm || true
+          docker compose up -d db && sleep 30 && docker compose up -d api && sleep 5
+          docker compose ps -a
           echo "Test PostgSail Web Unit Test"
           docker compose -f docker-compose.dev.yml -f docker-compose.yml up -d web_dev && sleep 100
           docker compose -f docker-compose.dev.yml -f docker-compose.yml logs web_dev
@@ -67,4 +67,4 @@ jobs:
       - name: Show the logs
         if: always()
         run: |
-          docker-compose logs
+          docker compose logs

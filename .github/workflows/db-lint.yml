@@ -27,7 +27,7 @@ jobs:
         run: cp .env.example .env
 
       - name: Pull Docker images
-        run: docker-compose pull db api
+        run: docker compose pull db api
 
       - name: Run PostgSail Database & schemalint
         # Environment variables
@@ -41,10 +41,10 @@ jobs:
         run: |
           set -eu
           source .env
-          docker-compose stop || true
-          docker-compose rm || true
-          docker-compose up -d db && sleep 30 && docker-compose up -d api && sleep 5
-          docker-compose ps -a
+          docker compose stop || true
+          docker compose rm || true
+          docker compose up -d db && sleep 30 && docker compose up -d api && sleep 5
+          docker compose ps -a
           echo ${PGSAIL_API_URL}
           curl ${PGSAIL_API_URL}
           npm i -D schemalint
@@ -52,4 +52,4 @@ jobs:
       - name: Show the logs
         if: always()
         run: |
-          docker-compose logs
+          docker compose logs

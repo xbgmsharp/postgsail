@@ -51,7 +51,7 @@ jobs:
           source .env
           docker compose stop || true
           docker compose rm || true
-          docker compose up -d db && sleep 30 && docker-compose up -d api && sleep 5
+          docker compose up -d db && sleep 30 && docker compose up -d api && sleep 5
           docker compose ps -a
           echo ${PGSAIL_API_URL}
           curl ${PGSAIL_API_URL}
