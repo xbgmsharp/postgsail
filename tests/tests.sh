@@ -168,6 +168,14 @@ else
     echo mocha index5.js
     exit 1
 fi
+# Anonymous API unit tests
+$mymocha index6.js --reporter ./node_modules/mochawesome --reporter-options reportDir=output/,reportFilename=report6.html
+if [ $? -eq 0 ]; then
+    echo OK
+else
+    echo mocha index6.js
+    exit 1
+fi
 
 # Anonymous SQL unit tests
 psql ${PGSAIL_DB_URI} < sql/anonymous.sql > output/anonymous.sql.output
