@@ -124,5 +124,13 @@ SELECT * from public.process_queue;
 If you just want to use this as a standalone application and don't want people to be able to sign up for an account.
 
 ```SQL
-revoke execute on function api.signup(text,text,text,text) to api_anonymous;
+REVOKE execute on function api.signup(text,text,text,text) to api_anonymous;
+```
+
+### How to disable completely anonymous access
+
+If you just want to use this as a standalone application and don't want people to be able to access public account.
+
+```SQL
+REVOKE SELECT ON ALL TABLES IN SCHEMA api TO api_anonymous;
 ```
