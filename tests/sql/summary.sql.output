@@ -53,7 +53,7 @@ Schema      | public
 Description | PostGIS geometry and geography spatial types and functions
 -[ RECORD 9 ]--------------------------------------------------------------------------------------
 Name        | timescaledb
-Version     | 2.15.3
+Version     | 2.16.0
 Schema      | public
 Description | Enables scalable inserts and complex queries for time-series data (Community Edition)
 -[ RECORD 10 ]-------------------------------------------------------------------------------------
@@ -106,14 +106,14 @@ laninline     | 13566
 lanvalidator  | 13567
 lanacl        | 
 -[ RECORD 5 ]-+-----------
-oid           | 18168
+oid           | 18191
 lanname       | plpython3u
 lanowner      | 10
 lanispl       | t
 lanpltrusted  | t
-lanplcallfoid | 18165
-laninline     | 18166
-lanvalidator  | 18167
+lanplcallfoid | 18188
+laninline     | 18189
+lanvalidator  | 18190
 lanacl        | 
 
 -[ RECORD 1 ]+-----------
@@ -663,12 +663,12 @@ overpass_py_fn | {"name": "Port de la Ginesta", "type": "multipolygon", "leisure
 overpass_py_fn | {"name": "Norra hamnen", "leisure": "marina"}
 
 -[ RECORD 1 ]----------------------------------------------------------------------------------------------------------------------------------------------
-versions_fn | {"api_version" : "0.7.5", "sys_version" : "PostgreSQL 16.3", "timescaledb" : "2.15.3", "postgis" : "3.4.2", "postgrest" : "PostgREST 12.2.2"}
+versions_fn | {"api_version" : "0.7.5", "sys_version" : "PostgreSQL 16.3", "timescaledb" : "2.16.0", "postgis" : "3.4.2", "postgrest" : "PostgREST 12.2.3"}
 
 -[ RECORD 1 ]-----------------
 api_version | 0.7.5
 sys_version | PostgreSQL 16.3
-timescaledb | 2.15.3
+timescaledb | 2.16.0
 postgis     | 3.4.2
-postgrest   | PostgREST 12.2.2
+postgrest   | PostgREST 12.2.3
 
