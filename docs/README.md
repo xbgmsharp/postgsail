@@ -190,7 +190,7 @@ Check the [End-to-End (E2E) test sample](https://github.com/xbgmsharp/postgsail/
 
 ### Docker dependencies
 
-`docker-compose` is used to start environment dependencies. Dependencies consist of 3 containers:
+`docker compose` is used to start environment dependencies. Dependencies consist of 3 containers:
 
 - `timescaledb-postgis` alias `db`, PostgreSQL with TimescaleDB extension along with the PostGIS extension.
 - `postgrest` alias `api`, Standalone web server that turns your PostgreSQL database directly into a RESTful API.
