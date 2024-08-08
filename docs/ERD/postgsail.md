@@ -257,5 +257,5 @@ erDiagram
     api_stays }o--|| api_moorages : ""
     api_stays }o--|| api_stays_at : ""
     auth_otp |o--|| auth_accounts : ""
-    auth_vessels |o--|| auth_accounts : ""
+    auth_vessels }o--|| auth_accounts : ""
 ```
