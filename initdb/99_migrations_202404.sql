@@ -366,7 +366,7 @@ CREATE OR REPLACE FUNCTION public.process_logbook_queue_fn(IN _id integer) RETUR
 
         -- Add trip details  name as note for the first geometry point entry from the GeoJSON
         SELECT format('{"trip": { "name": "%s", "duration": "%s", "distance": "%s" }}', logbook_rec.name, logbook_rec.duration, logbook_rec.distance) into trip_note;
-	    -- Update the properties of the first feature
+        -- Update the properties of the first feature
         UPDATE api.logbook
             SET track_geojson = jsonb_set(
                 track_geojson,
