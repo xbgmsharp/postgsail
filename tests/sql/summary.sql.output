@@ -6,7 +6,7 @@
 You are now connected to database "signalk" as user "username".
 Expanded display is on.
 -[ RECORD 1 ]--+-------------------------------
-server_version | 16.3 (Debian 16.3-1.pgdg120+1)
+server_version | 16.4 (Debian 16.4-1.pgdg120+1)
 
 -[ RECORD 1 ]--------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 postgis_full_version | POSTGIS="3.4.2 c19ce56" [EXTENSION] PGSQL="160" GEOS="3.11.1-CAPI-1.17.1" PROJ="9.1.1 NETWORK_ENABLED=OFF URL_ENDPOINT=https://cdn.proj.org USER_WRITABLE_DIRECTORY=/var/lib/postgresql/.local/share/proj DATABASE_PATH=/usr/share/proj/proj.db" LIBXML="2.9.14" LIBJSON="0.16" LIBPROTOBUF="1.4.1" WAGYU="0.5.0 (Internal)"
@@ -53,7 +53,7 @@ Schema      | public
 Description | PostGIS geometry and geography spatial types and functions
 -[ RECORD 9 ]--------------------------------------------------------------------------------------
 Name        | timescaledb
-Version     | 2.16.0
+Version     | 2.16.1
 Schema      | public
 Description | Enables scalable inserts and complex queries for time-series data (Community Edition)
 -[ RECORD 10 ]-------------------------------------------------------------------------------------
@@ -663,12 +663,12 @@ overpass_py_fn | {"name": "Port de la Ginesta", "type": "multipolygon", "leisure
 overpass_py_fn | {"name": "Norra hamnen", "leisure": "marina"}
 
 -[ RECORD 1 ]----------------------------------------------------------------------------------------------------------------------------------------------
-versions_fn | {"api_version" : "0.7.5", "sys_version" : "PostgreSQL 16.3", "timescaledb" : "2.16.0", "postgis" : "3.4.2", "postgrest" : "PostgREST 12.2.3"}
+versions_fn | {"api_version" : "0.7.5", "sys_version" : "PostgreSQL 16.4", "timescaledb" : "2.16.1", "postgis" : "3.4.2", "postgrest" : "PostgREST 12.2.3"}
 
 -[ RECORD 1 ]-----------------
 api_version | 0.7.5
-sys_version | PostgreSQL 16.3
-timescaledb | 2.16.0
+sys_version | PostgreSQL 16.4
+timescaledb | 2.16.1
 postgis     | 3.4.2
 postgrest   | PostgREST 12.2.3
 
