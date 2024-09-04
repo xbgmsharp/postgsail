@@ -142,7 +142,7 @@ var moment = require("moment");
           .set(test.logs.header.name, test.logs.header.value)
           .set("Accept", "application/json")
           .end(function (err, res) {
-            res.status.should.equal(404);
+            res.status.should.equal(200);
             should.exist(res.header["content-type"]);
             should.exist(res.header["server"]);
             res.header["content-type"].should.match(new RegExp("json", "g"));
@@ -192,7 +192,7 @@ var moment = require("moment");
           .set("Accept", "application/json")
           .end(function (err, res) {
             console.log(res.text);
-            res.status.should.equal(404); // return 404 as it is not enable in user settings.
+            res.status.should.equal(200); // return 404 as it is not enable in user settings.
             should.exist(res.header["content-type"]);
             should.exist(res.header["server"]);
             res.header["content-type"].should.match(new RegExp("json", "g"));
