@@ -13,7 +13,7 @@ select current_database();
 
 -- Check the number of process pending
 \echo 'Check the number of process pending'
--- Should be 22
+-- Should be 24
 SELECT count(*) as jobs from public.process_queue pq where pq.processed is null;
 --set role scheduler
 SELECT public.run_cron_jobs();
