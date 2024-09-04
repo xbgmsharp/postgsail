@@ -26,7 +26,7 @@ jobs:
         run: cp .env.example .env
 
       - name: Pull Docker images
-        run: docker-compose pull db app
+        run: docker compose pull db app
 
       - name: Run PostgSail Grafana test
         # Environment variables
@@ -40,15 +40,16 @@ jobs:
         run: |
           set -eu
           source .env
-          docker-compose stop || true
-          docker-compose rm || true
-          docker-compose up -d db && sleep 30
-          docker-compose ps -a
+          docker compose stop || true
+          docker compose rm || true
+          docker compose up -d db && sleep 30
+          docker compose ps -a
           echo "Test PostgSail Grafana Unit Test"
-          docker-compose up -d app && sleep 5
-          docker-compose ps -a
+          docker compose up -d app && sleep 5
+          docker compose ps -a
           curl http://localhost:3001/
+          docker compose exec -i db psql -Uusername signalk -c "select public.cron_process_grafana_fn();" 
       - name: Show the logs
         if: always()
         run: |
-          docker-compose logs
+          docker compose logs
