@@ -30,6 +30,7 @@ UPDATE public.email_templates
 	SET email_content='Hello __RECIPIENT__,
 
 Here is a recap of your latest trip __LOGBOOK_NAME__ on PostgSail.
+__LOGBOOK_STATS__
 
 Check out your timelapse at __APP_URL__/timelapse/__LOGBOOK_LINK__
 
@@ -88,6 +89,8 @@ AS $send_email_py$
         email_content = email_content.replace('__LOGBOOK_LINK__', str(_user['logbook_link']))
     if 'logbook_img' in _user and _user['logbook_img']:
         email_content = email_content.replace('__LOGBOOK_IMG__', str(_user['logbook_img']))
+    if 'logbook_stats' in _user and _user['logbook_img']:
+        email_content = email_content.replace('__LOGBOOK_STATS__', str(_user['logbook_stats']))
     if 'video_link' in _user and _user['video_link']:
         email_content = email_content.replace('__VIDEO_LINK__', str( _user['video_link']))
     if 'recipient' in _user and _user['recipient']:
@@ -966,7 +969,7 @@ CREATE OR REPLACE FUNCTION public.process_post_logbook_fn(IN _id integer) RETURN
         --PERFORM public.qgis_getmap_py_fn(logbook_rec.vessel_id::TEXT, logbook_rec.id, extent_bbox::TEXT, True);
 
         -- Add formatted distance and duration for email notification
-        SELECT CONCAT(ROUND(logbook_rec.distance, 2), ' NM / ', ROUND(EXTRACT(epoch FROM logbook_rec.duration)/3600,2), 'H\n') INTO log_stats;
+        SELECT CONCAT(ROUND(logbook_rec.distance, 2), ' NM / ', ROUND(EXTRACT(epoch FROM logbook_rec.duration)/3600,2), 'H') INTO log_stats;
 
         -- Prepare notification, gather user settings
         SELECT json_build_object('logbook_name', logbook_rec.name,
@@ -1240,8 +1243,6 @@ COMMENT ON FUNCTION
 
 -- Ensure name without double quote, Fix issue with when string contains quote
 DROP FUNCTION public.process_lat_lon_fn(in numeric, in numeric, out int4, out int4, out text, out text);
--- DROP FUNCTION public.process_lat_lon_fn(in numeric, in numeric, out int4, out int4, out text, out text);
-
 CREATE OR REPLACE FUNCTION public.process_lat_lon_fn(lon numeric, lat numeric, OUT moorage_id integer, OUT moorage_type integer, OUT moorage_name text, OUT moorage_country text)
  RETURNS record
  LANGUAGE plpgsql
