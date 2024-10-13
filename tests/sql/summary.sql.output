@@ -666,7 +666,7 @@ overpass_py_fn | {"name": "Norra hamnen", "leisure": "marina"}
 versions_fn | {"api_version" : "0.7.6", "sys_version" : "PostgreSQL 16.4", "timescaledb" : "2.17.0", "postgis" : "3.4.3", "postgrest" : "PostgREST 12.2.3"}
 
 -[ RECORD 1 ]-----------------
-api_version | 0.7.6
+api_version | 0.7.7
 sys_version | PostgreSQL 16.4
 timescaledb | 2.17.0
 postgis     | 3.4.3
