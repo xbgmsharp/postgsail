@@ -53,7 +53,7 @@ Schema      | public
 Description | PostGIS geometry and geography spatial types and functions
 -[ RECORD 9 ]--------------------------------------------------------------------------------------
 Name        | timescaledb
-Version     | 2.17.0
+Version     | 2.17.1
 Schema      | public
 Description | Enables scalable inserts and complex queries for time-series data (Community Edition)
 -[ RECORD 10 ]-------------------------------------------------------------------------------------
@@ -663,12 +663,12 @@ overpass_py_fn | {"name": "Port de la Ginesta", "type": "multipolygon", "leisure
 overpass_py_fn | {"name": "Norra hamnen", "leisure": "marina"}
 
 -[ RECORD 1 ]----------------------------------------------------------------------------------------------------------------------------------------------
-versions_fn | {"api_version" : "0.7.7", "sys_version" : "PostgreSQL 16.4", "timescaledb" : "2.17.0", "postgis" : "3.5.0", "postgrest" : "PostgREST 12.2.3"}
+versions_fn | {"api_version" : "0.7.7", "sys_version" : "PostgreSQL 16.4", "timescaledb" : "2.17.1", "postgis" : "3.5.0", "postgrest" : "PostgREST 12.2.3"}
 
 -[ RECORD 1 ]-----------------
 api_version | 0.7.7
 sys_version | PostgreSQL 16.4
-timescaledb | 2.17.0
+timescaledb | 2.17.1
 postgis     | 3.5.0
 postgrest   | PostgREST 12.2.3
 
