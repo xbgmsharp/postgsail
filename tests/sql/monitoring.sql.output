@@ -22,15 +22,15 @@ count | 21
 
 Test monitoring_view3 for user
 -[ RECORD 1 ]
-count | 3736
+count | 3775
 
 Test monitoring_voltage for user
 -[ RECORD 1 ]
-count | 47
+count | 48
 
 Test monitoring_temperatures for user
 -[ RECORD 1 ]
-count | 120
+count | 121
 
 Test monitoring_humidity for user
 -[ RECORD 1 ]

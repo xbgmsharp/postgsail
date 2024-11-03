@@ -73,14 +73,14 @@ SELECT 1
 -[ RECORD 1 ]+----------
 name         | "kapla"
 count        | 4
-max_speed    | 7.1
-max_distance | 8.8968
+max_speed    | 9.5
+max_distance | 68.8677
 max_duration | "PT1H11M"
 ?column?     | 3
-?column?     | 30.1154
-?column?     | "PT2H43M"
+?column?     | 90.6030
+?column?     | "PT2H44M"
 ?column?     | 44.2
-?column?     | 2
+?column?     | 3
 ?column?     | 4
 ?column?     | 4
 first_date   | t
@@ -109,4 +109,55 @@ update_logbook_observations_fn | t
 
 -[ RECORD 1 ]--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 extra | {"tags": ["tag_name"], "metrics": {"propulsion.main.runTime": "PT10S"}, "observations": {"seaState": -1, "visibility": -1, "cloudCoverage": 1}, "avg_wind_speed": 14.549999999999999}
+
+Check numbers of geojson properties
+-[ RECORD 1 ]-----+-----------------
+jsonb_object_keys | id
+-[ RECORD 2 ]-----+-----------------
+jsonb_object_keys | name
+-[ RECORD 3 ]-----+-----------------
+jsonb_object_keys | notes
+-[ RECORD 4 ]-----+-----------------
+jsonb_object_keys | _to_time
+-[ RECORD 5 ]-----+-----------------
+jsonb_object_keys | distance
+-[ RECORD 6 ]-----+-----------------
+jsonb_object_keys | duration
+-[ RECORD 7 ]-----+-----------------
+jsonb_object_keys | avg_speed
+-[ RECORD 8 ]-----+-----------------
+jsonb_object_keys | max_speed
+-[ RECORD 9 ]-----+-----------------
+jsonb_object_keys | _from_time
+-[ RECORD 10 ]----+-----------------
+jsonb_object_keys | _to_moorage_id
+-[ RECORD 11 ]----+-----------------
+jsonb_object_keys | avg_wind_speed
+-[ RECORD 12 ]----+-----------------
+jsonb_object_keys | max_wind_speed
+-[ RECORD 13 ]----+-----------------
+jsonb_object_keys | _from_moorage_id
+
+-[ RECORD 1 ]-----+---------------------
+jsonb_object_keys | time
+-[ RECORD 2 ]-----+---------------------
+jsonb_object_keys | trip
+-[ RECORD 3 ]-----+---------------------
+jsonb_object_keys | notes
+-[ RECORD 4 ]-----+---------------------
+jsonb_object_keys | status
+-[ RECORD 5 ]-----+---------------------
+jsonb_object_keys | latitude
+-[ RECORD 6 ]-----+---------------------
+jsonb_object_keys | longitude
+-[ RECORD 7 ]-----+---------------------
+jsonb_object_keys | truewindspeed
+-[ RECORD 8 ]-----+---------------------
+jsonb_object_keys | speedoverground
+-[ RECORD 9 ]-----+---------------------
+jsonb_object_keys | truewinddirection
+-[ RECORD 10 ]----+---------------------
+jsonb_object_keys | windspeedapparent
+-[ RECORD 11 ]----+---------------------
+jsonb_object_keys | courseovergroundtrue
 

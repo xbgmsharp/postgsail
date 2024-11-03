@@ -17,5 +17,5 @@ any_pending_jobs | 2
 
 Check the number of metrics entries
 -[ RECORD 1 ]-+----
-metrics_count | 172
+metrics_count | 173
 
