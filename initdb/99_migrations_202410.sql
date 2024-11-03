@@ -203,9 +203,6 @@ CREATE OR REPLACE FUNCTION public.update_logbook_with_geojson_trigger_fn() RETUR
 DECLARE
     geojson JSONB;
     feature JSONB;
-    total_distance FLOAT;
-    avg_speed FLOAT;
-    max_speed FLOAT;
 BEGIN
     -- Parse the incoming GeoJSON data from the track_geojson column
     geojson := NEW.track_geojson::jsonb;
