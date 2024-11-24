@@ -43,10 +43,10 @@ This is the name of the database within postgres. Give it a unique name if you l
 This environment variable can be used to define a different name for the default database that is created when the image is first started. If it is not specified, then the value of `POSTGRES_USER` will be used.
 
 ***PGSAIL_APP_URL***
-This is the URL to the APP on your instance on port 8080 eg:
+This is the URL to the APP on your instance on port 8080:
 ```
-PGSAIL_APP_URL=http://ec2-11-234-567-890.eu-west-1.compute.amazonaws.com:8080
-PGSAIL_API_URL=http://ec2-11-234-567-890.eu-west-1.compute.amazonaws.com:3000
+PGSAIL_APP_URL=http://localhost:8080
+PGSAIL_API_URL=http://localhost:3000
 ```
 
 ***PGSAIL_API_URL***
@@ -151,7 +151,7 @@ services:
       PGRST_DB_POOL_MAX_IDLETIME: 60
       PGRST_DB_POOL_ACQUISITION_TIMEOUT: 20
       PGRST_DB_URI: postgres://user:password@db:5432/user
-      PGRST_JWT_SECRET: goseD5xOb6LnWDucBtwTbdUpaq7u4AthltMznfzNR9
+      PGRST_JWT_SECRET: ab2345678901cd2222222233333333331234567890
       PGRST_SERVER_TIMING_ENABLED: 1
       PGRST_DB_MAX_ROWS: 500
       PGRST_JWT_CACHE_MAX_LIFETIME: 3600
