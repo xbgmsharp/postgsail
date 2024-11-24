@@ -43,16 +43,19 @@ This is the name of the database within postgres. Give it a unique name if you l
 This environment variable can be used to define a different name for the default database that is created when the image is first started. If it is not specified, then the value of `POSTGRES_USER` will be used.
 
 ***PGSAIL_APP_URL***
-This is the URL to the APP on your instance on port 8080:
+This is the webapp (webui) entrypoint, typically the public DNS or IP
 ```
 PGSAIL_APP_URL=http://localhost:8080
-PGSAIL_API_URL=http://localhost:3000
 ```
 
+***PGSAIL_APP_URL***
+This is the full url (with domain name or IP) that you access PGSAIL via. Once nginx ssl proxy is added this may need to be updated. (Service restart required after changing?)
+
+
 ***PGSAIL_API_URL***
-This is the URL to your API on your instance on port 3000 eg:
+This is the URL to your API on your instance on port 3000:
 ```
-PGSAIL_API_URL=http://ec2-11-234-567-890.eu-west-1.compute.amazonaws.com:3000
+PGSAIL_API_URL=PGSAIL_API_URL=http://localhost:3000
 ```
 
 ***PGSAIL_AUTHENTICATOR_PASSWORD***
@@ -67,13 +70,8 @@ This password is used for the grafana service
 ***PGSAIL_EMAIL_FROM***
 ***PGSAIL_EMAIL_SERVER***
 Pgsail does not include a built in email service - only hooks to send email via an existing server.
-You can install an email service on the ubuntu host or use a third party service like gmail. If you chose to use a local service, be aware that some email services will filter it as spam unless you’ve properly configured it.
-
-***PGSAIL_APP_URL***
-This is the full url (with domain name or IP) that you access PGSAIL via. Once nginx ssl proxy is added this may need to be updated. (Service restart required after changing?)
-
-***PGSAIL_API_URL***
-This is the API URL that’s used for the boat and user access. Once apache or nginx ssl proxy is added this may need to be updated. (same restart?)
+You can install an email service on the ubuntu host or use a third party service like gmail. 
+If you chose to use a local service, be aware that some email services will filter it as spam unless you’ve properly configured it.
 
 ***Other ENV variables***
 ```
@@ -83,10 +81,6 @@ PGSAIL_TELEGRAM_BOT_TOKEN
 PGSAIL_AUTHENTICATOR_PASSWORD=password
 PGSAIL_GRAFANA_PASSWORD=password
 PGSAIL_GRAFANA_AUTH_PASSWORD=password
-PGSAIL_EMAIL_FROM=root@localhost
-PGSAIL_EMAIL_SERVER=localhost
-#PGSAIL_EMAIL_USER= Comment if not use
-#PGSAIL_EMAIL_PASS= Comment if not use
 #PGSAIL_PUSHOVER_APP_TOKEN= Comment if not use
 #PGSAIL_PUSHOVER_APP_URL= Comment if not use
 #PGSAIL_TELEGRAM_BOT_TOKEN= Comment if not use
