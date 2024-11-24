@@ -2,23 +2,71 @@
 
 In this guide we install, setup and run a postgsail project on an AWS instance in the cloud.
 
-##On AWS
-Launch an instance on AWS EC2 with the following settings: 
+##On AWS Console
+***Launch an instance on AWS EC2***
+With the following settings:
 + Ubuntu
 + Instance type: t2.small
-+ Create security group and open the following ports:443, 8080, 80, 3000, 5432, 22, 5050
-+ Allow SSH traffic
++ Create a new key pair: 
+    + key pair type: RSA
+    + Private key file format: .pem
++ The key file is stored for later use
+
++ Allow SSH traffic from: Anywhere
++ Allow HTTPS traffic from the internet
++ Allow HTTP traffic from the internet
+
+Configure storage:
+The standard storage of 8GiB is too small so change this to 16GiB.
+
+***Create a new security group***
+Go to: EC2>Security groups>Create security group
+Add inbound rules for the following ports:443, 8080, 80, 3000, 5432, 22, 5050
+Go to your instance>select your instance>Actions>security>change security group
+And add the correct security group to the instance.
+
+
 
 ##Connect to instance with SSH
-+ Open an SSH client.
-+ Locate your private key file. 
-+ Run this command, if necessary, to ensure your key is not publicly viewable: 
-```chmod 400 "yourname.pem"```
-+ Connect to your instance using its Public DNS, Example: 
-```ssh -i "yourname.pem" ubuntu@ec2-11-234-567-890.eu-west-1.compute.amazonaws.com```
+
+Copy the key file in your default SSH configuration file location (the one VSCode will use)
+In terminal, go to the folder and run this command to ensure your key is not publicly viewable: 
+```chmod 600 "privatekey.pem"```
+
+We are using VSCode to connect to the instance: 
+Install the Remote - SSH Extension for VSCode;
+Open the Command Palette (Ctrl+Shift+P) and type Remote-SSH: Add New SSH Host:
+```ssh -i "privatekey.pem" ubuntu@ec2-111-22-33-44.eu-west-1.compute.amazonaws.com```
+When prompted, select the default SSH configuration file location.
+Open the config file and add the location:
+```xIdentityFile ~/.ssh/privatekey.pem```
+
+
+##Install Docker on your instance
+To install Docker on your new EC2 Ubuntu instance via SSH, follow these steps:
+
+Update your package list:
+```sudo apt-get update```
+Install required dependencies:
+```sudo apt-get install apt-transport-https ca-certificates curl software-properties-common```
+Add Docker's official GPG key:
+```curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg```
+Add Docker's official repository:
+```echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null```
+Update the package list again:
+```sudo apt-get update```
+Install Docker:
+```sudo apt-get install docker-ce docker-ce-cli containerd.io```
+Verify Docker installation:
+```sudo docker --version```
+Add your user to the docker group to run Docker without sudo:
+```sudo usermod -aG docker ubuntu```
+Then, log out and back in or use the following to apply the changes:
+```newgrp docker```
+
+
 
 ##Install Postgsail 
-+ Install docker
 + Git clone the postgsail repo:
 ```$ git clone https://github.com/xbgmsharp/postgsail.git```
 
@@ -39,24 +87,17 @@ This should be a good password. It will be used for the postgres user above. Aga
 This environment variable is required for you to use the PostgreSQL image. It must not be empty or undefined. This environment variable sets the superuser password for PostgreSQL. The default superuser is defined by the POSTGRES_USER environment variable.
 
 ***POSTGRES_DB***
-This is the name of the database within postgres. Give it a unique name if you like. The schema will be loaded into this database and all data will be stored within it. Since this is used inside the docker image the name really doesn’t matter. If you plan to run additional databases within the image, then you might care.
+This is the name of the database within postgres. You can leave it named postgres but give it a unique name if you like. The schema will be loaded into this database and all data will be stored within it. Since this is used inside the docker image the name really doesn’t matter. If you plan to run additional databases within the image, then you might care.
 This environment variable can be used to define a different name for the default database that is created when the image is first started. If it is not specified, then the value of `POSTGRES_USER` will be used.
 
 ***PGSAIL_APP_URL***
 This is the webapp (webui) entrypoint, typically the public DNS or IP
-```
-PGSAIL_APP_URL=http://localhost:8080
-```
-
-***PGSAIL_APP_URL***
-This is the full url (with domain name or IP) that you access PGSAIL via. Once nginx ssl proxy is added this may need to be updated. (Service restart required after changing?)
+```PGSAIL_APP_URL=http://localhost:8080```
 
 
 ***PGSAIL_API_URL***
 This is the URL to your API on your instance on port 3000:
-```
-PGSAIL_API_URL=PGSAIL_API_URL=http://localhost:3000
-```
+```PGSAIL_API_URL=PGSAIL_API_URL=http://localhost:3000```
 
 ***PGSAIL_AUTHENTICATOR_PASSWORD***
 This password is used as part of the database access configuration. It’s used as part of the access URI later on. (Put the same password in both lines.)
@@ -69,9 +110,18 @@ This password is used for the grafana service
 
 ***PGSAIL_EMAIL_FROM***
 ***PGSAIL_EMAIL_SERVER***
+***PGSAIL_EMAIL_USER***
+***PGSAIL_EMAIL_PASS***
 Pgsail does not include a built in email service - only hooks to send email via an existing server.
-You can install an email service on the ubuntu host or use a third party service like gmail. 
-If you chose to use a local service, be aware that some email services will filter it as spam unless you’ve properly configured it.
+We use gmail as a third party email service:
+PGSAIL_EMAIL_FROM=email@gmail.com
+PGSAIL_EMAIL_SERVER=smtp.gmail.com
+PGSAIL_EMAIL_USER=email@gmail.com
+You need to get the PGSAIL_EMAIL_PASS from your gmail acount securitu settings: it is not the account password, instead you need to make an "App password"
+
+***PGRST_JWT_SECRET***
+This secret key must be at least 32 characters long, you can create a random key with the following command:
+```cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 42 | head -n 1```
 
 ***Other ENV variables***
 ```
@@ -86,191 +136,34 @@ PGSAIL_GRAFANA_AUTH_PASSWORD=password
 #PGSAIL_TELEGRAM_BOT_TOKEN= Comment if not use
 ```
 
-
-
-
-##Edit the docker-compose.yml file
-Add all correct credentials to the yml file, example:
-
-```
-version: "3.9"
-
-services:
-  db:
-    image: xbgmsharp/timescaledb-postgis
-    container_name: db
-    hostname: db
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      - TIMESCALEDB_TELEMETRY=off
-      - PGDATA=/var/lib/postgresql/data/pgdata
-      - TZ=UTC
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=user
-      - PGSAIL_AUTHENTICATOR_PASSWORD=password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./initdb:/docker-entrypoint-initdb.d
-    logging:
-      options:
-        max-size: 10m
-    healthcheck:
-      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${POSTGRES_USER} -d signalk'"]
-      interval: 60s
-      timeout: 10s
-      retries: 5
-      start_period: 100s
-
-  api:
-    image: postgrest/postgrest
-    container_name: api
-    hostname: api
-    restart: unless-stopped
-    links:
-      - "db:database"
-    ports:
-      - "3000:3000"
-      - "3003:3003"
-    env_file: .env
-    environment:
-      PGRST_DB_SCHEMA: api
-      PGRST_DB_ANON_ROLE: api_anonymous
-      PGRST_OPENAPI_SERVER_PROXY_URI: http://127.0.0.1:3000
-      PGRST_DB_PRE_REQUEST: public.check_jwt
-      PGRST_DB_POOL: 20
-      PGRST_DB_POOL_MAX_IDLETIME: 60
-      PGRST_DB_POOL_ACQUISITION_TIMEOUT: 20
-      PGRST_DB_URI: postgres://user:password@db:5432/user
-      PGRST_JWT_SECRET: ab2345678901cd2222222233333333331234567890
-      PGRST_SERVER_TIMING_ENABLED: 1
-      PGRST_DB_MAX_ROWS: 500
-      PGRST_JWT_CACHE_MAX_LIFETIME: 3600
-    depends_on:
-      - db
-    logging:
-      options:
-        max-size: 10m
-    #healthcheck:
-    #  test: ["CMD-SHELL", "sh -c 'curl --fail http://localhost:3003/live || exit 1'"]
-    #  interval: 60s
-    #  timeout: 10s
-    #  retries: 5
-    #  start_period: 100s
-
-  app:
-    image: grafana/grafana:latest
-    container_name: app
-    restart: unless-stopped
-    links:
-      - "db:database"
-    volumes:
-      - grafana-data:/var/lib/grafana
-      - grafana-data:/var/log/grafana
-      - ./grafana:/etc/grafana
-    ports:
-      - "3001:3000"
-    env_file: .env
-    environment:
-      - GF_INSTALL_PLUGINS=pr0ps-trackmap-panel,fatcloud-windrose-panel
-      - GF_SECURITY_ADMIN_PASSWORD=password
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SMTP_ENABLED=false
-    depends_on:
-      - db
-    logging:
-      options:
-        max-size: 10m
-    #healthcheck:
-    #  test: ["CMD-SHELL", "sh -c 'curl --fail http://localhost:3000/healthz || exit 1'"]
-    #  interval: 60s
-    #  timeout: 10s
-    #  retries: 5
-    #  start_period: 100s
-
-  web:
-    image: vuestic-postgsail
-    build:
-      context: https://github.com/xbgmsharp/vuestic-postgsail.git#live
-      dockerfile: Dockerfile
-      args:
-        - VITE_PGSAIL_URL=http://localhost:3000
-        - VITE_APP_INCLUDE_DEMOS=false
-        - VITE_APP_BUILD_VERSION=true
-        - VITE_APP_TITLE=${VITE_APP_TITLE}
-        - VITE_GRAFANA_URL=${VITE_GRAFANA_URL}
-    hostname: web
-    container_name: web
-    restart: unless-stopped
-    links:
-      - "api:postgrest"
-    ports:
-      - 8080:8080
-    env_file: .env
-    environment:
-      - VITE_PGSAIL_URL=http://localhost:3000
-      - VITE_APP_INCLUDE_DEMOS=false
-      - VITE_APP_BUILD_VERSION=true
-      - VITE_APP_TITLE=${VITE_APP_TITLE}
-      - VITE_GRAFANA_URL=${VITE_GRAFANA_URL}
-    depends_on:
-      - db
-      - api
-    logging:
-      options:
-        max-size: 10m
-
-  pgadmin:
-      image: dpage/pgadmin4:latest
-      container_name: pgadmin
-      restart: unless-stopped
-      volumes:
-        - data:/var/lib/pgadmin
-        - ./pgadmin_servers.json:/servers.json:ro
-      links:
-        - "db:database"
-      ports:
-        - 5050:5050
-      environment:
-        - PGADMIN_DEFAULT_EMAIL=test@user.com
-        - PGADMIN_DEFAULT_PASSWORD=password
-        - PGADMIN_LISTEN_ADDRESS=0.0.0.0
-        - PGADMIN_LISTEN_PORT=5050
-        - PGADMIN_SERVER_JSON_FILE=/servers.json
-        - PGADMIN_DISABLE_POSTFIX=true
-      depends_on:
-        - db
-      logging:
-        options:
-          max-size: 10m
-
-
-
-volumes:
-  grafana-data: {}
-  postgres-data: {}
-  data: {}
-
-```
-
-
-
 ##Run the project
-
-Make sure your user has the right permission:
-Add Your User to the docker Group:
+If needed, add your user to the docker group to run Docker without sudo:
 ```sudo usermod -aG docker ubuntu```
-Restart Your Session:
+Then, log out and back in or use the following to apply the changes:
 ```newgrp docker```
 
-Startup the db, api and web
-```docker-compose up```
+
+Step 1. Import the SQL schema, execute:
+```docker compose up db```
+Step 2. Launch the full backend stack (db, api), execute:
+```docker compose up db api```
+Step 3. Launch the frontend webapp
+```docker compose up web```
 
 Open browser and navigate to your PGSAIL_APP_URL, you should see the postgsail login screen now:
 http://ec2-11-234-567-890.eu-west-1.compute.amazonaws.com::8080
 
 
+##Additional SQL setup
+Aditional setup will be required.
+There is no useraccount yet, also cronjobs need to be activated.
+We'll do that by using pgadmin.
 
+***Run pgadmin***
+First add two more vars to your env. file:
+```PGADMIN_DEFAULT_EMAIL=setup@setup.com```
+```PGADMIN_DEFAULT_PASSWORD=123456```
+And add pgadmin to the docker-compose.yml file under "services":
+```
+
+```
