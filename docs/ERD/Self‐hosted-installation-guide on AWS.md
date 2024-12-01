@@ -68,7 +68,7 @@ Then, log out and back in or use the following to apply the changes:
 
 ##Install Postgsail 
 + Git clone the postgsail repo:
-```$ git clone https://github.com/xbgmsharp/postgsail.git```
+```git clone https://github.com/xbgmsharp/postgsail.git```
 
 ##Edit environment variables
 Copy the example.env file and edit the environment variables:
