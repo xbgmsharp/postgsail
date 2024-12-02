@@ -1,0 +1,71 @@
+ current_database 
+------------------
+ signalk
+(1 row)
+
+You are now connected to database "signalk" as user "username".
+Expanded display is on.
+SET
+-[ RECORD 1 ]
+vessel_id | t
+
+Add a note for an entry from a trip
+-[ RECORD 1 ]----+---
+numinstants      | 45
+valueattimestamp | 
+
+-[ RECORD 1 ]--------+-
+update_trip_notes_fn | 
+
+-[ RECORD 1 ]----+--------
+valueattimestamp | fishing
+
+Delete an entry from a trip
+-[ RECORD 1 ]------+---
+numinstants        | 45
+jsonb_array_length | 45
+
+-[ RECORD 1 ]--------+-
+delete_trip_entry_fn | 
+
+-[ RECORD 1 ]------+---
+numinstants        | 44
+jsonb_array_length | 44
+
+Export PostGIS geography from trajectory
+-[ RECORD 1 ]
+?column? | t
+-[ RECORD 2 ]
+?column? | t
+
+Export GeoJSON with properties from a trip
+-[ RECORD 1 ]------+---
+jsonb_array_length | 44
+
+Export GPX from a trip
+-[ RECORD 1 ]
+?column? | t
+
+Export KML from a trip
+-[ RECORD 1 ]
+?column? | t
+
+-[ RECORD 1 ]
+vessel_id | t
+
+Export timelapse as Geometry LineString from a trip
+-[ RECORD 1 ]-------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+export_logbooks_geojson_linestring_trips_fn | {"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": {"type": "LineString", "coordinates": [[23.530866667, 60.077666667], [23.52355, 60.07065], [23.515866667, 60.0637], [23.507866667, 60.056716667], [23.500533333, 60.04915], [23.493, 60.041633333], [23.485466667, 60.033983333], [23.479033333, 60.026216667], [23.47295, 60.01835], [23.46745, 60.01045], [23.461033333, 60.003516667], [23.45415, 59.99755], [23.445683333, 59.99235], [23.438766667, 59.989266667], [23.435116667, 59.987866667], [23.43165, 59.986333333], [23.4292, 59.984833333], [23.432566667, 59.9862], [23.43375, 59.987266667], [23.431566667, 59.98615], [23.4307, 59.98565], [23.429383333, 59.984683333], [23.421066667, 59.978233333], [23.431, 59.977716667], [23.432133333, 59.976883333], [23.4321, 59.976883333]]}, "properties": {}}]}
+
+Export timelapse as Geometry Point from a trip
+-[ RECORD 1 ]
+?column? | t
+
+Export GPX from trips
+-[ RECORD 1 ]
+?column? | t
+
+Export KML from trips
+-[ RECORD 1 ]
+?column? | t
+
