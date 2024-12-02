@@ -600,7 +600,7 @@ request.set('User-Agent', 'PostgSail unit tests');
     for (i = 0; i < test.vessel_metrics['metrics'].length; i++) {
       data[i] = test.vessel_metrics['metrics'][i];
       // Override time, -2h to allow to new data later without delay.
-      data[i]['time'] = moment.utc().subtract(2, 'hours').add(i, 'minutes').format();
+      data[i]['time'] = moment.utc().subtract(1, 'day').add(i, 'minutes').format();
       // Override client_id
       data[i]['client_id'] = test.vessel_metadata.client_id;
     }
@@ -611,6 +611,11 @@ request.set('User-Agent', 'PostgSail unit tests');
     // Force last valid entry to be back in time from previous, it should be ignore silently
     data.at(-1).time = moment.utc(data.at(-3).time).subtract(1, 'minutes').format();
     //console.log(data[0]);
+    // Force the -2 entry to be in the future add 1 year, it should be ignore silently
+    data.splice(i-2, 1, data.at(-2))
+    data.at(-3).time = moment.utc(data.at(-3).time).add(1, 'year').format();
+    //console.log(data.at(-2));
+    //console.log(data.at(-1));
 
     it('/metrics?select=time', function(done) {
       request = supertest.agent(test.cname);
@@ -629,6 +634,7 @@ request.set('User-Agent', 'PostgSail unit tests');
           res.header['content-type'].should.match(new RegExp('json','g'));
           res.header['server'].should.match(new RegExp('postgrest','g'));
           should.exist(res.body);
+          //console.log(res.body);
           res.body.length.should.match(test.vessel_metrics['metrics'].length-3);
           done(err);
         });

@@ -1,13 +1,13 @@
 "use strict";
 /*
- * Unit test #5
+ * Unit test #6
  * Public/Anonymous access
  *
  * process.env.PGSAIL_API_URI = from inside the docker
  *
  * npm install supertest should mocha mochawesome moment
  * alias mocha="./node_modules/mocha/bin/_mocha"
- * mocha index5.js --reporter mochawesome --reporter-options reportDir=/mnt/postgsail/,reportFilename=report_api.html
+ * mocha index6.js --reporter mochawesome --reporter-options reportDir=/mnt/postgsail/,reportFilename=report_api.html
  *
  */
 

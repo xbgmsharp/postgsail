@@ -6,7 +6,7 @@
 *
 * npm install supertest should mocha mochawesome moment
 * alias mocha="./node_modules/mocha/bin/_mocha"
-* mocha index.js --reporter mochawesome --reporter-options reportDir=/mnt/postgsail/,reportFilename=report_api.html
+* mocha index2.js --reporter mochawesome --reporter-options reportDir=/mnt/postgsail/,reportFilename=report_api.html
 *
 */
 
@@ -432,11 +432,11 @@ request.set('User-Agent', 'PostgSail unit tests');
     for (i = 0; i < test.vessel_metrics['metrics'].length; i++) {
       data[i] = test.vessel_metrics['metrics'][i];
       // Override time, +1h because previous sample include 47 entry.
-      data[i]['time'] = moment().add(1, 'hour').add(i, 'minutes').format();
+      data[i]['time'] = moment.utc().subtract(2, 'hours').add(i, 'minutes').format();
       // Override client_id
       data[i]['client_id'] = test.vessel_metadata.client_id;
     }
-    console.log(data[0]);
+    //console.log(data[0]);
 
     it('/metrics?select=time', function(done) {
       request = supertest.agent(test.cname);
