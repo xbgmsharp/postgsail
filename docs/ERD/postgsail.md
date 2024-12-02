@@ -24,6 +24,14 @@ erDiagram
         geography track_geog "postgis geography type default SRID 4326 Unit: degres"
         jsonb track_geojson "store generated geojson with track metrics data using with LineString and Point features, we can not depend api.metrics table"
         geometry track_geom "postgis geometry type EPSG:4326 Unit: degres"
+        tgeogpoint trip "MobilityDB trajectory"
+        tfloat trip_cog "courseovergroundtrue"
+        ttext trip_notes 
+        tfloat trip_sog "speedoverground"
+        ttext trip_status 
+        tfloat trip_twa "windspeedapparent"
+        tfloat trip_twd "truewinddirection"
+        tfloat trip_tws "truewindspeed"
         text vessel_id "{NOT_NULL}"
     }
 
@@ -185,6 +193,13 @@ erDiagram
         text country 
         integer country_id 
         numeric id 
+    }
+
+    public_mobilitydb_opcache {
+        integer ltypnum 
+        oid opid 
+        integer opnum 
+        integer rtypnum 
     }
 
     public_ne_10m_geography_marine_polys {
