@@ -93,7 +93,6 @@ vessel_id | t
 -[ RECORD 1 ]---+-----------------------------
 current_user    | grafana
 current_setting | demo+kapla@openplotter.cloud
-current_setting | 
 
 -[ RECORD 1 ]--------------------------------------------------------------
 __text  | kapla
@@ -257,23 +256,20 @@ id                  | 2
 moorage             | Norra hamnen
 default_stay        | Dock
 default_stay_id     | 4
-total_stay          | 0
-total_duration      | PT2M
 arrivals_departures | 2
+total_duration      | PT2M
 -[ RECORD 2 ]-------+---------------------
 id                  | 1
 moorage             | patch moorage name 3
 default_stay        | Anchor
 default_stay_id     | 2
-total_stay          | 0
-total_duration      | PT1M
 arrivals_departures | 1
+total_duration      | PT1M
 -[ RECORD 3 ]-------+---------------------
 id                  | 3
 moorage             | Ekenäs
 default_stay        | Unknown
 default_stay_id     | 1
-total_stay          | 0
-total_duration      | PT0S
 arrivals_departures | 1
+total_duration      | PT0S
 

@@ -46,7 +46,7 @@ SELECT v.vessel_id as "vessel_id" FROM auth.vessels v WHERE v.owner_email = 'dem
 SELECT set_config('vessel.id', :'vessel_id', false) IS NOT NULL as vessel_id;
 
 --SELECT current_user, current_setting('user.email', true), current_setting('vessel.client_id', true), current_setting('vessel.id', true);
-SELECT current_user, current_setting('user.email', true), current_setting('vessel.client_id', true);
+SELECT current_user, current_setting('user.email', true);
 
 SELECT v.name AS __text, m.client_id AS __value FROM auth.vessels v JOIN api.metadata m ON v.owner_email = 'demo+kapla@openplotter.cloud' and m.vessel_id = v.vessel_id;
 
