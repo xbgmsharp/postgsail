@@ -203,6 +203,32 @@ else
     exit 1
 fi
 
+# Stats SQL unit tests
+#psql ${PGSAIL_DB_URI} < sql/stats.sql > output/stats.sql.output
+#diff sql/stats.sql.output output/stats.sql.output > /dev/null
+#diff -u sql/stats.sql.output output/stats.sql.output | wc -l
+#echo 0
+#if [ $? -eq 0 ]; then
+#    echo SQL stats.sql OK
+#else
+#    echo SQL stats.sql FAILED
+#    diff -u sql/stats.sql.output output/stats.sql.output
+#    exit 1
+#fi
+
+# MobilityDB SQL unit tests
+psql ${PGSAIL_DB_URI} < sql/mobilitydb.sql > output/mobilitydb.sql.output
+diff sql/mobilitydb.sql.output output/mobilitydb.sql.output > /dev/null
+#diff -u sql/mobilitydb.sql.output output/mobilitydb.sql.output | wc -l
+#echo 0
+if [ $? -eq 0 ]; then
+    echo SQL mobilitydb.sql OK
+else
+    echo SQL mobilitydb.sql FAILED
+    diff -u sql/mobilitydb.sql.output output/mobilitydb.sql.output
+    exit 1
+fi
+
 # qgis SQL unit tests
 psql ${PGSAIL_DB_URI} < sql/qgis.sql > output/qgis.sql.output
 diff sql/qgis.sql.output output/qgis.sql.output > /dev/null
