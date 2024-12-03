@@ -15,15 +15,15 @@ select current_database();
 -- grafana_auth
 SET ROLE grafana_auth;
 \echo 'ROLE grafana_auth current_setting'
-SELECT current_user, current_setting('user.email', true), current_setting('vessel.client_id', true), current_setting('vessel.id', true);
+SELECT current_user, current_setting('user.email', true), current_setting('vessel.id', true);
 
 --SELECT a.pass,v.name,m.client_id FROM auth.accounts a JOIN auth.vessels v ON a.email = 'demo+kapla@openplotter.cloud' AND a.role = 'user_role' AND cast(a.preferences->>'email_valid' as Boolean) = True AND v.owner_email = a.email JOIN api.metadata m ON m.vessel_id = v.vessel_id;
 --SELECT a.pass,v.name,m.client_id FROM auth.accounts a JOIN auth.vessels v ON a.email = 'demo+kapla@openplotter.cloud' AND a.role = 'user_role' AND v.owner_email = a.email JOIN api.metadata m ON m.vessel_id = v.vessel_id;
 \echo 'link vessel and user based on current_setting'
-SELECT v.name,m.client_id FROM auth.accounts a JOIN auth.vessels v ON a.role = 'user_role' AND v.owner_email = a.email JOIN api.metadata m ON m.vessel_id = v.vessel_id;
+SELECT v.name,m.client_id FROM auth.accounts a JOIN auth.vessels v ON a.role = 'user_role' AND v.owner_email = a.email JOIN api.metadata m ON m.vessel_id = v.vessel_id ORDER BY a.id DESC;
 
 \echo 'auth.accounts details'
-SELECT a.user_id IS NOT NULL AS user_id, a.email, a.first, a.last, a.pass IS NOT NULL AS pass, a.role, a.preferences->'telegram'->'chat' AS telegram, a.preferences->'pushover_user_key' AS pushover_user_key FROM auth.accounts AS a;
+SELECT a.user_id IS NOT NULL AS user_id, a.email, a.first, a.last, a.pass IS NOT NULL AS pass, a.role, a.preferences->'telegram'->'chat' AS telegram, a.preferences->'pushover_user_key' AS pushover_user_key FROM auth.accounts AS a ORDER BY a.id DESC;
 \echo 'auth.vessels details'
 --SELECT 'SELECT ' || STRING_AGG('v.' || column_name, ', ') || ' FROM auth.vessels AS v' FROM information_schema.columns WHERE table_name = 'vessels' AND table_schema = 'auth' AND column_name NOT IN ('created_at', 'updated_at');
 SELECT v.vessel_id IS NOT NULL AS vessel_id, v.owner_email, v.mmsi, v.name, v.role FROM auth.vessels AS v;

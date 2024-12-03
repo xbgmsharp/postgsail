@@ -11,7 +11,6 @@ ROLE grafana_auth current_setting
 current_user    | grafana_auth
 current_setting | 
 current_setting | 
-current_setting | 
 
 link vessel and user based on current_setting
 -[ RECORD 1 ]----------------------------------------------------------------
