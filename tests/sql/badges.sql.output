@@ -27,7 +27,7 @@ badges_geom_fn |
 -[ RECORD 1 ]--+-
 badges_geom_fn | 
 
-Check badges for user
+Check badges for all users
 -[ RECORD 1 ]-----+------------------
 jsonb_object_keys | Helmsman
 -[ RECORD 2 ]-----+------------------
@@ -75,6 +75,38 @@ vessel_id | t
 Process badge
 -[ RECORD 1 ]------+-
 badges_moorages_fn | 
+
+Check badges for all users
+-[ RECORD 1 ]-----+------------------
+jsonb_object_keys | Helmsman
+-[ RECORD 2 ]-----+------------------
+jsonb_object_keys | Wake Maker
+-[ RECORD 3 ]-----+------------------
+jsonb_object_keys | Balearic Sea
+-[ RECORD 4 ]-----+------------------
+jsonb_object_keys | Stormtrooper
+-[ RECORD 5 ]-----+------------------
+jsonb_object_keys | Gulf of Finland
+-[ RECORD 6 ]-----+------------------
+jsonb_object_keys | Helmsman
+-[ RECORD 7 ]-----+------------------
+jsonb_object_keys | Wake Maker
+-[ RECORD 8 ]-----+------------------
+jsonb_object_keys | Club Alaska
+-[ RECORD 9 ]-----+------------------
+jsonb_object_keys | Stormtrooper
+-[ RECORD 10 ]----+------------------
+jsonb_object_keys | Captain Award
+-[ RECORD 11 ]----+------------------
+jsonb_object_keys | Caribbean Sea
+-[ RECORD 12 ]----+------------------
+jsonb_object_keys | Gulf of Alaska
+-[ RECORD 13 ]----+------------------
+jsonb_object_keys | Gulf of Finland
+-[ RECORD 14 ]----+------------------
+jsonb_object_keys | Navigator Award
+-[ RECORD 15 ]----+------------------
+jsonb_object_keys | Tropical Traveler
 
 Check details from vessel_id aava
 -[ RECORD 1 ]-+--------------------------------------------------------------------------------------------------------------

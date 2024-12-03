@@ -24,7 +24,6 @@ INSERT INTO api.logbook
 
 \echo 'Set config'
 SELECT set_config('user.email', 'demo+kapla@openplotter.cloud', false);
---SELECT set_config('vessel.client_id', 'vessels.urn:mrn:imo:mmsi:123456789', false);
 
 \echo 'Process badge'
 SELECT badges_logbook_fn(5,NOW()::TEXT);
@@ -32,11 +31,10 @@ SELECT badges_logbook_fn(6,NOW()::TEXT);
 SELECT badges_geom_fn(5,NOW()::TEXT);
 SELECT badges_geom_fn(6,NOW()::TEXT);
 
-\echo 'Check badges for user'
+\echo 'Check badges for all users'
 SELECT jsonb_object_keys ( a.preferences->'badges' ) FROM auth.accounts a;
 
 \echo 'Check details from vessel_id kapla'
---SELECT get_user_settings_from_vesselid_fn('vessels.urn:mrn:imo:mmsi:123456789'::TEXT);
 SELECT 
     json_build_object( 
             'boat', v.name,
@@ -67,6 +65,9 @@ SELECT set_config('vessel.id', :'vessel_id', false) IS NOT NULL as vessel_id;
 
 \echo 'Process badge'
 SELECT badges_moorages_fn();
+
+\echo 'Check badges for all users'
+SELECT jsonb_object_keys ( a.preferences->'badges' ) FROM auth.accounts a;
 
 \echo 'Check details from vessel_id aava'
 --SELECT get_user_settings_from_vesselid_fn('vessels.urn:mrn:imo:mmsi:787654321'::TEXT);
