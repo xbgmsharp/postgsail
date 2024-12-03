@@ -37,7 +37,8 @@ COMMENT ON COLUMN api.logbook.trip_tws IS 'truewindspeed';
 COMMENT ON COLUMN api.logbook.trip_twd IS 'truewinddirection';
 COMMENT ON COLUMN api.logbook.trip IS 'MobilityDB trajectory';
 
-CREATE OR REPLACE FUNCTION logbook_update_metrics_short_fn(
+-- Add public.logbook_update_metrics_short_fn, aggregate all metrics as trip ios short.
+CREATE OR REPLACE FUNCTION public.logbook_update_metrics_short_fn(
     total_entry INT,
     start_date TIMESTAMPTZ,
     end_date TIMESTAMPTZ
@@ -53,8 +54,8 @@ RETURNS TABLE (
     status ttext
 ) AS $$
 DECLARE
-    modulo_divisor INT;
 BEGIN
+    -- Aggregate all metrics as trip ios short.
     RETURN QUERY
     WITH metrics AS (
         -- Extract metrics
@@ -95,8 +96,9 @@ COMMENT ON FUNCTION
     public.logbook_update_metrics_short_fn
     IS 'Optimize logbook metrics for short metrics';
 
+-- Add public.logbook_update_metrics_fn, aggregate metrics to reduce size by skipping row.
 DROP FUNCTION IF EXISTS public.logbook_update_metrics_fn;
-CREATE OR REPLACE FUNCTION logbook_update_metrics_fn(
+CREATE OR REPLACE FUNCTION public.logbook_update_metrics_fn(
     total_entry INT,
     start_date TIMESTAMPTZ,
     end_date TIMESTAMPTZ
@@ -114,6 +116,7 @@ RETURNS TABLE (
 DECLARE
     modulo_divisor INT;
 BEGIN
+    -- Aggregate data to reduce size by skipping row.
     -- Determine modulo based on total_entry
     IF total_entry <= 500 THEN
         modulo_divisor := 1;
@@ -224,6 +227,7 @@ COMMENT ON FUNCTION
     public.logbook_update_metrics_fn
     IS 'Optimize logbook metrics base on the total metrics';
 
+-- Add public.logbook_update_metrics_fn, aggregate metrics by time-series to reduce size
 DROP FUNCTION IF EXISTS public.logbook_update_metrics_timebucket_fn;
 CREATE OR REPLACE FUNCTION public.logbook_update_metrics_timebucket_fn(
     total_entry INT,
@@ -243,6 +247,7 @@ RETURNS TABLE (
 DECLARE
     bucket_interval INTERVAL;
 BEGIN
+    -- Aggregate metrics by time-series to reduce size
     -- Determine modulo based on total_entry
     IF total_entry <= 500 THEN
         bucket_interval := '2 minutes';
@@ -455,10 +460,13 @@ AS $function$
         -- GeoJSON require trip* columns
         geojson := api.logbook_update_geojson_trip_fn(logbook_rec.id);
         UPDATE api.logbook
-            SET -- Update the data even it should be generate dynamically on request
+            SET -- Update the data column, it should be generate dynamically on request
+                -- However there is a lot of dependencies to concider for a larger cleanup
+                -- badges, qgis etc... depends on track_geom
+                -- many export and others functions depends on track_geojson
                 track_geojson = geojson,
-                track_geog = trajectory(t_rec.trajectory)
-                --track_geom = trajectory(t_rec.trajectory)::geometry
+                track_geog = trajectory(t_rec.trajectory),
+                track_geom = trajectory(t_rec.trajectory)::geometry
             WHERE id = logbook_rec.id;
 
         -- GeoJSON Timelapse require track_geojson geometry point
@@ -977,6 +985,7 @@ $function$
 ;
 COMMENT ON FUNCTION api.export_logbook_geojson_trip_fn IS 'Export a logs entries to GeoJSON format of geometry point';
 
+-- Update api.export_logbooks_gpx_trips_fn
 CREATE OR REPLACE FUNCTION api.export_logbooks_gpx_trips_fn(start_log integer DEFAULT NULL::integer, end_log integer DEFAULT NULL::integer)
  RETURNS "text/xml"
  LANGUAGE plpgsql
@@ -1093,6 +1102,7 @@ END;
 $$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION api.update_trip_notes_fn IS 'Update trip note at a specific time for a temporal sequence';
 
+-- Add delete_trip_entry_fn, delete temporal sequence into a trip
 CREATE OR REPLACE FUNCTION api.delete_trip_entry_fn(
     _id INT,
     update_string tstzspan -- tstzspan '[2024-11-07T18:40:45+00, 2024-11-07T18:41:45+00]'
@@ -1962,21 +1972,5 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO user_role;
 UPDATE public.app_settings
 	SET value='0.7.8'
 	WHERE "name"='app.version';
-
-CREATE INDEX ON "api"."stays" ("stay_code");
-CREATE INDEX ON "api"."moorages" ("stay_code");
-ALTER TABLE "api"."metadata" FORCE ROW LEVEL SECURITY;
-ALTER TABLE "api"."metrics" FORCE ROW LEVEL SECURITY;
-ALTER TABLE "api"."logbook" FORCE ROW LEVEL SECURITY;
-ALTER TABLE "api"."stays" FORCE ROW LEVEL SECURITY;
-ALTER TABLE "api"."moorages" FORCE ROW LEVEL SECURITY;
-ALTER TABLE "api"."stays_at" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "api"."stays_at" FORCE ROW LEVEL SECURITY;
-ALTER TABLE "auth"."accounts" FORCE ROW LEVEL SECURITY;
-ALTER TABLE "auth"."vessels" FORCE ROW LEVEL SECURITY;
-ALTER TABLE "auth"."users" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "auth"."users" FORCE ROW LEVEL SECURITY;
-ALTER TABLE "auth"."otp" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "auth"."otp" FORCE ROW LEVEL SECURITY;
 
 \c postgres
