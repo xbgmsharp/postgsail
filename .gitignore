@@ -1,5 +1,6 @@
 .DS_Store
 .env
+docker-compose.mm.yml
 initdb/*.csv
 initdb/*.no
 initdb/*.jwk
