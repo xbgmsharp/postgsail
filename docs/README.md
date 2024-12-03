@@ -125,8 +125,8 @@ This step can take some time as it will first do a build to generate the static 
 The frontend should be accessible via port HTTP/8080.
 
 Users are collaborating on two installation guide:
-- [Self-hosted-installation-guide](https://github.com/xbgmsharp/postgsail/docs/Self‐hosted-installation-guide on AWS.md)
-- [Self-hosted-installation-guide](https://github.com/xbgmsharp/postgsail/docs/Self‐hosted-installation-guide.md)
+- [Self-hosted-installation-guide](https://github.com/xbgmsharp/postgsail/blob/main/docs/Self%E2%80%90hosted-installation-guide%20on%20AWS.md)
+- [Self-hosted-installation-guide](https://github.com/xbgmsharp/postgsail/blob/main/docs/Self%E2%80%90hosted-installation-guide.md)
 
 ### SQL Configuration
 
