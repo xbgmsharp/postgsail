@@ -1970,7 +1970,7 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO user_role;
 
 -- Update version
 UPDATE public.app_settings
-	SET value='0.7.8'
+	SET value='0.8.0'
 	WHERE "name"='app.version';
 
 \c postgres
