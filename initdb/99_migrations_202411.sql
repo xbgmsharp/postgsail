@@ -1859,17 +1859,17 @@ AS $function$
             SELECT id,departed,active INTO current_stays_id,current_stays_departed,current_stays_active
                 FROM api.stays s
                 WHERE s.vessel_id = current_setting('vessel.id', false)
-                    AND s.arrived = logbook_rec._to_time;
+                    AND s.arrived = logbook_rec._to_time::TIMESTAMPTZ;
             -- Update related stays
             UPDATE api.stays s
                 SET notes = 'invalid stays data, stationary need to fix metrics?'
                 WHERE vessel_id = current_setting('vessel.id', false)
-                    AND arrived = logbook_rec._to_time;
+                    AND arrived = logbook_rec._to_time::TIMESTAMPTZ;
             -- Find previous stays
             SELECT id INTO previous_stays_id
 				FROM api.stays s
                 WHERE s.vessel_id = current_setting('vessel.id', false)
-                    AND s.arrived < logbook_rec._to_time
+                    AND s.arrived < logbook_rec._to_time::TIMESTAMPTZ
                     ORDER BY s.arrived DESC LIMIT 1;
             -- Update previous stays with the departed time from current stays
             --  and set the active state from current stays
