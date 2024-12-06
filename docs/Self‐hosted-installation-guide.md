@@ -23,15 +23,15 @@ Add more here
 
 
 ```
-$ git clone https://github.com/xbgmsharp/postgsail.git
+$ git clone https://github.com/xbgmsharp/postgsail
 cd postgsail
 cp .env.example .env
 nano .env
 ```
 
 Login to your docker host once it’s setup.
-Clone the repo to your user directory
-Git clone https://github.com/xbgmsharp/postgsail.git
+Clone the repo to your user directory:
+
 Copy the example file and edit the environment variables
 
 The example has the following:
