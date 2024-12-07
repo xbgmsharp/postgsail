@@ -268,7 +268,7 @@ BEGIN
             avg(m.courseovergroundtrue) as courseovergroundtrue,
             avg(m.speedoverground) as speedoverground,
             avg(m.windspeedapparent) as windspeedapparent,
-            --last(m.longitude, m.time) as longitude, last(m.latitude, m.time) as latitude,
+            last(m.longitude, m.time) as longitude, last(m.latitude, m.time) as latitude,
             '' AS notes,
             last(m.status, m.time) as status,
             COALESCE(metersToKnots(avg((m.metrics->'environment.wind.speedTrue')::NUMERIC)), NULL) as truewindspeed,
@@ -334,11 +334,11 @@ BEGIN
         SELECT * FROM metrics
         UNION ALL
         SELECT * FROM last_metric
-        ORDER BY time ASC
+        ORDER BY time_bucket ASC
     )
     -- Create mobilitydb temporal sequences
     SELECT 
-        tgeogpointseq(array_agg(tgeogpoint(ST_SetSRID(o.geo_point, 4326)::geography, o.time_bucket) ORDER BY o.time ASC)) AS trajectory,
+        tgeogpointseq(array_agg(tgeogpoint(ST_SetSRID(o.geo_point, 4326)::geography, o.time_bucket) ORDER BY o.time_bucket ASC)) AS trajectory,
         tfloatseq(array_agg(tfloat(o.courseovergroundtrue, o.time_bucket) ORDER BY o.time_bucket ASC) FILTER (WHERE o.courseovergroundtrue IS NOT NULL)) AS courseovergroundtrue,
         tfloatseq(array_agg(tfloat(o.speedoverground, o.time_bucket) ORDER BY o.time_bucket ASC) FILTER (WHERE o.speedoverground IS NOT NULL)) AS speedoverground,
         tfloatseq(array_agg(tfloat(o.windspeedapparent, o.time_bucket) ORDER BY o.time_bucket ASC) FILTER (WHERE o.windspeedapparent IS NOT NULL)) AS windspeedapparent,
