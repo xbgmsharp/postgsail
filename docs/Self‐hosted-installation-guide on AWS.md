@@ -195,7 +195,7 @@ Open browser and navigate to your PGSAIL_APP_URL, you should see the postgsail l
 http://ec2-11-234-567-890.eu-west-1.compute.amazonaws.com::8080
 ```
 
-## Additional SQL setup
+## Additional database setup
 Aditional setup will be required.
 There is no useraccount yet, also cronjobs need to be activated.
 We'll do that by using pgadmin.
@@ -238,3 +238,51 @@ Now right-click and Connect to Server and enter your password: POSTGRES_PASSWORD
 You'll see 2 databases: "postgres" and "signalk"
 </p>
 
+### Enabling cron jobs by SQL query
+<p>
+Cron jobs are not active by default because if you don't have the correct settings set (for SMTP, PushOver, Telegram), you might enter in a loop with errors and you could be blocked or banned from the external services.
+</p>
+<p>
+Once you have setup the services correctly (entered credentials in .env file) you can activate the cron jobs. (We are only using the SMTP email service in this example) in the "postgres" database:
+</p>
++ Right-click on "postgres" database and select "Query Tool"
++ Execute the following SQL query:
+
+```
+UPDATE cron.job SET active = True;
+```
+
+### Adding a user by SQL query
+I was not able to create a new user through the web application (still figuring out what is going on). Therefore I added a new user by SQL in the "signalk" database.
++ Right-click on "signalk" database and select "Query Tool"
++ Check the current users in your database executing the query: 
+```
+SELECT * FROM auth.accounts;
+```
+
+
+
++ To add a new user executing the query:
+
+```
+INSERT INTO auth.accounts (
+email, first, last, pass, role) VALUES (
+'your.email@domain.com'::citext, 'Test'::text, 'your_username'::text, 'your_password'::text, 'user_role'::name)
+ returning email;
+```
+
+When SMTP is correctly setup, you will receive two emails: "Welcome" and "Email verification".
+<p>
+You will be able to login with these credentials on the web
+</p>
+<p>
+Each time you login, you will receive an email: "Email verification". This is the OTP process, you can bypass this process by updating the json key value of "Preferences":
+</p>
+
+```
+UPDATE auth.accounts
+SET preferences='{"email_valid": true}'::jsonb || preferences
+WHERE email='your.email@domain.com';
+```
+
+Now you are able to use PostGSail on the web on your own AWS server!
