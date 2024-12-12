@@ -122,11 +122,14 @@ docker compose build web
 docker compose up web
 ```
 
-The first step can take some time as it will first do a build to generate the static website based on your settings.
+The first step can take some time as it will first run a build to generate the static website based on your settings.
+
+The frontend is a SPA (Single-Page Application). With SPA, the server provides the user with an empty HTML page and Javascript. The latter is where the magic happens. When the browser receives the HTML + Javascript, it loads the Javascript. Once loaded, the JS takes place and, through a set of operations in the DOM, renders the necessary components to the page. The routing is then handled by the browser itself, not hitting the server. 
 
 The frontend should be accessible via port HTTP/8080.
 
 Users are collaborating on two installation guide:
+- [Self-hosted-installation-guide](https://github.com/xbgmsharp/postgsail/blob/main/docs/install_guide.md)
 - [Self-hosted-installation-guide on AWS EC2](https://github.com/xbgmsharp/postgsail/blob/main/docs/Self%E2%80%90hosted-installation-guide%20on%20AWS.md)
 - [Self-hosted-installation-guide](https://github.com/xbgmsharp/postgsail/blob/main/docs/Self%E2%80%90hosted-installation-guide.md)
 
