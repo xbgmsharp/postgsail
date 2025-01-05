@@ -49,4 +49,5 @@ SELECT public.qgis_bbox_trip_py_fn(CONCAT(:'vessel_id_aava'::TEXT, '_', 3, '_', 
 --SELECT set_config('vessel.id', :'vessel_id_kapla', false) IS NOT NULL as vessel_id;
 -- SQL request from QGIS to fetch the necessary data base on vessel_id
 --SELECT id, vessel_id, name as logname, ST_Transform(track_geom, 3857) as track_geom, ROUND(distance, 2) as distance, ROUND(EXTRACT(epoch FROM duration)/3600,2) as duration,_from_time,_to_time FROM api.logbook where track_geom is not null and _to_time is not null ORDER BY _from_time DESC;
-SELECT count(*) FROM api.logbook where track_geom is not null and _to_time is not null;
+--SELECT count(*) FROM api.logbook WHERE track_geom IS NOT NULL AND _to_time iIS NOT NULL;
+SELECT count(*) FROM api.logbook WHERE trip IS NOT NULL AND _to_time IS NOT NULL;

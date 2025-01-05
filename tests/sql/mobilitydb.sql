@@ -23,14 +23,14 @@ SELECT set_config('vessel.id', :'vessel_id_aava', false) IS NOT NULL as vessel_i
 -- Update notes
 \echo 'Add a note for an entry from a trip'
 -- Get original value, should be empty
-SELECT numInstants(trip), valueAtTimestamp(trip_notes,timestampN(trip,14)) from api.logbook where id = 3;
+SELECT numInstants(trip), valueAtTimestamp(trip_notes,timestampN(trip,13)) from api.logbook where id = 3;
 -- Create the string
-SELECT concat('["fishing"@', timestampN(trip,14),',""@',timestampN(trip,15),']') as to_be_update FROM api.logbook where id = 3 \gset
+SELECT concat('["fishing"@', timestampN(trip,13),',""@',timestampN(trip,14),']') as to_be_update FROM api.logbook where id = 3 \gset
 --\echo :to_be_update
 -- Update the notes
 SELECT api.update_trip_notes_fn(3, :'to_be_update');
 -- Compare with previous value, should include "fishing"
-SELECT valueAtTimestamp(trip_notes,timestampN(trip,14)) from api.logbook where id = 3;
+SELECT valueAtTimestamp(trip_notes,timestampN(trip,13)) from api.logbook where id = 3;
 
 -- Delete notes
 \echo 'Delete an entry from a trip'
@@ -38,7 +38,7 @@ SELECT valueAtTimestamp(trip_notes,timestampN(trip,14)) from api.logbook where i
 SELECT numInstants(trip), jsonb_array_length(api.export_logbook_geojson_point_trip_fn(id)->'features') from api.logbook where id = 3;
 -- Extract the timestamps of the invalid coords
 --SELECT timestampN(trip,14) as "to_be_delete" FROM api.logbook where id = 3 \gset
-SELECT concat('[', timestampN(trip,13),',',timestampN(trip,14),')') as to_be_delete FROM api.logbook where id = 3  \gset
+SELECT concat('[', timestampN(trip,14),',',timestampN(trip,15),')') as to_be_delete FROM api.logbook where id = 3 \gset
 --\echo :to_be_delete
 -- Delete the entry for all trip sequence
 SELECT api.delete_trip_entry_fn(3, :'to_be_delete');
@@ -47,7 +47,8 @@ SELECT numInstants(trip), jsonb_array_length(api.export_logbook_geojson_point_tr
 
 -- Export PostGIS geography from a trip
 \echo 'Export PostGIS geography from trajectory'
-SELECT ST_IsValid(trajectory(trip)::geometry) IS TRUE FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
+--SELECT ST_IsValid(trajectory(trip)::geometry) IS TRUE FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
+SELECT trajectory(trip)::geometry FROM api.logbook WHERE id = 3;
 
 -- Export GeoJSON from a trip
 \echo 'Export GeoJSON with properties from a trip'

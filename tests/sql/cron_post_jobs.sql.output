@@ -110,7 +110,7 @@ update_logbook_observations_fn | t
 -[ RECORD 1 ]--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 extra | {"tags": ["tag_name"], "metrics": {"propulsion.main.runTime": "PT10S"}, "observations": {"seaState": -1, "visibility": -1, "cloudCoverage": 1}, "avg_wind_speed": 14.549999999999999}
 
-Check numbers of geojson properties
+Check logbook geojson LineString properties
 -[ RECORD 1 ]-----+-----------------
 jsonb_object_keys | id
 -[ RECORD 2 ]-----+-----------------
@@ -144,6 +144,7 @@ jsonb_object_keys | max_wind_speed
 -[ RECORD 16 ]----+-----------------
 jsonb_object_keys | _from_moorage_id
 
+Check logbook geojson Point properties
 -[ RECORD 1 ]-----+-------
 jsonb_object_keys | cog
 -[ RECORD 2 ]-----+-------
@@ -162,4 +163,11 @@ jsonb_object_keys | trip
 jsonb_object_keys | notes
 -[ RECORD 9 ]-----+-------
 jsonb_object_keys | status
+
+Check logbook export fn
+-[ RECORD 1 ]
+gpx_trip | t
+
+-[ RECORD 1 ]
+kml_trip | t
 

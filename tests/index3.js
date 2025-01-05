@@ -79,7 +79,8 @@ var moment = require('moment');
       }
     ],
     user_fn: [
-      { url: '/rpc/timelapse_fn',
+      { //url: '/rpc/timelapse_fn',
+        url: '/rpc/export_logbooks_geojson_linestring_trips_fn',
         payload: {
               start_log: 2
             },
@@ -87,7 +88,17 @@ var moment = require('moment');
           obj_name: 'geojson'
         }
       },
-      { url: '/rpc/export_logbook_geojson_fn',
+      { //url: '/rpc/timelapse_fn',
+        url: '/rpc/export_logbooks_geojson_point_trips_fn',
+        payload: {
+              start_log: 2
+            },
+        res: {
+          obj_name: 'geojson'
+        }
+      },
+      { //url: '/rpc/export_logbook_geojson_fn',
+        url: '/rpc/export_logbook_geojson_trip_fn',
         payload: {
               _id: 2
             },
@@ -95,7 +106,8 @@ var moment = require('moment');
           obj_name: 'geojson'
         }
       },
-      { url: '/rpc/export_logbook_gpx_fn',
+      { //url: '/rpc/export_logbook_gpx_fn',
+        url: '/rpc/export_logbook_kml_trip_fn',
         payload: {
               _id: 2
             },
@@ -103,7 +115,8 @@ var moment = require('moment');
           obj_name: null
         }
       },
-      { url: '/rpc/export_logbook_kml_fn',
+      { //url: '/rpc/export_logbook_kml_fn',
+        url: '/rpc/export_logbook_kml_trip_fn',
         payload: {
               _id: 2
             },
@@ -118,6 +131,12 @@ var moment = require('moment');
         }
       },
       { url: '/rpc/export_moorages_gpx_fn',
+        payload: {},
+        res: {
+          obj_name: null
+        }
+      },
+      { url: '/rpc/export_moorages_kml_fn',
         payload: {},
         res: {
           obj_name: null
@@ -277,7 +296,8 @@ var moment = require('moment');
       }
     ],
     user_fn: [
-      { url: '/rpc/timelapse_fn',
+      { //url: '/rpc/timelapse_fn',
+        url: '/rpc/export_logbooks_geojson_linestring_trips_fn',
         payload: {
               start_log: 4
             },
@@ -285,7 +305,17 @@ var moment = require('moment');
           obj_name: 'geojson'
         }
       },
-      { url: '/rpc/export_logbook_geojson_fn',
+      { //url: '/rpc/timelapse_fn',
+        url: '/rpc/export_logbooks_geojson_point_trips_fn',
+        payload: {
+              start_log: 4
+            },
+        res: {
+          obj_name: 'geojson'
+        }
+      },
+      { //url: '/rpc/export_logbook_geojson_fn',
+        url: '/rpc/export_logbook_geojson_trip_fn',
         payload: {
               _id: 4
             },
@@ -293,7 +323,8 @@ var moment = require('moment');
           obj_name: 'geojson'
         }
       },
-      { url: '/rpc/export_logbook_gpx_fn',
+      { //url: '/rpc/export_logbook_gpx_fn',
+        url: '/rpc/export_logbook_gpx_trip_fn',
         payload: {
               _id: 4
             },
@@ -301,7 +332,8 @@ var moment = require('moment');
           obj_name: null
         }
       },
-      { url: '/rpc/export_logbook_kml_fn',
+      { //url: '/rpc/export_logbook_kml_fn',
+        url: '/rpc/export_logbook_kml_trip_fn',
         payload: {
               _id: 4
             },
@@ -309,7 +341,8 @@ var moment = require('moment');
           obj_name: null
         }
       },
-      { url: '/rpc/export_logbooks_gpx_fn',
+      { //url: '/rpc/export_logbooks_gpx_fn',
+        url: '/rpc/export_logbooks_kml_trips_fn',
         payload: {
             start_log: 3,
             end_log: 4
@@ -318,7 +351,8 @@ var moment = require('moment');
           obj_name: null
         }
       },
-      { url: '/rpc/export_logbooks_kml_fn',
+      { //url: '/rpc/export_logbooks_kml_fn',
+        url: '/rpc/export_logbooks_kml_trips_fn',
         payload: {
             start_log: 3,
             end_log: 4
@@ -334,6 +368,12 @@ var moment = require('moment');
         }
       },
       { url: '/rpc/export_moorages_gpx_fn',
+        payload: {},
+        res: {
+          obj_name: null
+        }
+      },
+      { url: '/rpc/export_moorages_kml_fn',
         payload: {},
         res: {
           obj_name: null

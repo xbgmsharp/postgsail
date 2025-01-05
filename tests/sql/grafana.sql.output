@@ -184,7 +184,7 @@ duration   | PT2M
 stay_code  | 4
 notes      | 
 
-stays_view
+api.stays_view
 -[ RECORD 1 ]+---------------------
 id           | 2
 name         | t
@@ -209,45 +209,39 @@ departed     | t
 notes        | new stay note 3
 
 api.moorages
--[ RECORD 1 ]---+---------------------------------------------------
-id              | 1
-vessel_id       | t
-name            | patch moorage name 3
-country         | fi
-stay_code       | 2
-stay_duration   | PT1M
-reference_count | 1
-latitude        | 60.0776666666667
-longitude       | 23.5308666666667
-geog            | 0101000020E6100000B9DEBBE0E687374052A938FBF0094E40
-home_flag       | t
-notes           | new moorage note 3
--[ RECORD 2 ]---+---------------------------------------------------
-id              | 2
-vessel_id       | t
-name            | Norra hamnen
-country         | fi
-stay_code       | 4
-stay_duration   | PT2M
-reference_count | 2
-latitude        | 59.9768833333333
-longitude       | 23.4321
-geog            | 0101000020E6100000029A081B9E6E3740455658830AFD4D40
-home_flag       | f
-notes           | 
--[ RECORD 3 ]---+---------------------------------------------------
-id              | 3
-vessel_id       | t
-name            | Ekenäs
-country         | fi
-stay_code       | 1
-stay_duration   | PT0S
-reference_count | 1
-latitude        | 59.86
-longitude       | 23.3657666666667
-geog            | 0101000020E6100000E84C5FE2A25D3740AE47E17A14EE4D40
-home_flag       | f
-notes           | 
+-[ RECORD 1 ]-------------------------------------------------
+id        | 1
+vessel_id | t
+name      | patch moorage name 3
+country   | fi
+stay_code | 2
+latitude  | 60.0776666666667
+longitude | 23.5308666666667
+geog      | 0101000020E6100000B9DEBBE0E687374052A938FBF0094E40
+home_flag | t
+notes     | new moorage note 3
+-[ RECORD 2 ]-------------------------------------------------
+id        | 2
+vessel_id | t
+name      | Norra hamnen
+country   | fi
+stay_code | 4
+latitude  | 59.9768833333333
+longitude | 23.4321
+geog      | 0101000020E6100000029A081B9E6E3740455658830AFD4D40
+home_flag | f
+notes     | 
+-[ RECORD 3 ]-------------------------------------------------
+id        | 3
+vessel_id | t
+name      | Ekenäs
+country   | fi
+stay_code | 1
+latitude  | 59.86
+longitude | 23.3657666666667
+geog      | 0101000020E6100000E84C5FE2A25D3740AE47E17A14EE4D40
+home_flag | f
+notes     | 
 
 api.moorages_view
 -[ RECORD 1 ]-------+---------------------
@@ -271,4 +265,51 @@ default_stay        | Unknown
 default_stay_id     | 1
 arrivals_departures | 1
 total_duration      | PT0S
+
+api.moorage_view
+-[ RECORD 1 ]------+---------------------------------------------------
+id                 | 3
+name               | Ekenäs
+default_stay       | Unknown
+latitude           | 59.86
+longitude          | 23.3657666666667
+geog               | 0101000020E6100000E84C5FE2A25D3740AE47E17A14EE4D40
+home               | f
+notes              | 
+logs_count         | 1
+stays_count        | 0
+stay_first_seen_id | 
+stay_last_seen_id  | 
+stay_first_seen    | f
+stay_last_seen     | f
+-[ RECORD 2 ]------+---------------------------------------------------
+id                 | 2
+name               | Norra hamnen
+default_stay       | Dock
+latitude           | 59.9768833333333
+longitude          | 23.4321
+geog               | 0101000020E6100000029A081B9E6E3740455658830AFD4D40
+home               | f
+notes              | 
+logs_count         | 2
+stays_count        | 1
+stay_first_seen_id | 2
+stay_last_seen_id  | 2
+stay_first_seen    | t
+stay_last_seen     | t
+-[ RECORD 3 ]------+---------------------------------------------------
+id                 | 1
+name               | patch moorage name 3
+default_stay       | Anchor
+latitude           | 60.0776666666667
+longitude          | 23.5308666666667
+geog               | 0101000020E6100000B9DEBBE0E687374052A938FBF0094E40
+home               | t
+notes              | new moorage note 3
+logs_count         | 1
+stays_count        | 1
+stay_first_seen_id | 1
+stay_last_seen_id  | 1
+stay_first_seen    | t
+stay_last_seen     | t
 

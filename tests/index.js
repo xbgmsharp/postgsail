@@ -89,7 +89,7 @@ const fs = require('fs');
       */
     ],
     user_fn: [
-      { url: '/rpc/timelapse_fn',
+      { url: '/rpc/export_logbooks_geojson_point_trips_fn',
         payload: {
               start_log: 1
             },
@@ -97,7 +97,7 @@ const fs = require('fs');
           obj_name: 'geojson'
         }
       },
-      { url: '/rpc/export_logbook_geojson_fn',
+      { url: '/rpc/export_logbook_geojson_trip_fn',
         payload: {
               _id: 1
             },
@@ -105,7 +105,15 @@ const fs = require('fs');
           obj_name: 'geojson'
         }
       },
-      { url: '/rpc/export_logbook_gpx_fn',
+      { url: '/rpc/export_logbook_gpx_trip_fn',
+        payload: {
+              _id: 1
+            },
+        res: {
+          obj_name: null
+        }
+      },
+      { url: '/rpc/export_logbook_kml_trip_fn',
         payload: {
               _id: 1
             },
@@ -228,15 +236,15 @@ const fs = require('fs');
       */
     ],
     user_fn: [
-      { url: '/rpc/timelapse_fn',
+      { url: '/rpc/export_logbooks_geojson_point_trips_fn',
         payload: {
-              start_log: 3
+              start_log: 1
             },
         res: {
           obj_name: 'geojson'
         }
       },
-      { url: '/rpc/export_logbook_geojson_fn',
+      { url: '/rpc/export_logbook_geojson_trip_fn',
         payload: {
               _id: 3
             },
@@ -244,7 +252,15 @@ const fs = require('fs');
           obj_name: 'geojson'
         }
       },
-      { url: '/rpc/export_logbook_gpx_fn',
+      { url: '/rpc/export_logbook_gpx_trip_fn',
+        payload: {
+              _id: 3
+            },
+        res: {
+          obj_name: null
+        }
+      },
+      { url: '/rpc/export_logbook_kml_trip_fn',
         payload: {
               _id: 3
             },

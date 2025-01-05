@@ -1,4 +1,4 @@
-# PostgSail Unit test 
+# PostgSail Unit test
 
 if [[ -z "${PGSAIL_DB_URI}" ]]; then
   echo "PGSAIL_DB_URI is undefined"
@@ -18,8 +18,9 @@ fi
 if [[ ! -x "/usr/bin/go" || ! -x "/root/go/bin/mermerd" ]]; then
     #wget -q https://go.dev/dl/go1.21.4.linux-arm64.tar.gz && \
     #rm -rf /usr/local/go && tar -C /usr/local -xzf go1.21.4.linux-arm64.tar.gz && \
-    apt update && apt -y install golang && \
-    go install github.com/KarnerTh/mermerd@latest
+    apt update && apt -y install golang-go && \
+    #go install github.com/KarnerTh/mermerd@latest require latest go version
+    go install github.com/KarnerTh/mermerd@v0.11.0
 fi
 
 # pnpm install

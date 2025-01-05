@@ -17,10 +17,16 @@ SELECT set_config('vessel.id', :'vessel_id', false) IS NOT NULL as vessel_id;
 
 \echo 'Insert new api.logbook for badges'
 INSERT INTO api.logbook
-    (id, active, "name", "_from", "_from_lat", "_from_lng", "_to", "_to_lat", "_to_lng", track_geom, track_geog, track_geojson, "_from_time", "_to_time", distance, duration, avg_speed, max_speed, max_wind_speed, notes, vessel_id)
+    (id, active, "name", "_from", "_from_lat", "_from_lng", "_to", "_to_lat", "_to_lng", trip, "_from_time", "_to_time", distance, duration, avg_speed, max_speed, max_wind_speed, notes, vessel_id)
     OVERRIDING SYSTEM VALUE VALUES
-    (nextval('api.logbook_id_seq'), false, 'Tropics Zone', NULL, NULL, NULL, NULL, NULL, NULL, 'SRID=4326;LINESTRING (-63.151124640791096 14.01074681627324, -77.0912026418618 12.870995731013664)'::public.geometry, NULL, NULL, NOW(), NOW(), 123, NULL, NULL, NULL, NULL, NULL, current_setting('vessel.id', false)),
-    (nextval('api.logbook_id_seq'), false, 'Alaska Zone', NULL, NULL, NULL, NULL, NULL, NULL, 'SRID=4326;LINESTRING (-143.5773697471158 59.4404631255976, -152.35402122385003 56.58243132943173)'::public.geometry, NULL, NULL, NOW(), NOW(), 1234, NULL, NULL, NULL, NULL, NULL, current_setting('vessel.id', false));
+    (nextval('api.logbook_id_seq'), false, 'Tropics Zone', NULL, NULL, NULL, NULL, NULL, NULL, 'SRID=4326;[Point(-63.151124640791096 14.01074681627324)@2025-01-01, Point(-77.0912026418618 12.870995731013664)@2025-01-02]'::public.tgeogpoint, NOW(), NOW(), 123, NULL, NULL, NULL, NULL, NULL, current_setting('vessel.id', false)),
+    (nextval('api.logbook_id_seq'), false, 'Alaska Zone', NULL, NULL, NULL, NULL, NULL, NULL, 'SRID=4326;[Point(-143.5773697471158 59.4404631255976)@2025-01-01, Point(-152.35402122385003 56.58243132943173)@2025-01-02]'::public.tgeogpoint, NOW(), NOW(), 1234, NULL, NULL, NULL, NULL, NULL, current_setting('vessel.id', false));
+
+-- Transform static geometry LINESTRING to mobilitydb
+-- 'SRID=4326;LINESTRING (-63.151124640791096 14.01074681627324, -77.0912026418618 12.870995731013664)'::public.geometry
+-- 'SRID=4326;LINESTRING (-143.5773697471158 59.4404631255976, -152.35402122385003 56.58243132943173)'::public.geometry
+--SELECT ST_AsGeoJSON('SRID=4326;LINESTRING (-63.151124640791096 14.01074681627324, -77.0912026418618 12.870995731013664)'::public.geometry);
+--SELECT ST_AsGeoJSON(trajectory('SRID=4326;[Point(-63.151124640791096 14.01074681627324)@2025-01-01, Point(-77.0912026418618 12.870995731013664)@2025-01-02]'::public.tgeogpoint));
 
 \echo 'Set config'
 SELECT set_config('user.email', 'demo+kapla@openplotter.cloud', false);
@@ -51,10 +57,10 @@ SELECT
 
 \echo 'Insert new api.moorages for badges'
 INSERT INTO api.moorages
-    (id,"name",country,stay_code,stay_duration,reference_count,latitude,longitude,geog,home_flag,notes,vessel_id)
+    (id,"name",country,stay_code,latitude,longitude,geog,home_flag,notes,vessel_id)
     OVERRIDING SYSTEM VALUE VALUES
-    (8,'Badge Mooring Pro',NULL,3,'11 days 00:39:56.418',1,NULL,NULL,NULL,false,'Badge Mooring Pro',current_setting('vessel.id', false)),
-    (9,'Badge Anchormaster',NULL,2,'26 days 00:49:56.418',1,NULL,NULL,NULL,false,'Badge Anchormaster',current_setting('vessel.id', false));
+    (8,'Badge Mooring Pro',NULL,3,NULL,NULL,NULL,false,'Badge Mooring Pro',current_setting('vessel.id', false)),
+    (9,'Badge Anchormaster',NULL,2,NULL,NULL,NULL,false,'Badge Anchormaster',current_setting('vessel.id', false));
 
 \echo 'Set config'
 SELECT set_config('user.email', 'demo+aava@openplotter.cloud', false);

@@ -26,7 +26,8 @@ SELECT set_config('vessel.id', :'vessel_id', false) IS NOT NULL as vessel_id;
 \echo 'logbook'
 SELECT count(*) FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
 \echo 'logbook'
-SELECT name,_from_time IS NOT NULL AS _from_time,_to_time IS NOT NULL AS _to_time, track_geojson IS NOT NULL AS track_geojson, track_geom, distance,duration,avg_speed,max_speed,max_wind_speed,notes,extra FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
+-- track_geom and track_geojson are now dynamic from mobilitydb
+SELECT name,_from_time IS NOT NULL AS _from_time, _to_time IS NOT NULL AS _to_time, trajectory(trip) AS track_geom, distance,duration,avg_speed,max_speed,max_wind_speed,notes,extra FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false) ORDER BY id ASC;
 
 -- Delete logbook for user
 \echo 'Delete logbook for user kapla'

@@ -45,13 +45,22 @@ var moment = require("moment");
       res: {},
     },
     timelapse: {
-      url: "/rpc/timelapse_fn",
+      //url: "/rpc/timelapse_fn",
+      url: '/rpc/export_logbooks_geojson_linestring_trips_fn',
       header: { name: "x-is-public", value: btoa("kapla,public_timelapse,1") },
       payload: null,
       res: {},
     },
     timelapse_full: {
-      url: "/rpc/timelapse_fn",
+      //url: "/rpc/timelapse_fn",
+      url: '/rpc/export_logbooks_geojson_linestring_trips_fn',
+      header: { name: "x-is-public", value: btoa("kapla,public_timelapse,0") },
+      payload: null,
+      res: {},
+    },
+    replay_full: {
+      //url: "/rpc/timelapse_fn",
+      url: '/rpc/export_logbooks_geojson_point_trips_fn',
       header: { name: "x-is-public", value: btoa("kapla,public_timelapse,0") },
       payload: null,
       res: {},
@@ -69,7 +78,7 @@ var moment = require("moment");
       res: {},
     },
     export_gpx: {
-      url: "/rpc/export_logbook_gpx_fn",
+      url: "/rpc/export_logbook_gpx_trip_fn",
       header: { name: "x-is-public", value: btoa("kapla,public_logs,0") },
       payload: null,
       res: {},
@@ -97,13 +106,21 @@ var moment = require("moment");
       res: {},
     },
     timelapse: {
-      url: "/rpc/timelapse_fn",
+      //url: "/rpc/timelapse_fn",
+      url: '/rpc/export_logbooks_geojson_linestring_trips_fn',
       header: { name: "x-is-public", value: btoa("aava,public_timelapse,3") },
       payload: null,
       res: {},
     },
     timelapse_full: {
-      url: "/rpc/timelapse_fn",
+      //url: "/rpc/timelapse_fn",
+      url: '/rpc/export_logbooks_geojson_linestring_trips_fn',
+      header: { name: "x-is-public", value: btoa("aava,public_timelapse,0") },
+      payload: null,
+      res: {},
+    },
+    replay_full: {
+      url: '/rpc/export_logbooks_geojson_point_trips_fn',
       header: { name: "x-is-public", value: btoa("aava,public_timelapse,0") },
       payload: null,
       res: {},
@@ -121,7 +138,7 @@ var moment = require("moment");
       res: {},
     },
     export_gpx: {
-      url: "/rpc/export_logbook_gpx_fn",
+      url: "/rpc/export_logbook_gpx_trip_fn",
       header: { name: "x-is-public", value: btoa("aava,public_logs,0") },
       payload: null,
       res: {},
@@ -183,12 +200,29 @@ var moment = require("moment");
             done(err);
           });
       });
-      it("/rpc/timelapse_fn, api_anonymous no jwt token", function (done) {
+      it("/rpc/export_logbooks_geojson_linestring_trips_fn, api_anonymous no jwt token", function (done) {
         // Reset agent so we do not save cookies
         request = supertest.agent(test.cname);
         request
           .post(test.timelapse.url)
           .set(test.timelapse.header.name, test.timelapse.header.value)
+          .set("Accept", "application/json")
+          .end(function (err, res) {
+            console.log(res.text);
+            res.status.should.equal(200); // return 404 as it is not enable in user settings.
+            should.exist(res.header["content-type"]);
+            should.exist(res.header["server"]);
+            res.header["content-type"].should.match(new RegExp("json", "g"));
+            res.header["server"].should.match(new RegExp("postgrest", "g"));
+            done(err);
+          });
+      });
+      it("/rpc/export_logbooks_geojson_point_trips_fn, api_anonymous no jwt token", function (done) {
+        // Reset agent so we do not save cookies
+        request = supertest.agent(test.cname);
+        request
+          .post(test.replay_full.url)
+          .set(test.replay_full.header.name, test.replay_full.header.value)
           .set("Accept", "application/json")
           .end(function (err, res) {
             console.log(res.text);

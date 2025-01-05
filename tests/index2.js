@@ -77,7 +77,7 @@ const metrics_simulator = require('./metrics_sample_simulator.json');
       */
     ],
     user_fn: [
-      { url: '/rpc/timelapse_fn',
+      { url: '/rpc/export_logbooks_geojson_point_trips_fn',
         payload: {
               start_log: 4
             },
@@ -85,7 +85,7 @@ const metrics_simulator = require('./metrics_sample_simulator.json');
           obj_name: 'geojson'
         }
       },
-      { url: '/rpc/export_logbook_geojson_fn',
+      { url: '/rpc/export_logbook_geojson_trip_fn',
         payload: {
               _id: 4
             },
@@ -93,7 +93,15 @@ const metrics_simulator = require('./metrics_sample_simulator.json');
           obj_name: 'geojson'
         }
       },
-      { url: '/rpc/export_logbook_gpx_fn',
+      { url: '/rpc/export_logbook_gpx_trip_fn',
+        payload: {
+              _id: 4
+            },
+        res: {
+          obj_name: null
+        }
+      },
+      { url: '/rpc/export_logbook_kml_trip_fn',
         payload: {
               _id: 4
             },

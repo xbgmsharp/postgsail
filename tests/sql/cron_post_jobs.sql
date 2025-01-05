@@ -25,7 +25,8 @@ SELECT set_config('vessel.id', :'vessel_id', false) IS NOT NULL as vessel_id;
 \echo 'logbook'
 SELECT count(*) FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
 \echo 'logbook'
-SELECT name,_from_time IS NOT NULL AS _from_time,_to_time IS NOT NULL AS _to_time, track_geojson IS NOT NULL AS track_geojson, trajectory(trip)::geometry as track_geom, distance,duration,round(avg_speed::NUMERIC,6),max_speed,max_wind_speed,notes,extra FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
+--SELECT name,_from_time IS NOT NULL AS _from_time,_to_time IS NOT NULL AS _to_time, track_geojson IS NOT NULL AS track_geojson, trajectory(trip)::geometry as track_geom, distance,duration,round(avg_speed::NUMERIC,6),max_speed,max_wind_speed,notes,extra FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
+SELECT name,_from_time IS NOT NULL AS _from_time,_to_time IS NOT NULL AS _to_time, api.export_logbook_geojson_trip_fn(id) IS NOT NULL AS track_geojson, trajectory(trip)::geometry as track_geom, distance,duration,round(avg_speed::NUMERIC,6),max_speed,max_wind_speed,notes,extra FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
 
 -- Test stays for user
 \echo 'stays'
@@ -69,17 +70,28 @@ SELECT extra FROM api.logbook l WHERE id = 1 AND vessel_id = current_setting('ve
 SELECT api.update_logbook_observations_fn(1, '{"tags": ["tag_name"]}'::TEXT);
 SELECT extra FROM api.logbook l WHERE id = 1 AND vessel_id = current_setting('vessel.id', false);
 
-\echo 'Check numbers of geojson properties'
-SELECT jsonb_object_keys(jsonb_path_query(track_geojson, '$.features[0].properties'))
-    FROM api.logbook where id = 1 AND vessel_id = current_setting('vessel.id', false);
-SELECT jsonb_object_keys(jsonb_path_query(track_geojson, '$.features[1].properties'))
-    FROM api.logbook where id = 1 AND vessel_id = current_setting('vessel.id', false);
+\echo 'Check logbook geojson LineString properties'
+WITH logbook_tbl AS (
+    SELECT api.logbook_update_geojson_trip_fn(id) AS geojson
+    FROM api.logbook WHERE id = 1 AND vessel_id = current_setting('vessel.id', false)
+)
+SELECT jsonb_object_keys(jsonb_path_query(geojson, '$.features[0].properties'))
+    FROM logbook_tbl;
+\echo 'Check logbook geojson Point properties'
+WITH logbook_tbl AS (
+    SELECT api.logbook_update_geojson_trip_fn(id) AS geojson
+    FROM api.logbook WHERE id = 1 AND vessel_id = current_setting('vessel.id', false)
+)
+SELECT jsonb_object_keys(jsonb_path_query(geojson, '$.features[1].properties'))
+    FROM logbook_tbl;
 
 -- Check export
---\echo 'check logbook export fn'
+\echo 'Check logbook export fn'
 --SELECT api.export_logbook_geojson_fn(1);
 --SELECT api.export_logbook_gpx_fn(1);
 --SELECT api.export_logbook_kml_fn(1);
+SELECT api.export_logbook_gpx_trip_fn(1) IS NOT NULL AS gpx_trip;
+SELECT api.export_logbook_kml_trip_fn(1) IS NOT NULL AS kml_trip;
 
 -- Check history
 --\echo 'monitoring history fn'
