@@ -13,22 +13,26 @@ erDiagram
         timestamp_with_time_zone _to_time 
         boolean active 
         double_precision avg_speed 
-        numeric distance "in NM"
-        interval duration "Best to use standard ISO 8601"
-        jsonb extra "computed signalk metrics of interest, runTime, currentLevel, etc"
+        numeric distance "Distance in nautical miles (NM)"
+        interval duration "Duration in ISO 8601 format"
+        jsonb extra "Computed SignalK metrics such as runtime, current level, etc."
         integer id "{NOT_NULL}"
         double_precision max_speed 
         double_precision max_wind_speed 
         text name 
         text notes 
-        geography track_geog "postgis geography type default SRID 4326 Unit: degres"
-        jsonb track_geojson "store generated geojson with track metrics data using with LineString and Point features, we can not depend api.metrics table"
-        geometry track_geom "postgis geometry type EPSG:4326 Unit: degres"
         tgeogpoint trip "MobilityDB trajectory"
+        tfloat trip_batt_charge "Battery Charge"
+        tfloat trip_batt_voltage "Battery Voltage"
         tfloat trip_cog "courseovergroundtrue"
+        tfloat trip_depth "Depth"
+        tfloat trip_hum_out "Humidity outside"
         ttext trip_notes 
+        tfloat trip_pres_out "Pressure outside"
         tfloat trip_sog "speedoverground"
         ttext trip_status 
+        tfloat trip_temp_out "Temperature outside"
+        tfloat trip_temp_water "Temperature water"
         tfloat trip_twa "windspeedapparent"
         tfloat trip_twd "truewinddirection"
         tfloat trip_tws "truewindspeed"
@@ -82,9 +86,7 @@ erDiagram
         jsonb nominatim 
         text notes 
         jsonb overpass 
-        integer reference_count 
         integer stay_code "Link api.stays_at with api.moorages via FOREIGN KEY and REFERENCES"
-        interval stay_duration "Best to use standard ISO 8601"
         text vessel_id "{NOT_NULL}"
     }
 
@@ -262,6 +264,8 @@ erDiagram
     }
 
     api_logbook }o--|| api_metadata : ""
+    api_logbook }o--|| api_moorages : ""
+    api_logbook }o--|| api_moorages : ""
     api_logbook }o--|| api_moorages : ""
     api_logbook }o--|| api_moorages : ""
     api_metadata }o--|| auth_vessels : ""
