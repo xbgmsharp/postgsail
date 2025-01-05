@@ -26,10 +26,6 @@ ALTER TABLE api.logbook ADD COLUMN trip_temp_out tfloat NULL;
 ALTER TABLE api.logbook ADD COLUMN trip_pres_out tfloat NULL;
 ALTER TABLE api.logbook ADD COLUMN trip_hum_out tfloat NULL;
 
--- Remove deprecated client_id
---ALTER TABLE api.metadata DROP COLUMN client_id;
---ALTER TABLE api.metrics DROP COLUMN client_id CASCADE;
-
 -- Remove deprecated column from api.logbook
 DROP VIEW IF EXISTS public.trip_in_progress; -- CASCADE
 DROP TRIGGER IF EXISTS update_logbook_with_geojson_trigger_fn ON api.logbook; -- CASCADE
@@ -50,6 +46,7 @@ CREATE VIEW public.trip_in_progress AS
         FROM api.logbook 
         WHERE active IS true;
 
+-- Update api.moorage_view, due to stay_duration column removal
 CREATE OR REPLACE VIEW api.moorage_view
 WITH(security_invoker=true,security_barrier=true)
 AS WITH stay_details AS (
@@ -122,6 +119,49 @@ ORDER BY
 
 COMMENT ON VIEW api.moorage_view IS 'Moorage details web view';
 
+-- Update stats_moorages_view, due to stay_duration column removal
+CREATE OR REPLACE VIEW api.stats_moorages_view
+WITH(security_invoker=true,security_barrier=true)
+AS WITH home_ports AS (
+         SELECT count(*) AS home_ports
+           FROM api.moorage_view m
+          WHERE m.home IS TRUE
+        ), unique_moorage AS (
+         SELECT count(*) AS unique_moorage
+           FROM api.moorage_view m
+        ), time_at_home_ports AS (
+         SELECT sum(m.stays_sum_duration) AS time_at_home_ports
+           FROM api.moorage_view m
+          WHERE m.home IS TRUE
+        ), time_spent_away AS (
+         SELECT sum(m.stays_sum_duration) AS time_spent_away
+           FROM api.moorage_view m
+          WHERE m.home IS FALSE
+        )
+ SELECT home_ports.home_ports,
+    unique_moorage.unique_moorage AS unique_moorages,
+    time_at_home_ports.time_at_home_ports AS "time_spent_at_home_port(s)",
+    time_spent_away.time_spent_away
+   FROM home_ports,
+    unique_moorage,
+    time_at_home_ports,
+    time_spent_away;
+
+COMMENT ON VIEW api.stats_moorages_view IS 'Statistics Moorages web view';
+
+-- Update stats_moorages_away_view, due to stay_duration column removal
+CREATE OR REPLACE VIEW api.stats_moorages_away_view
+WITH(security_invoker=true,security_barrier=true)
+AS SELECT sa.description,
+    sum(m.stays_sum_duration) AS time_spent_away_by
+   FROM api.moorage_view m,
+    api.stays_at sa
+  WHERE m.home IS FALSE AND m.default_stay_id = sa.stay_code
+  GROUP BY m.default_stay_id, sa.description
+  ORDER BY m.default_stay_id;
+
+COMMENT ON VIEW api.stats_moorages_away_view IS 'Statistics Moorages Time Spent Away web view';
+
 -- Comments
 COMMENT ON TABLE api.logbook IS 'Stores generated logbook';
 COMMENT ON COLUMN api.logbook.distance IS 'Distance in nautical miles (NM)';
@@ -182,7 +222,7 @@ ALTER TABLE auth.users FORCE ROW LEVEL SECURITY;
 ALTER TABLE api.stays_at ADD PRIMARY KEY ("stay_code");
 ALTER TABLE auth.vessels ADD PRIMARY KEY ("vessel_id");
 
--- Add public.logbook_update_metrics_short_fn, aggregate all metrics as trip ios short.
+-- Update public.logbook_update_metrics_short_fn, aggregate more metrics
 DROP FUNCTION IF EXISTS public.logbook_update_metrics_short_fn;
 CREATE OR REPLACE FUNCTION public.logbook_update_metrics_short_fn(
     total_entry INT,
@@ -263,7 +303,7 @@ COMMENT ON FUNCTION
     public.logbook_update_metrics_short_fn
     IS 'Optimize logbook metrics for short metrics';
 
--- Add public.logbook_update_metrics_fn, aggregate metrics to reduce size by skipping row.
+-- Update public.logbook_update_metrics_fn, aggregate more metrics
 DROP FUNCTION IF EXISTS public.logbook_update_metrics_fn;
 CREATE OR REPLACE FUNCTION public.logbook_update_metrics_fn(
     total_entry INT,
@@ -429,7 +469,7 @@ COMMENT ON FUNCTION
     public.logbook_update_metrics_fn
     IS 'Optimize logbook metrics base on the total metrics';
 
--- Add public.logbook_update_metrics_fn, aggregate metrics by time-series to reduce size
+-- Update public.logbook_update_metrics_timebucket_fn, aggregate more metrics
 DROP FUNCTION IF EXISTS public.logbook_update_metrics_timebucket_fn;
 CREATE OR REPLACE FUNCTION public.logbook_update_metrics_timebucket_fn(
     total_entry INT,
@@ -591,8 +631,7 @@ COMMENT ON FUNCTION
     public.logbook_update_metrics_timebucket_fn
     IS 'Optimize logbook metrics base on the aggregate time-series';
 
-
--- Create a merge_logbook_fn
+-- Update api.merge_logbook_fn, add support for mobility temporal type
 CREATE OR REPLACE FUNCTION api.merge_logbook_fn(IN id_start integer, IN id_end integer) RETURNS void AS $merge_logbook$
     DECLARE
         logbook_rec_start record;
@@ -1007,7 +1046,7 @@ $function$
 COMMENT ON FUNCTION public.process_lat_lon_fn(in numeric, in numeric, out int4, out int4, out text, out text) IS 'Add or Update moorage base on lat/lon';
 
 
--- Update logbook table, add support for mobility temporal type   
+-- Update logbook table, add support for mobility temporal type
 CREATE OR REPLACE FUNCTION public.process_logbook_queue_fn(_id integer)
  RETURNS void
  LANGUAGE plpgsql
