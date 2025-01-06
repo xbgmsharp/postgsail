@@ -1834,7 +1834,7 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO qgis_role;
 
 -- Update version
 UPDATE public.app_settings
-	SET value='0.8.0'
+	SET value='0.8.1'
 	WHERE "name"='app.version';
 
 \c postgres
