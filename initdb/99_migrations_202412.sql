@@ -880,7 +880,7 @@ BEGIN
         metrics_geojson,
         '{1, properties}',
         CASE
-            WHEN (metrics_geojson->1->'properties'->>'notes') IS NULL THEN -- it is not null but empty??
+            WHEN (metrics_geojson->1->'properties'->>'notes') IS "" THEN -- it is not null but empty??
                 (metrics_geojson->1->'properties' || second_feature_note)::jsonb
             ELSE
                 metrics_geojson->1->'properties'
@@ -892,7 +892,7 @@ BEGIN
         metrics_geojson,
         '{-1, properties}',
         CASE
-            WHEN (metrics_geojson->-1->'properties'->>'notes') IS NULL THEN -- it is not null but empty??
+            WHEN (metrics_geojson->-1->'properties'->>'notes') IS "" THEN -- it is not null but empty??
                 (metrics_geojson->-1->'properties' || last_feature_note)::jsonb
             ELSE
                 metrics_geojson->-1->'properties'
@@ -2095,8 +2095,9 @@ GRANT EXECUTE ON FUNCTION api.export_logbooks_geojson_point_trips_fn to api_anon
 --GRANT EXECUTE ON FUNCTION api.logbook_update_geojson_trip_fn to api_anonymous;
 GRANT EXECUTE ON FUNCTION api.export_logbook_geojson_trip_fn to api_anonymous;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO api_anonymous;
-GRANT SELECT ON TABLE api.moorage_view TO grafana;
+GRANT SELECT ON TABLE api.log_view TO grafana;
 GRANT SELECT ON TABLE api.moorages_view TO grafana;
+GRANT SELECT ON TABLE api.moorage_view TO grafana;
 GRANT SELECT ON ALL TABLES IN SCHEMA api TO user_role;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA api TO user_role;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO user_role;
