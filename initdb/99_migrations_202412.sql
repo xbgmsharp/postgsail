@@ -880,7 +880,7 @@ BEGIN
         metrics_geojson,
         '{1, properties}',
         CASE
-            WHEN (metrics_geojson->1->'properties'->>'notes') IS "" THEN -- it is not null but empty??
+            WHEN (metrics_geojson->1->'properties'->>'notes') = '' THEN -- it is not null but empty??
                 (metrics_geojson->1->'properties' || second_feature_note)::jsonb
             ELSE
                 metrics_geojson->1->'properties'
@@ -892,7 +892,7 @@ BEGIN
         metrics_geojson,
         '{-1, properties}',
         CASE
-            WHEN (metrics_geojson->-1->'properties'->>'notes') IS "" THEN -- it is not null but empty??
+            WHEN (metrics_geojson->-1->'properties'->>'notes') = '' THEN -- it is not null but empty??
                 (metrics_geojson->-1->'properties' || last_feature_note)::jsonb
             ELSE
                 metrics_geojson->-1->'properties'
