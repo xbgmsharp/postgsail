@@ -838,7 +838,14 @@ BEGIN
             valueAtTimestamp(points.trip_tws, getTimestamp(points.point)) AS truewindspeed,
             valueAtTimestamp(points.trip_twd, getTimestamp(points.point)) AS truewinddirection,
             valueAtTimestamp(points.trip_notes, getTimestamp(points.point)) AS notes,
-            valueAtTimestamp(points.trip_status, getTimestamp(points.point)) AS status
+            valueAtTimestamp(points.trip_status, getTimestamp(points.point)) AS status,
+            valueAtTimestamp(points.trip_depth, getTimestamp(points.point)) AS depth,
+            valueAtTimestamp(points.trip_batt_charge, getTimestamp(points.point)) AS stateofcharge,
+            valueAtTimestamp(points.trip_batt_voltage, getTimestamp(points.point)) AS voltage,
+            valueAtTimestamp(points.trip_temp_water, getTimestamp(points.point)) AS watertemperature,
+            valueAtTimestamp(points.trip_temp_out, getTimestamp(points.point)) AS outsidetemperature,
+            valueAtTimestamp(points.trip_pres_out, getTimestamp(points.point)) AS outsidepressure,
+            valueAtTimestamp(points.trip_hum_out, getTimestamp(points.point)) AS outsidehumidity
         FROM (
             SELECT unnest(instants(trip)) AS point,
                     trip_cog,
@@ -847,7 +854,14 @@ BEGIN
                     trip_tws,
                     trip_twd,
                     trip_notes,
-                    trip_status
+                    trip_status,
+                    trip_depth,
+                    trip_batt_charge,
+                    trip_batt_voltage,
+                    trip_temp_water,
+                    trip_temp_out,
+                    trip_pres_out,
+                    trip_hum_out
             FROM api.logbook
             WHERE id = _id
                 AND trip IS NOT NULL
@@ -914,7 +928,14 @@ BEGIN
                 valueAtTimestamp(points.trip_tws, getTimestamp(points.point)) AS truewindspeed,
                 valueAtTimestamp(points.trip_twd, getTimestamp(points.point)) AS truewinddirection,
                 valueAtTimestamp(points.trip_notes, getTimestamp(points.point)) AS notes,
-                valueAtTimestamp(points.trip_status, getTimestamp(points.point)) AS status
+                valueAtTimestamp(points.trip_status, getTimestamp(points.point)) AS status,
+                valueAtTimestamp(points.trip_depth, getTimestamp(points.point)) AS depth,
+                valueAtTimestamp(points.trip_batt_charge, getTimestamp(points.point)) AS stateofcharge,
+                valueAtTimestamp(points.trip_batt_voltage, getTimestamp(points.point)) AS voltage,
+                valueAtTimestamp(points.trip_temp_water, getTimestamp(points.point)) AS watertemperature,
+                valueAtTimestamp(points.trip_temp_out, getTimestamp(points.point)) AS outsidetemperature,
+                valueAtTimestamp(points.trip_pres_out, getTimestamp(points.point)) AS outsidepressure,
+                valueAtTimestamp(points.trip_hum_out, getTimestamp(points.point)) AS outsidehumidity
             FROM 
             (
                 SELECT 
@@ -925,7 +946,14 @@ BEGIN
                     trip_tws,
                     trip_twd,
                     trip_notes,
-                    trip_status
+                    trip_status,
+                    trip_depth,
+                    trip_batt_charge,
+                    trip_batt_voltage,
+                    trip_temp_water,
+                    trip_temp_out,
+                    trip_pres_out,
+                    trip_hum_out
                 FROM api.logbook
                 WHERE id = _id
             ) AS points
@@ -1814,15 +1842,257 @@ $function$
 
 COMMENT ON FUNCTION public.qgis_bbox_trip_py_fn(in text, out text) IS 'Generate the BBOX base on trip extent and adapt extent to the image size for QGIS Server';
 
+-- DROP FUNCTION api.stats_stays_fn(in text, in text, out json);
+-- Update api.stats_stays_fn, due to reference_count and stay_duration columns removal
+CREATE OR REPLACE FUNCTION api.stats_stays_fn(start_date text DEFAULT NULL::text, end_date text DEFAULT NULL::text, OUT stats json)
+ RETURNS json
+ LANGUAGE plpgsql
+AS $function$
+    DECLARE
+        _start_date TIMESTAMPTZ DEFAULT '1970-01-01';
+        _end_date TIMESTAMPTZ DEFAULT NOW();
+    BEGIN
+        IF start_date IS NOT NULL AND public.isdate(start_date::text) AND public.isdate(end_date::text) THEN
+            RAISE NOTICE '--> stats_stays_fn, custom filter result stats by date [%]', start_date;
+            _start_date := start_date::TIMESTAMPTZ;
+            _end_date := end_date::TIMESTAMPTZ;
+        END IF;
+        RAISE NOTICE '--> stats_stays_fn, _start_date [%], _end_date [%]', _start_date, _end_date;
+        WITH
+            stays AS (
+                SELECT distinct(moorage_id) as moorage_id, sum(duration) as duration, count(id) as reference_count
+                    FROM api.stays s
+                    WHERE arrived >= _start_date::TIMESTAMPTZ
+                        AND departed <= _end_date::TIMESTAMPTZ + interval '23 hours 59 minutes'
+                    group by moorage_id
+                    order by moorage_id
+            ),
+            moorages AS (
+                SELECT m.id, m.home_flag, mv.stays_count, mv.stays_sum_duration, m.stay_code, m.country, s.duration, s.reference_count
+                    FROM api.moorages m, stays s, api.moorage_view mv
+                    WHERE s.moorage_id = m.id
+                    and mv.id = m.id
+                    order by moorage_id
+            ),
+            home_ports AS (
+                select count(*) as home_ports from api.moorages m where home_flag is true
+            ),
+            unique_moorages AS (
+                select count(*) as unique_moorages from api.moorages m
+            ),
+            time_at_home_ports AS (
+                select sum(m.stays_sum_duration) as time_at_home_ports from api.moorage_view m where home is true
+            ),
+            sum_stay_duration AS (
+                select sum(m.stays_sum_duration) as sum_stay_duration from api.moorage_view m where home is false
+            ),
+            time_spent_away_arr AS (
+                select m.default_stay_id as stay_code,sum(m.stays_sum_duration) as stay_duration from api.moorage_view m where home is false group by m.default_stay_id order by m.default_stay_id
+            ),
+            time_spent_arr as (
+                select jsonb_agg(t.*) as time_spent_away_arr from time_spent_away_arr t
+            ),
+            time_spent_away AS (
+                select sum(m.stays_sum_duration) as time_spent_away from api.moorage_view m where home is false
+            ),
+            time_spent as (
+                select jsonb_agg(t.*) as time_spent_away from time_spent_away t
+            )
+        -- Return a JSON
+        SELECT jsonb_build_object(
+            'home_ports', home_ports.home_ports,
+            'unique_moorages', unique_moorages.unique_moorages,
+            'time_at_home_ports', time_at_home_ports.time_at_home_ports,
+            'time_spent_away', time_spent_away.time_spent_away,
+            'time_spent_away_arr', time_spent_arr.time_spent_away_arr) INTO stats
+            FROM home_ports, unique_moorages,
+                        time_at_home_ports, sum_stay_duration, time_spent_away, time_spent_arr;
+    END;
+$function$
+;
+
+COMMENT ON FUNCTION api.stats_stays_fn(in text, in text, out json) IS 'Stays/Moorages stats by date';
+
+-- DROP FUNCTION api.stats_fn(in text, in text, out jsonb);
+-- Update api.stats_fn, due to reference_count and stay_duration columns removal
+CREATE OR REPLACE FUNCTION api.stats_fn(start_date text DEFAULT NULL::text, end_date text DEFAULT NULL::text, OUT stats jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+AS $function$
+    DECLARE
+        _start_date TIMESTAMPTZ DEFAULT '1970-01-01';
+        _end_date TIMESTAMPTZ DEFAULT NOW();
+        stats_logs JSONB;
+        stats_moorages JSONB;
+        stats_logs_topby JSONB;
+        stats_moorages_topby JSONB;
+    BEGIN
+        IF start_date IS NOT NULL AND public.isdate(start_date::text) AND public.isdate(end_date::text) THEN
+            RAISE WARNING '--> stats_fn, filter result stats by date [%]', start_date;
+            _start_date := start_date::TIMESTAMPTZ;
+            _end_date := end_date::TIMESTAMPTZ;
+        END IF;
+        RAISE NOTICE '--> stats_fn, _start_date [%], _end_date [%]', _start_date, _end_date;
+        -- Get global logs statistics
+        SELECT api.stats_logs_fn(_start_date::TEXT, _end_date::TEXT) INTO stats_logs;
+        -- Get global stays/moorages statistics
+        SELECT api.stats_stays_fn(_start_date::TEXT, _end_date::TEXT) INTO stats_moorages;
+        -- Get Top 5 trips statistics
+        WITH
+            logs_view AS (
+                SELECT id,avg_speed,max_speed,max_wind_speed,distance,duration
+                    FROM api.logbook l
+                    WHERE _from_time >= _start_date::TIMESTAMPTZ
+                        AND _to_time <= _end_date::TIMESTAMPTZ + interval '23 hours 59 minutes'
+            ),
+            logs_top_avg_speed AS (
+                SELECT id,avg_speed FROM logs_view
+                GROUP BY id,avg_speed
+                ORDER BY avg_speed DESC
+                LIMIT 5),
+            logs_top_speed AS (
+                SELECT id,max_speed FROM logs_view
+                WHERE max_speed IS NOT NULL
+                GROUP BY id,max_speed
+                ORDER BY max_speed DESC
+                LIMIT 5),
+            logs_top_wind_speed AS (
+                SELECT id,max_wind_speed FROM logs_view
+				WHERE max_wind_speed IS NOT NULL
+                GROUP BY id,max_wind_speed
+                ORDER BY max_wind_speed DESC
+                LIMIT 5),
+            logs_top_distance AS (
+                SELECT id FROM logs_view
+                GROUP BY id,distance
+                ORDER BY distance DESC
+                LIMIT 5),
+            logs_top_duration AS (
+                SELECT id FROM logs_view
+                GROUP BY id,duration
+                ORDER BY duration DESC
+                LIMIT 5)
+		-- Stats Top Logs
+        SELECT jsonb_build_object(
+            'stats_logs', stats_logs,
+            'stats_moorages', stats_moorages,
+            'logs_top_speed', (SELECT jsonb_agg(logs_top_speed.*) FROM logs_top_speed),
+            'logs_top_avg_speed', (SELECT jsonb_agg(logs_top_avg_speed.*) FROM logs_top_avg_speed),
+            'logs_top_wind_speed', (SELECT jsonb_agg(logs_top_wind_speed.*) FROM logs_top_wind_speed),
+            'logs_top_distance', (SELECT jsonb_agg(logs_top_distance.id) FROM logs_top_distance),
+            'logs_top_duration', (SELECT jsonb_agg(logs_top_duration.id) FROM logs_top_duration)
+         ) INTO stats;
+		-- Stats top 5 moorages statistics
+        WITH
+            stays AS (
+                SELECT distinct(moorage_id) as moorage_id, sum(duration) as duration, count(id) as reference_count
+                    FROM api.stays s
+                    WHERE s.arrived >= _start_date::TIMESTAMPTZ
+                        AND s.departed <= _end_date::TIMESTAMPTZ + interval '23 hours 59 minutes'
+                    group by s.moorage_id
+                    order by s.moorage_id
+            ),
+            moorages AS (
+                SELECT m.id, m.home_flag, mv.stays_count, mv.stays_sum_duration, m.stay_code, m.country, s.duration as dur, s.reference_count as ref_count
+                    FROM api.moorages m, stays s, api.moorage_view mv
+                    WHERE s.moorage_id = m.id
+                        AND mv.id = m.id
+                    order by s.moorage_id
+            ),
+            moorages_top_arrivals AS (
+                SELECT id,ref_count FROM moorages
+                GROUP BY id,ref_count
+                ORDER BY ref_count DESC
+                LIMIT 5),
+            moorages_top_duration AS (
+                SELECT id,dur FROM moorages
+                GROUP BY id,dur
+                ORDER BY dur DESC
+                LIMIT 5),
+            moorages_countries AS (
+                SELECT DISTINCT(country) FROM moorages
+                WHERE country IS NOT NULL AND country <> 'unknown'
+                GROUP BY country
+                ORDER BY country DESC
+                LIMIT 5)
+		SELECT stats || jsonb_build_object(
+		    'moorages_top_arrivals', (SELECT jsonb_agg(moorages_top_arrivals) FROM moorages_top_arrivals),
+		    'moorages_top_duration', (SELECT jsonb_agg(moorages_top_duration) FROM moorages_top_duration),
+		    'moorages_top_countries', (SELECT jsonb_agg(moorages_countries.country) FROM moorages_countries)
+		 ) INTO stats;
+    END;
+$function$
+;
+
+COMMENT ON FUNCTION api.stats_fn(in text, in text, out jsonb) IS 'Statistic by date for Logs and Moorages and Stays';
+
+DROP VIEW IF EXISTS api.log_view;
+-- Update log_view with dynamic GeoJSON
+CREATE OR REPLACE VIEW api.log_view
+WITH(security_invoker=true,security_barrier=true)
+AS SELECT id,
+    name,
+    _from AS "from",
+    _from_time AS started,
+    _to AS "to",
+    _to_time AS ended,
+    distance,
+    duration,
+    notes,
+    api.export_logbook_geojson_trip_fn(id) AS geojson,
+    avg_speed,
+    max_speed,
+    max_wind_speed,
+    extra,
+    _from_moorage_id AS from_moorage_id,
+    _to_moorage_id AS to_moorage_id
+   FROM api.logbook l
+  WHERE _to_time IS NOT NULL
+  ORDER BY _from_time DESC;
+-- Description
+COMMENT ON VIEW api.log_view IS 'Log web view';
+
+-- Update delete_trip_entry_fn, delete temporal sequence into a trip
+CREATE OR REPLACE FUNCTION api.delete_trip_entry_fn(
+    _id INT,
+    update_string tstzspan -- tstzspan '[2024-11-07T18:40:45+00, 2024-11-07T18:41:45+00]'
+)
+RETURNS VOID AS $$
+BEGIN
+    UPDATE api.logbook l
+        SET
+            trip = deleteTime(l.trip, update_string),
+            trip_cog = deleteTime(l.trip_cog, update_string),
+            trip_sog = deleteTime(l.trip_sog, update_string),
+            trip_twa = deleteTime(l.trip_twa, update_string),
+            trip_tws = deleteTime(l.trip_tws, update_string),
+            trip_twd = deleteTime(l.trip_twd, update_string),
+            trip_notes = deleteTime(l.trip_notes, update_string),
+            trip_status = deleteTime(l.trip_status, update_string),
+            trip_depth = deleteTime(l.trip_depth, update_string),
+            trip_batt_charge = deleteTime(l.trip_batt_charge, update_string),
+            trip_batt_voltage = deleteTime(l.trip_batt_voltage, update_string),
+            trip_temp_water = deleteTime(l.trip_temp_water, update_string),
+            trip_temp_out = deleteTime(l.trip_temp_out, update_string),
+            trip_pres_out = deleteTime(l.trip_pres_out, update_string),
+            trip_hum_out = deleteTime(l.trip_hum_out, update_string)
+        WHERE id = _id;
+END;
+$$ LANGUAGE plpgsql;
+COMMENT ON FUNCTION api.delete_trip_entry_fn IS 'Delete at a specific time a temporal sequence for all trip_* column from a logbook';
+
 -- Update api role SQL connection to 40
 ALTER ROLE authenticator WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 40 LOGIN;
 ALTER ROLE api_anonymous WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 40 LOGIN;
+
+-- Allow users to update certain columns on specific TABLES on API schema
+GRANT UPDATE (name, _from, _to, notes, trip_notes, trip, trip_cog, trip_sog, trip_twa, trip_tws, trip_twd, trip_status, trip_depth, trip_batt_charge, trip_batt_voltage, trip_temp_water, trip_temp_out, trip_pres_out, trip_hum_out) ON api.logbook TO user_role;
 
 -- Refresh user_role permissions
 GRANT SELECT ON TABLE api.log_view TO api_anonymous;
 GRANT EXECUTE ON FUNCTION api.export_logbooks_geojson_linestring_trips_fn to api_anonymous;
 GRANT EXECUTE ON FUNCTION api.export_logbooks_geojson_point_trips_fn to api_anonymous;
-GRANT EXECUTE ON FUNCTION api.logbook_update_geojson_trip_fn to api_anonymous;
+--GRANT EXECUTE ON FUNCTION api.logbook_update_geojson_trip_fn to api_anonymous;
 GRANT EXECUTE ON FUNCTION api.export_logbook_geojson_trip_fn to api_anonymous;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO api_anonymous;
 GRANT SELECT ON TABLE api.moorage_view TO grafana;
