@@ -797,9 +797,131 @@ COMMENT ON FUNCTION
     api.merge_logbook_fn
     IS 'Merge 2 logbook by id, from the start of the lower log id and the end of the higher log id, update the calculate data as well (avg, geojson)';
 
--- Update export_logbook_geojson_trip_fn, update geojson from trip to geojson
+-- Update export_logbook_geojson_trip_fn, update geojson from trip to geojson with more properties
+DROP FUNCTION api.export_logbook_geojson_trip_fn;
 CREATE OR REPLACE FUNCTION api.export_logbook_geojson_trip_fn(_id integer)
-RETURNS json
+RETURNS jsonb
+LANGUAGE plpgsql
+AS $function$
+DECLARE
+    logbook_rec RECORD;
+    log_geojson JSONB;
+    metrics_geojson JSONB;
+    first_feature_obj JSONB;
+    second_feature_note JSONB;
+    last_feature_note JSONB;
+BEGIN
+    -- Validate input
+    IF _id IS NULL OR _id < 1 THEN
+        RAISE WARNING '-> export_logbook_geojson_trip_fn invalid input %', _id;
+        RETURN NULL;
+    END IF;
+
+    -- Fetch the processed logbook data.
+    SELECT id, name, distance, duration, avg_speed, max_speed, max_wind_speed, extra->>'avg_wind_speed' AS avg_wind_speed,
+           _from, _to, _from_time, _to_time, _from_moorage_id, _to_moorage_id, notes,
+           trajectory(trip) AS trajectory,
+           timestamps(trip) AS times
+    INTO logbook_rec
+    FROM api.logbook
+    WHERE id = _id;
+
+    -- Create JSON notes for feature properties
+    first_feature_obj := jsonb_build_object('trip', jsonb_build_object('name', logbook_rec.name, 'duration', logbook_rec.duration, 'distance', logbook_rec.distance));
+    second_feature_note := jsonb_build_object('notes', COALESCE(logbook_rec._from, ''));
+    last_feature_note := jsonb_build_object('notes', COALESCE(logbook_rec._to, ''));
+
+    -- GeoJSON Feature for Logbook linestring
+    SELECT ST_AsGeoJSON(logbook_rec.*)::jsonb INTO log_geojson;
+
+    -- GeoJSON Features for Metrics Points
+    SELECT jsonb_agg(ST_AsGeoJSON(t.*)::jsonb) INTO metrics_geojson
+    FROM (
+        SELECT
+            geometry(getvalue(points.point)) AS point_geometry,
+            getTimestamp(points.point) AS time,
+            valueAtTimestamp(points.trip_cog, getTimestamp(points.point)) AS courseovergroundtrue,
+            valueAtTimestamp(points.trip_sog, getTimestamp(points.point)) AS speedoverground,
+            valueAtTimestamp(points.trip_twa, getTimestamp(points.point)) AS windspeedapparent,
+            valueAtTimestamp(points.trip_tws, getTimestamp(points.point)) AS truewindspeed,
+            valueAtTimestamp(points.trip_twd, getTimestamp(points.point)) AS truewinddirection,
+            valueAtTimestamp(points.trip_notes, getTimestamp(points.point)) AS notes,
+            valueAtTimestamp(points.trip_status, getTimestamp(points.point)) AS status,
+            valueAtTimestamp(points.trip_depth, getTimestamp(points.point)) AS depth,
+            valueAtTimestamp(points.trip_batt_charge, getTimestamp(points.point)) AS stateofcharge,
+            valueAtTimestamp(points.trip_batt_voltage, getTimestamp(points.point)) AS voltage,
+            valueAtTimestamp(points.trip_temp_water, getTimestamp(points.point)) AS watertemperature,
+            valueAtTimestamp(points.trip_temp_out, getTimestamp(points.point)) AS outsidetemperature,
+            valueAtTimestamp(points.trip_pres_out, getTimestamp(points.point)) AS outsidepressure,
+            valueAtTimestamp(points.trip_hum_out, getTimestamp(points.point)) AS outsidehumidity
+        FROM (
+            SELECT unnest(instants(trip)) AS point,
+                    trip_cog,
+                    trip_sog,
+                    trip_twa,
+                    trip_tws,
+                    trip_twd,
+                    trip_notes,
+                    trip_status,
+                    trip_depth,
+                    trip_batt_charge,
+                    trip_batt_voltage,
+                    trip_temp_water,
+                    trip_temp_out,
+                    trip_pres_out,
+                    trip_hum_out
+            FROM api.logbook
+            WHERE id = _id
+                AND trip IS NOT NULL
+        ) AS points
+    ) AS t;
+
+    -- Update the properties of the first feature
+    metrics_geojson := jsonb_set(
+        metrics_geojson,
+        '{0, properties}',
+        (metrics_geojson->0->'properties' || first_feature_obj)::jsonb,
+        true
+    );
+    -- Update the properties of the third feature
+    metrics_geojson := jsonb_set(
+        metrics_geojson,
+        '{1, properties}',
+        CASE
+            WHEN (metrics_geojson->1->'properties'->>'notes') = '' THEN
+                (metrics_geojson->1->'properties' || second_feature_note)::jsonb
+            ELSE
+                metrics_geojson->1->'properties'
+        END,
+        true
+    );
+    -- Update the properties of the last feature
+    metrics_geojson := jsonb_set(
+        metrics_geojson,
+        '{-1, properties}',
+        CASE
+            WHEN (metrics_geojson->-1->'properties'->>'notes') = '' THEN
+                (metrics_geojson->-1->'properties' || last_feature_note)::jsonb
+            ELSE
+                metrics_geojson->-1->'properties'
+        END,
+        true
+    );
+
+    -- Combine Logbook and Metrics GeoJSON
+    RETURN jsonb_build_object('type', 'FeatureCollection', 'features', log_geojson || metrics_geojson);
+
+END;
+$function$
+;
+-- Description
+COMMENT ON FUNCTION
+    api.export_logbook_geojson_trip_fn
+    IS 'Export a log trip entry to GEOJSON format with custom properties for timelapse replay';
+
+-- Add export_logbook_metrics_trip_fn, update geojson from trip to geojson
+CREATE OR REPLACE FUNCTION api.export_logbook_metrics_trip_fn(_id integer)
+RETURNS jsonb
 LANGUAGE plpgsql
 AS $function$
 DECLARE
@@ -906,7 +1028,7 @@ BEGIN
 END;
 $function$
 ;
-COMMENT ON FUNCTION api.export_logbook_geojson_trip_fn IS 'Export a logs entries to GeoJSON format of geometry point';
+COMMENT ON FUNCTION api.export_logbook_metrics_trip_fn IS 'Export a log entry to an array of GeoJSON feature format of geometry point';
 
 -- Create api.export_logbook_geojson_point_trip_fn, transform spatiotemporal trip into a geojson with the corresponding properties
 CREATE OR REPLACE FUNCTION api.export_logbook_geojson_point_trip_fn(_id integer)
@@ -2081,6 +2203,44 @@ END;
 $$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION api.delete_trip_entry_fn IS 'Delete at a specific time a temporal sequence for all trip_* column from a logbook';
 
+-- Update export_logbooks_geojson_point_trips_fn, replace timelapse2_fn, Generate the GeoJSON from the time sequence value 
+CREATE OR REPLACE FUNCTION api.export_logbooks_geojson_point_trips_fn(
+    start_log integer DEFAULT NULL::integer,
+    end_log integer DEFAULT NULL::integer,
+    start_date text DEFAULT NULL::text,
+    end_date text DEFAULT NULL::text,
+    OUT geojson jsonb
+) RETURNS jsonb
+LANGUAGE plpgsql
+AS $function$
+DECLARE
+    metrics_geojson jsonb;
+BEGIN
+    -- Normalize start and end values
+    IF start_log IS NOT NULL AND end_log IS NULL THEN end_log := start_log; END IF;
+    IF start_date IS NOT NULL AND end_date IS NULL THEN end_date := start_date; END IF;
+
+    WITH logbook_data AS (
+        -- get the logbook data, an array for each log
+        SELECT api.export_logbook_metrics_trip_fn(l.id) AS log_geojson
+        FROM api.logbook l
+        WHERE (start_log IS NULL OR l.id >= start_log) AND
+              (end_log IS NULL OR l.id <= end_log) AND
+              (start_date IS NULL OR l._from_time >= start_date::TIMESTAMPTZ) AND
+              (end_date IS NULL OR l._to_time <= end_date::TIMESTAMPTZ + interval '23 hours 59 minutes') AND
+              l.trip IS NOT NULL
+        ORDER BY l._from_time ASC
+    )
+    -- Create the GeoJSON response
+    SELECT jsonb_build_object(
+        'type', 'FeatureCollection',
+        'features', jsonb_agg(feature_element)) INTO geojson
+        FROM logbook_data l,
+            LATERAL jsonb_array_elements(l.log_geojson) AS feature_element; -- Flatten the arrays and create a GeoJSON FeatureCollection
+END;
+$function$;
+COMMENT ON FUNCTION api.export_logbooks_geojson_point_trips_fn IS 'Export all selected logs into a geojson `trip` to a geojson as points including properties';
+
 -- Update api role SQL connection to 40
 ALTER ROLE authenticator WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 40 LOGIN;
 ALTER ROLE api_anonymous WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS NOREPLICATION CONNECTION LIMIT 40 LOGIN;
@@ -2092,8 +2252,8 @@ GRANT UPDATE (name, _from, _to, notes, trip_notes, trip, trip_cog, trip_sog, tri
 GRANT SELECT ON TABLE api.log_view TO api_anonymous;
 GRANT EXECUTE ON FUNCTION api.export_logbooks_geojson_linestring_trips_fn to api_anonymous;
 GRANT EXECUTE ON FUNCTION api.export_logbooks_geojson_point_trips_fn to api_anonymous;
---GRANT EXECUTE ON FUNCTION api.logbook_update_geojson_trip_fn to api_anonymous;
 GRANT EXECUTE ON FUNCTION api.export_logbook_geojson_trip_fn to api_anonymous;
+GRANT EXECUTE ON FUNCTION api.export_logbook_metrics_trip_fn to api_anonymous;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO api_anonymous;
 GRANT SELECT ON TABLE api.log_view TO grafana;
 GRANT SELECT ON TABLE api.moorages_view TO grafana;
