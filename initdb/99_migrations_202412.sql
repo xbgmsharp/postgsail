@@ -267,7 +267,16 @@ BEGIN
             COALESCE((m.metrics->'environment.outside.relativeHumidity')::NUMERIC, NULL) as outsidehumidity,
             COALESCE((m.metrics->'environment.outside.pressure')::NUMERIC, NULL) as outsidepressure,
             COALESCE((m.metrics->'environment.outside.temperature')::NUMERIC, NULL) as outsidetemperature,
-            COALESCE((m.metrics->'electrical.batteries.House.capacity.stateOfCharge')::NUMERIC, NULL) as stateofcharge,
+            COALESCE(
+                NULLIF(
+                    CASE
+                        WHEN (m.metrics->>'electrical.batteries.House.capacity.stateOfCharge') ~ '^-?[0-9]+(\.[0-9]+)?$' THEN
+                            (m.metrics->>'electrical.batteries.House.capacity.stateOfCharge')::NUMERIC
+                    END,
+                    NULL
+                ),
+                NULL
+            ) as stateofcharge,
             COALESCE((m.metrics->'electrical.batteries.House.voltage')::NUMERIC, NULL) as voltage,
             ST_MakePoint(m.longitude, m.latitude) AS geo_point
         FROM api.metrics m
@@ -362,7 +371,16 @@ BEGIN
             COALESCE((t.metrics->'environment.outside.relativeHumidity')::NUMERIC, NULL) as outsidehumidity,
             COALESCE((t.metrics->'environment.outside.pressure')::NUMERIC, NULL) as outsidepressure,
             COALESCE((t.metrics->'environment.outside.temperature')::NUMERIC, NULL) as outsidetemperature,
-            COALESCE((t.metrics->'electrical.batteries.House.capacity.stateOfCharge')::NUMERIC, NULL) as stateofcharge,
+            COALESCE(
+                NULLIF(
+                    CASE
+                        WHEN (t.metrics->>'electrical.batteries.House.capacity.stateOfCharge') ~ '^-?[0-9]+(\.[0-9]+)?$' THEN
+                            (t.metrics->>'electrical.batteries.House.capacity.stateOfCharge')::NUMERIC
+                    END,
+                    NULL
+                ),
+                NULL
+            ) as stateofcharge,
             COALESCE((t.metrics->'electrical.batteries.House.voltage')::NUMERIC, NULL) as voltage,
             ST_MakePoint(t.longitude, t.latitude) AS geo_point
         FROM (
@@ -395,7 +413,16 @@ BEGIN
             COALESCE((m.metrics->'environment.outside.relativeHumidity')::NUMERIC, NULL) as outsidehumidity,
             COALESCE((m.metrics->'environment.outside.pressure')::NUMERIC, NULL) as outsidepressure,
             COALESCE((m.metrics->'environment.outside.temperature')::NUMERIC, NULL) as outsidetemperature,
-            COALESCE((m.metrics->'electrical.batteries.House.capacity.stateOfCharge')::NUMERIC, NULL) as stateofcharge,
+            COALESCE(
+                NULLIF(
+                    CASE
+                        WHEN (m.metrics->>'electrical.batteries.House.capacity.stateOfCharge') ~ '^-?[0-9]+(\.[0-9]+)?$' THEN
+                            (m.metrics->>'electrical.batteries.House.capacity.stateOfCharge')::NUMERIC
+                    END,
+                    NULL
+                ),
+                NULL
+            ) as stateofcharge,
             COALESCE((m.metrics->'electrical.batteries.House.voltage')::NUMERIC, NULL) as voltage,
             ST_MakePoint(m.longitude, m.latitude) AS geo_point
         FROM api.metrics m
@@ -424,7 +451,16 @@ BEGIN
             COALESCE((m.metrics->'environment.outside.relativeHumidity')::NUMERIC, NULL) as outsidehumidity,
             COALESCE((m.metrics->'environment.outside.pressure')::NUMERIC, NULL) as outsidepressure,
             COALESCE((m.metrics->'environment.outside.temperature')::NUMERIC, NULL) as outsidetemperature,
-            COALESCE((m.metrics->'electrical.batteries.House.capacity.stateOfCharge')::NUMERIC, NULL) as stateofcharge,
+            COALESCE(
+                NULLIF(
+                    CASE
+                        WHEN (m.metrics->>'electrical.batteries.House.capacity.stateOfCharge') ~ '^-?[0-9]+(\.[0-9]+)?$' THEN
+                            (m.metrics->>'electrical.batteries.House.capacity.stateOfCharge')::NUMERIC
+                    END,
+                    NULL
+                ),
+                NULL
+            ) as stateofcharge,
             COALESCE((m.metrics->'electrical.batteries.House.voltage')::NUMERIC, NULL) as voltage,
             ST_MakePoint(m.longitude, m.latitude) AS geo_point
         FROM api.metrics m
@@ -513,7 +549,7 @@ BEGIN
     RETURN QUERY
     WITH metrics AS (
         -- Extract metrics base the total of entry ignoring first and last 10 minutes metrics
-        SELECT  time_bucket(bucket_interval::INTERVAL, m.time) AS time_bucket,  -- Time-bucketed period
+        SELECT time_bucket(bucket_interval::INTERVAL, m.time) AS time_bucket,  -- Time-bucketed period
             avg(m.courseovergroundtrue) as courseovergroundtrue,
             avg(m.speedoverground) as speedoverground,
             avg(m.windspeedapparent) as windspeedapparent,
@@ -527,7 +563,16 @@ BEGIN
             COALESCE(avg((m.metrics->'environment.outside.relativeHumidity')::NUMERIC), NULL) as outsidehumidity,
             COALESCE(avg((m.metrics->'environment.outside.pressure')::NUMERIC), NULL) as outsidepressure,
             COALESCE(avg((m.metrics->'environment.outside.temperature')::NUMERIC), NULL) as outsidetemperature,
-            COALESCE(avg((m.metrics->'electrical.batteries.House.capacity.stateOfCharge')::NUMERIC), NULL) as stateofcharge,
+            COALESCE(
+                NULLIF(
+                    CASE
+                        WHEN (m.metrics->>'electrical.batteries.House.capacity.stateOfCharge') ~ '^-?[0-9]+(\.[0-9]+)?$' THEN
+                            (m.metrics->>'electrical.batteries.House.capacity.stateOfCharge')::NUMERIC
+                    END,
+                    NULL
+                ),
+                NULL
+            ) as stateofcharge,
             COALESCE(avg((m.metrics->'electrical.batteries.House.voltage')::NUMERIC), NULL) as voltage,
             ST_MakePoint(last(m.longitude, m.time),last(m.latitude, m.time)) AS geo_point
         FROM api.metrics m
@@ -552,13 +597,22 @@ BEGIN
             m.status,
             COALESCE(metersToKnots((m.metrics->'environment.wind.speedTrue')::NUMERIC), NULL) AS truewindspeed,
             COALESCE(radiantToDegrees((m.metrics->'environment.wind.directionTrue')::NUMERIC), NULL) AS truewinddirection,
-            COALESCE(avg((m.metrics->'environment.water.temperature')::NUMERIC), NULL) as watertemperature,
-            COALESCE(avg((m.metrics->'environment.depth.belowTransducer')::NUMERIC), NULL) as depth,
-            COALESCE(avg((m.metrics->'environment.outside.relativeHumidity')::NUMERIC), NULL) as outsidehumidity,
-            COALESCE(avg((m.metrics->'environment.outside.pressure')::NUMERIC), NULL) as outsidepressure,
-            COALESCE(avg((m.metrics->'environment.outside.temperature')::NUMERIC), NULL) as outsidetemperature,
-            COALESCE(avg((m.metrics->'electrical.batteries.House.capacity.stateOfCharge')::NUMERIC), NULL) as stateofcharge,
-            COALESCE(avg((m.metrics->'electrical.batteries.House.voltage')::NUMERIC), NULL) as voltage,
+            COALESCE((m.metrics->'environment.water.temperature')::NUMERIC, NULL) as watertemperature,
+            COALESCE((m.metrics->'environment.depth.belowTransducer')::NUMERIC, NULL) as depth,
+            COALESCE((m.metrics->'environment.outside.relativeHumidity')::NUMERIC, NULL) as outsidehumidity,
+            COALESCE((m.metrics->'environment.outside.pressure')::NUMERIC, NULL) as outsidepressure,
+            COALESCE((m.metrics->'environment.outside.temperature')::NUMERIC, NULL) as outsidetemperature,
+            COALESCE(
+                NULLIF(
+                    CASE
+                        WHEN (m.metrics->>'electrical.batteries.House.capacity.stateOfCharge') ~ '^-?[0-9]+(\.[0-9]+)?$' THEN
+                            (m.metrics->>'electrical.batteries.House.capacity.stateOfCharge')::NUMERIC
+                    END,
+                    NULL
+                ),
+                NULL
+            ) as stateofcharge,
+            COALESCE((m.metrics->'electrical.batteries.House.voltage')::NUMERIC, NULL) as voltage,
             ST_MakePoint(m.longitude, m.latitude) AS geo_point
         FROM api.metrics m
         WHERE m.latitude IS NOT NULL
@@ -581,13 +635,22 @@ BEGIN
             m.status,
             COALESCE(metersToKnots((m.metrics->'environment.wind.speedTrue')::NUMERIC), NULL) AS truewindspeed,
             COALESCE(radiantToDegrees((m.metrics->'environment.wind.directionTrue')::NUMERIC), NULL) AS truewinddirection,
-            COALESCE(avg((m.metrics->'environment.water.temperature')::NUMERIC), NULL) as watertemperature,
-            COALESCE(avg((m.metrics->'environment.depth.belowTransducer')::NUMERIC), NULL) as depth,
-            COALESCE(avg((m.metrics->'environment.outside.relativeHumidity')::NUMERIC), NULL) as outsidehumidity,
-            COALESCE(avg((m.metrics->'environment.outside.pressure')::NUMERIC), NULL) as outsidepressure,
-            COALESCE(avg((m.metrics->'environment.outside.temperature')::NUMERIC), NULL) as outsidetemperature,
-            COALESCE(avg((m.metrics->'electrical.batteries.House.capacity.stateOfCharge')::NUMERIC), NULL) as stateofcharge,
-            COALESCE(avg((m.metrics->'electrical.batteries.House.voltage')::NUMERIC), NULL) as voltage,
+            COALESCE((m.metrics->'environment.water.temperature')::NUMERIC, NULL) as watertemperature,
+            COALESCE((m.metrics->'environment.depth.belowTransducer')::NUMERIC, NULL) as depth,
+            COALESCE((m.metrics->'environment.outside.relativeHumidity')::NUMERIC, NULL) as outsidehumidity,
+            COALESCE((m.metrics->'environment.outside.pressure')::NUMERIC, NULL) as outsidepressure,
+            COALESCE((m.metrics->'environment.outside.temperature')::NUMERIC, NULL) as outsidetemperature,
+            COALESCE(
+                NULLIF(
+                    CASE
+                        WHEN (m.metrics->>'electrical.batteries.House.capacity.stateOfCharge') ~ '^-?[0-9]+(\.[0-9]+)?$' THEN
+                            (m.metrics->>'electrical.batteries.House.capacity.stateOfCharge')::NUMERIC
+                    END,
+                    NULL
+                ),
+                NULL
+            ) as stateofcharge,
+            COALESCE((m.metrics->'electrical.batteries.House.voltage')::NUMERIC, NULL) as voltage,
             ST_MakePoint(m.longitude, m.latitude) AS geo_point
         FROM api.metrics m
         WHERE m.latitude IS NOT NULL
@@ -747,6 +810,9 @@ CREATE OR REPLACE FUNCTION api.merge_logbook_fn(IN id_start integer, IN id_end i
                 trip_temp_out = t_rec.outsidetemperature,
                 trip_pres_out = t_rec.outsidepressure,
                 trip_hum_out = t_rec.outsidehumidity
+                --embedding = NULL,
+                --spatial_embedding = NULL,
+                --image_embedding = NULL
             WHERE id = logbook_rec_start.id;
 
         /*** Deprecated removed column
@@ -2170,6 +2236,7 @@ AS SELECT id,
     _to_moorage_id AS to_moorage_id
    FROM api.logbook l
   WHERE _to_time IS NOT NULL
+    AND trip IS NOT NULL
   ORDER BY _from_time DESC;
 -- Description
 COMMENT ON VIEW api.log_view IS 'Log web view';
@@ -2201,6 +2268,7 @@ BEGIN
         WHERE id = _id;
 END;
 $$ LANGUAGE plpgsql;
+-- Description
 COMMENT ON FUNCTION api.delete_trip_entry_fn IS 'Delete at a specific time a temporal sequence for all trip_* column from a logbook';
 
 -- Update export_logbooks_geojson_point_trips_fn, replace timelapse2_fn, Generate the GeoJSON from the time sequence value 
@@ -2239,6 +2307,7 @@ BEGIN
             LATERAL jsonb_array_elements(l.log_geojson) AS feature_element; -- Flatten the arrays and create a GeoJSON FeatureCollection
 END;
 $function$;
+-- Description
 COMMENT ON FUNCTION api.export_logbooks_geojson_point_trips_fn IS 'Export all selected logs into a geojson `trip` to a geojson as points including properties';
 
 -- Update api role SQL connection to 40
