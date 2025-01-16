@@ -2337,7 +2337,3 @@ UPDATE public.app_settings
 	SET value='0.8.1'
 	WHERE "name"='app.version';
 
-\c postgres
-UPDATE cron.job SET username = 'scheduler'; --  Update to scheduler, pending process_queue update
-UPDATE cron.job SET username = 'username' WHERE jobname = 'cron_vacuum'; -- Update to superuser for vacuum permissions
-UPDATE cron.job SET username = 'username' WHERE jobname = 'job_run_details_cleanup';

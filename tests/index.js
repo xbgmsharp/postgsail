@@ -59,8 +59,8 @@ const fs = require('fs');
     user_views: [
         // not processed yet, { url: '/stays_view', res_body_length: 1},
         // not processed yet, { url: '/moorages_view', res_body_length: 1},
-        { url: '/logs_view', res_body_length: 0},
-        { url: '/log_view', res_body_length: 2},
+        { url: '/logs_view', res_body_length: 0}, // not processed yet so empty
+        { url: '/log_view', res_body_length: 0}, // not processed yet so empty
         //{ url: '/stats_view', res_body_length: 1},
         { url: '/vessels_view', res_body_length: 1},
     ],
