@@ -6,7 +6,7 @@
 You are now connected to database "signalk" as user "username".
 Expanded display is on.
 -[ RECORD 1 ]--+-------------------------------
-server_version | 16.6 (Debian 16.6-1.pgdg120+1)
+server_version | 16.8 (Debian 16.8-1.pgdg120+1)
 
 -[ RECORD 1 ]--------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 postgis_full_version | POSTGIS="3.5.2 dea6d0a" [EXTENSION] PGSQL="160" GEOS="3.11.1-CAPI-1.17.1" PROJ="9.1.1 NETWORK_ENABLED=OFF URL_ENDPOINT=https://cdn.proj.org USER_WRITABLE_DIRECTORY=/var/lib/postgresql/.local/share/proj DATABASE_PATH=/usr/share/proj/proj.db" (compiled against PROJ 9.1.1) LIBXML="2.9.14" LIBJSON="0.16" LIBPROTOBUF="1.4.1" WAGYU="0.5.0 (Internal)"
@@ -58,7 +58,7 @@ Schema      | public
 Description | PostGIS geometry and geography spatial types and functions
 -[ RECORD 10 ]-------------------------------------------------------------------------------------
 Name        | timescaledb
-Version     | 2.18.0
+Version     | 2.18.2
 Schema      | public
 Description | Enables scalable inserts and complex queries for time-series data (Community Edition)
 -[ RECORD 11 ]-------------------------------------------------------------------------------------
@@ -111,14 +111,14 @@ laninline     | 13566
 lanvalidator  | 13567
 lanacl        | 
 -[ RECORD 5 ]-+-----------
-oid           | 18224
+oid           | 18223
 lanname       | plpython3u
 lanowner      | 10
 lanispl       | t
 lanpltrusted  | t
-lanplcallfoid | 18221
-laninline     | 18222
-lanvalidator  | 18223
+lanplcallfoid | 18220
+laninline     | 18221
+lanvalidator  | 18222
 lanacl        | 
 
 -[ RECORD 1 ]+-----------
@@ -675,12 +675,12 @@ overpass_py_fn | {"name": "Port de la Ginesta", "type": "multipolygon", "leisure
 overpass_py_fn | {"name": "Norra hamnen", "leisure": "marina"}
 
 -[ RECORD 1 ]----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-versions_fn | {"api_version" : "0.8.1", "sys_version" : "PostgreSQL 16.6", "mobilitydb" : "1.2.0", "timescaledb" : "2.18.0", "postgis" : "3.5.2", "postgrest" : "PostgREST 12.2.6"}
+versions_fn | {"api_version" : "0.8.1", "sys_version" : "PostgreSQL 16.8", "mobilitydb" : "1.2.0", "timescaledb" : "2.18.2", "postgis" : "3.5.2", "postgrest" : "PostgREST 12.2.8"}
 
 -[ RECORD 1 ]-----------------
 api_version | 0.8.1
-sys_version | PostgreSQL 16.6
-timescaledb | 2.18.0
+sys_version | PostgreSQL 16.8
+timescaledb | 2.18.2
 postgis     | 3.5.2
-postgrest   | PostgREST 12.2.6
+postgrest   | PostgREST 12.2.8
 
