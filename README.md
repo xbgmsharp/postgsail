@@ -142,5 +142,6 @@ An out of the box IoT platform using Docker (could be extend to K3 or K8) with t
 - [PostgreSQL, open source object-relational database system](https://postgresql.org)
 - [TimescaleDB, Time-series data extends PostgreSQL](https://www.timescale.com)
 - [PostGIS, a spatial database extender for PostgreSQL object-relational database.](https://postgis.net/)
+- [MobilityDB, An open source geospatial trajectory data management & analysis platform.](https://mobilitydb.com/)
 - [Grafana, open observability platform | Grafana Labs](https://grafana.com)
 - And many more
