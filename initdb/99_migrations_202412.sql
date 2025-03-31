@@ -810,9 +810,6 @@ CREATE OR REPLACE FUNCTION api.merge_logbook_fn(IN id_start integer, IN id_end i
                 trip_temp_out = t_rec.outsidetemperature,
                 trip_pres_out = t_rec.outsidepressure,
                 trip_hum_out = t_rec.outsidehumidity
-                --embedding = NULL,
-                --spatial_embedding = NULL,
-                --image_embedding = NULL
             WHERE id = logbook_rec_start.id;
 
         /*** Deprecated removed column
