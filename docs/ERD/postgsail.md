@@ -42,9 +42,13 @@ erDiagram
     api_metadata {
         boolean active "trigger monitor online/offline"
         boolean active 
+        jsonb available_keys "Signalk paths with unit for custom mapping"
+        jsonb available_keys 
         double_precision beam 
+        text client_id "Deprecated client_id to be removed"
         text client_id 
-        text configuration 
+        jsonb configuration "Signalk path mapping for metrics"
+        jsonb configuration 
         timestamp_with_time_zone created_at "{NOT_NULL}"
         double_precision height 
         integer id "{NOT_NULL}"
@@ -63,7 +67,7 @@ erDiagram
 
     api_metrics {
         double_precision anglespeedapparent 
-        text client_id 
+        text client_id "Deprecated client_id to be removed"
         double_precision courseovergroundtrue 
         double_precision latitude "With CONSTRAINT but allow NULL value to be ignored silently by trigger"
         double_precision longitude "With CONSTRAINT but allow NULL value to be ignored silently by trigger"
