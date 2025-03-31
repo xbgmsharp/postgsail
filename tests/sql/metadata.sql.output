@@ -1,0 +1,56 @@
+ current_database 
+------------------
+ signalk
+(1 row)
+
+You are now connected to database "signalk" as user "username".
+Expanded display is on.
+-[ RECORD 1 ]
+vessel_id | t
+
+api.metadata details
+-[ RECORD 1 ]---+----------------
+id              | 2
+name            | aava
+mmsi            | 787654321
+length          | 12
+beam            | 10
+height          | 24
+ship_type       | 37
+plugin_version  | 1.0.2
+signalk_version | 1.20.0
+time            | t
+active          | t
+configuration   | 
+available_keys  | []
+-[ RECORD 2 ]---+----------------
+id              | 1
+name            | kapla
+mmsi            | 123456789
+length          | 12
+beam            | 10
+height          | 24
+ship_type       | 36
+plugin_version  | 0.0.1
+signalk_version | signalk_version
+time            | t
+active          | t
+configuration   | 
+available_keys  | 
+
+api.metadata get configuration
+-[ RECORD 1 ]-+-
+configuration | 
+
+api.metadata update configuration
+UPDATE 1
+api.metadata get configuration with new value
+-[ RECORD 1 ]----------------------------------
+depthkey  | "environment.depth.belowTransducer"
+update_at | t
+
+api.metadata get configuration base on update_at value
+-[ RECORD 1 ]----------------------------------
+depthkey  | "environment.depth.belowTransducer"
+update_at | t
+
