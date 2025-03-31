@@ -67,7 +67,21 @@ SELECT set_config('vessel.id', :'vessel_id_kapla', false) IS NOT NULL as vessel_
 
 -- Export timelapse as Geometry LineString from a trip
 \echo 'Export timelapse as Geometry LineString from a trip'
-SELECT api.export_logbooks_geojson_linestring_trips_fn(1,2) FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
+--SELECT api.export_logbooks_geojson_linestring_trips_fn(1,2) FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
+-- Test geometry_type and num_properties
+-- propoerties include endtimestamp and starttimestamp
+WITH geojson_output AS (
+    SELECT api.export_logbooks_geojson_linestring_trips_fn(1, 2) AS geojson
+        FROM api.logbook
+        WHERE vessel_id = current_setting('vessel.id', false)
+)
+SELECT
+    --geojson
+    geojson->'features'->0->'geometry'->>'type' AS geometry_type, 
+    --jsonb_array_length(jsonb_object_keys(geojson->'features'->0->'properties')::JSONB),
+    --jsonb_array_length(jsonb_object_keys(geojson->'features')) AS num_geometry,
+    (SELECT COUNT(*) FROM jsonb_object_keys(geojson->'features'->0->'properties')) AS num_properties
+FROM geojson_output;
 
 -- Export timelapse as Geometry Point from a trip
 \echo 'Export timelapse as Geometry Point from a trip'
