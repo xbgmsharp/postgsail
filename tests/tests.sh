@@ -49,6 +49,19 @@ else
     exit 1
 fi
 
+# metadata and vessel configuration unit tests
+psql ${PGSAIL_DB_URI} < sql/metadata.sql > output/metadata.sql.output
+diff sql/metadata.sql.output output/metadata.sql.output > /dev/null
+#diff -u sql/metadata.sql.output output/metadata.sql.output | wc -l
+#echo 0
+if [ $? -eq 0 ]; then
+    echo OK
+else
+    echo SQL metadata.sql FAILED
+    diff -u sql/metadata.sql.output output/metadata.sql.output
+    exit 1
+fi
+
 # https://www.postgresql.org/docs/current/app-psql.html
 # run cron jobs
 #psql -U ${POSTGRES_USER} -h 172.30.0.1 signalk < sql/cron_run_jobs.sql > output/cron_run_jobs.sql.output
