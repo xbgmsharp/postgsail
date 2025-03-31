@@ -31,7 +31,7 @@ var moment = require('moment');
     vessel_metadata: {
             name: "kapla",
             mmsi: "123456789",
-            client_id: "vessels.urn:mrn:imo:mmsi:123456789",
+            //client_id: "vessels.urn:mrn:imo:mmsi:123456789",
             length: "12",
             beam: "10",
             height: "24",
@@ -249,7 +249,7 @@ var moment = require('moment');
     vessel_metadata: {
             name: "aava",
             mmsi: "787654321",
-            client_id: "vessels.urn:mrn:imo:mmsi:787654321",
+            //client_id: "vessels.urn:mrn:imo:mmsi:787654321",
             length: "12",
             beam: "10",
             height: "24",

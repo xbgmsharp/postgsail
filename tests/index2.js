@@ -28,14 +28,15 @@ const metrics_simulator = require('./metrics_sample_simulator.json');
     vessel_metadata: {
             name: "aava",
             mmsi: "787654321",
-            client_id: "vessels.urn:mrn:imo:mmsi:787654321",
+            //client_id: "vessels.urn:mrn:imo:mmsi:787654321",
             length: "12",
             beam: "10",
             height: "24",
             ship_type: "37",
             plugin_version: "1.0.2",
             signalk_version: "1.20.0",
-            time: moment().subtract(69, 'minutes').format()
+            time: moment().subtract(69, 'minutes').format(),
+            available_keys: [],
           },
     vessel_metrics: metrics_simulator,
     user_tables: [
@@ -422,8 +423,9 @@ request.set('User-Agent', 'PostgSail unit tests');
         .set('Content-Type', 'application/json')
         .set('Prefer', 'return=headers-only')
         .end(function(err,res){
-          res.status.should.equal(201);
+          //console.log(res.body);
           //console.log(res.header);
+          res.status.should.equal(201);
           should.exist(res.header['server']);
           res.header['server'].should.match(new RegExp('postgrest','g'));
           done(err);

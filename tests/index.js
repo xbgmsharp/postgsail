@@ -27,6 +27,7 @@ const metrics_aava = require('./metrics_sample_aava.json');
 
 const fs = require('fs');
 
+let configtime = new Date().toISOString();
 
 // CNAMEs Array
 [
@@ -39,7 +40,7 @@ const fs = require('fs');
     vessel_metadata: {
             name: "kapla",
             mmsi: "123456789",
-            client_id: "vessels.urn:mrn:signalk:uuid:5b4f7543-7153-4840-b139-761310b242fd",
+            //client_id: "vessels.urn:mrn:signalk:uuid:5b4f7543-7153-4840-b139-761310b242fd",
             length: "12",
             beam: "10",
             height: "24",
@@ -177,6 +178,18 @@ const fs = require('fs');
             obj_name: 'settings'
           }
       }
+    ],
+    config_fn: [
+      { url: '/metadata?select=configuration',
+        res: {
+          obj_name: 'configuration'
+        }
+      },
+      { url: `/metadata?select=configuration&configuration->>update_at=gt.${configtime}`,
+        res: {
+          obj_name: 'settings'
+        }
+      },
     ]
   },
   { cname: process.env.PGSAIL_API_URI, name: "PostgSail unit test, aava",
@@ -187,7 +200,7 @@ const fs = require('fs');
     vessel_metadata: {
             name: "aava",
             mmsi: "787654321",
-            client_id: "vessels.urn:mrn:imo:mmsi:787654321",
+            //client_id: "vessels.urn:mrn:imo:mmsi:787654321",
             length: "12",
             beam: "10",
             height: "24",
@@ -314,6 +327,18 @@ const fs = require('fs');
       },
       { url: '/rpc/telegram_fn',
         payload: { token: null, telegram_obj: {"chat": {"id": 9876543210, "type": "private", "title": null, "all_members_are_administrators": null}, "date": "NOW", "from": {"id": 9876543210, "is_bot": false, "first_name": "Aava", "language_code": "en"}} },
+        res: {
+          obj_name: 'settings'
+        }
+      },
+    ],
+    config_fn: [
+      { url: '/metadata?select=configuration',
+        res: {
+          obj_name: 'configuration'
+        }
+      },
+      { url: `/metadata?select=configuration&configuration->>update_at=gt.${configtime}`,
         res: {
           obj_name: 'settings'
         }
@@ -842,6 +867,37 @@ request.set('User-Agent', 'PostgSail unit tests');
     });
   }); // Function OTP endpoint
   */
+
+  describe("Function Metadata configuration endpoint, JWT vessel_role", function(){
+
+    let otp = null;
+    test.config_fn.forEach(function (subtest) {
+      it(`${subtest.url}`, function(done) {
+        try {
+          //console.log(`${subtest.url} ${subtest.res}`);
+          // Reset agent so we do not save cookies
+          request = supertest.agent(test.cname);
+          request
+            .get(subtest.url)
+            .set('Authorization', `Bearer ${vessel_jwt}`)
+            .set('Accept', 'application/json')
+            .end(function(err,res){
+              res.status.should.equal(200);
+              should.exist(res.header['content-type']);
+              should.exist(res.header['server']);
+              res.header['content-type'].should.match(new RegExp('json','g'));
+              res.header['server'].should.match(new RegExp('postgrest','g'));
+              console.log(res.body);
+              should.exist(res.body);
+              done(err);
+            });
+        }
+        catch (error) {
+          done();
+        }
+      });
+    });
+  }); // Function metadata configuration endpoint
 
 }); // OpenAPI description
 
