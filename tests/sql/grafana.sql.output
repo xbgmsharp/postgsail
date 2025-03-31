@@ -13,12 +13,12 @@ current_setting |
 current_setting | 
 
 link vessel and user based on current_setting
--[ RECORD 1 ]----------------------------------------------------------------
+-[ RECORD 1 ]----
 name      | aava
-client_id | vessels.urn:mrn:imo:mmsi:787654321
--[ RECORD 2 ]----------------------------------------------------------------
+vessel_id | t
+-[ RECORD 2 ]----
 name      | kapla
-client_id | vessels.urn:mrn:signalk:uuid:5b4f7543-7153-4840-b139-761310b242fd
+vessel_id | t
 
 auth.accounts details
 -[ RECORD 1 ]-----+-----------------------------
@@ -55,11 +55,10 @@ name        | aava
 role        | vessel_role
 
 api.metadata details
--[ RECORD 1 ]---+------------------------------------------------------------------
+-[ RECORD 1 ]---+----------------
 id              | 1
 name            | kapla
 mmsi            | 123456789
-client_id       | vessels.urn:mrn:signalk:uuid:5b4f7543-7153-4840-b139-761310b242fd
 length          | 12
 beam            | 10
 height          | 24
@@ -68,11 +67,12 @@ plugin_version  | 0.0.1
 signalk_version | signalk_version
 time            | t
 active          | t
--[ RECORD 2 ]---+------------------------------------------------------------------
+configuration   | t
+available_keys  | 
+-[ RECORD 2 ]---+----------------
 id              | 2
 name            | aava
 mmsi            | 787654321
-client_id       | vessels.urn:mrn:imo:mmsi:787654321
 length          | 12
 beam            | 10
 height          | 24
@@ -81,6 +81,8 @@ plugin_version  | 1.0.2
 signalk_version | 1.20.0
 time            | t
 active          | t
+configuration   | f
+available_keys  | []
 
 SET
 ROLE grafana current_setting
@@ -93,9 +95,9 @@ vessel_id | t
 current_user    | grafana
 current_setting | demo+kapla@openplotter.cloud
 
--[ RECORD 1 ]--------------------------------------------------------------
+-[ RECORD 1 ]--
 __text  | kapla
-__value | vessels.urn:mrn:signalk:uuid:5b4f7543-7153-4840-b139-761310b242fd
+__value | t
 
 auth.vessels details
 -[ RECORD 1 ]-----------------------------
@@ -106,11 +108,10 @@ name        | kapla
 role        | vessel_role
 
 api.metadata details
--[ RECORD 1 ]---+------------------------------------------------------------------
+-[ RECORD 1 ]---+----------------
 id              | 1
 name            | kapla
 mmsi            | 123456789
-client_id       | vessels.urn:mrn:signalk:uuid:5b4f7543-7153-4840-b139-761310b242fd
 length          | 12
 beam            | 10
 height          | 24
@@ -119,6 +120,8 @@ plugin_version  | 0.0.1
 signalk_version | signalk_version
 time            | t
 active          | t
+configuration   | t
+available_keys  | 
 
 api.logs_view
 -[ RECORD 1 ]----+-----------------------

@@ -20,7 +20,7 @@ SELECT current_user, current_setting('user.email', true), current_setting('vesse
 --SELECT a.pass,v.name,m.client_id FROM auth.accounts a JOIN auth.vessels v ON a.email = 'demo+kapla@openplotter.cloud' AND a.role = 'user_role' AND cast(a.preferences->>'email_valid' as Boolean) = True AND v.owner_email = a.email JOIN api.metadata m ON m.vessel_id = v.vessel_id;
 --SELECT a.pass,v.name,m.client_id FROM auth.accounts a JOIN auth.vessels v ON a.email = 'demo+kapla@openplotter.cloud' AND a.role = 'user_role' AND v.owner_email = a.email JOIN api.metadata m ON m.vessel_id = v.vessel_id;
 \echo 'link vessel and user based on current_setting'
-SELECT v.name,m.client_id FROM auth.accounts a JOIN auth.vessels v ON a.role = 'user_role' AND v.owner_email = a.email JOIN api.metadata m ON m.vessel_id = v.vessel_id ORDER BY a.id DESC;
+SELECT v.name, m.vessel_id IS NOT NULL AS vessel_id FROM auth.accounts a JOIN auth.vessels v ON a.role = 'user_role' AND v.owner_email = a.email JOIN api.metadata m ON m.vessel_id = v.vessel_id ORDER BY a.id DESC;
 
 \echo 'auth.accounts details'
 SELECT a.user_id IS NOT NULL AS user_id, a.email, a.first, a.last, a.pass IS NOT NULL AS pass, a.role, a.preferences->'telegram'->'chat' AS telegram, a.preferences->'pushover_user_key' AS pushover_user_key FROM auth.accounts AS a ORDER BY a.id DESC;
@@ -29,7 +29,7 @@ SELECT a.user_id IS NOT NULL AS user_id, a.email, a.first, a.last, a.pass IS NOT
 SELECT v.vessel_id IS NOT NULL AS vessel_id, v.owner_email, v.mmsi, v.name, v.role FROM auth.vessels AS v;
 \echo 'api.metadata details'
 --
-SELECT m.id, m.name, m.mmsi, m.client_id, m.length, m.beam, m.height, m.ship_type, m.plugin_version, m.signalk_version, m.time IS NOT NULL AS time, m.active FROM api.metadata AS m;
+SELECT m.id, m.name, m.mmsi, m.length, m.beam, m.height, m.ship_type, m.plugin_version, m.signalk_version, m.time IS NOT NULL AS time, m.active, configuration IS NOT NULL AS configuration, available_keys FROM api.metadata AS m ORDER BY m.name DESC;
 
 --
 -- grafana
@@ -48,14 +48,14 @@ SELECT set_config('vessel.id', :'vessel_id', false) IS NOT NULL as vessel_id;
 --SELECT current_user, current_setting('user.email', true), current_setting('vessel.client_id', true), current_setting('vessel.id', true);
 SELECT current_user, current_setting('user.email', true);
 
-SELECT v.name AS __text, m.client_id AS __value FROM auth.vessels v JOIN api.metadata m ON v.owner_email = 'demo+kapla@openplotter.cloud' and m.vessel_id = v.vessel_id;
+SELECT v.name AS __text, m.vessel_id IS NOT NULL AS __value FROM auth.vessels v JOIN api.metadata m ON v.owner_email = 'demo+kapla@openplotter.cloud' and m.vessel_id = v.vessel_id;
 
 \echo 'auth.vessels details'
 --SELECT * FROM auth.vessels v;
 SELECT v.vessel_id IS NOT NULL AS vessel_id, v.owner_email, v.mmsi, v.name, v.role FROM auth.vessels AS v;
 --SELECT * FROM api.metadata m;
 \echo 'api.metadata details'
-SELECT m.id, m.name, m.mmsi, m.client_id, m.length, m.beam, m.height, m.ship_type, m.plugin_version, m.signalk_version, m.time IS NOT NULL AS time, m.active FROM api.metadata AS m;
+SELECT m.id, m.name, m.mmsi, m.length, m.beam, m.height, m.ship_type, m.plugin_version, m.signalk_version, m.time IS NOT NULL AS time, m.active, configuration IS NOT NULL AS configuration, available_keys FROM api.metadata AS m;
 
 \echo 'api.logs_view'
 --SELECT * FROM api.logbook l;
