@@ -58,7 +58,7 @@ Schema      | public
 Description | PostGIS geometry and geography spatial types and functions
 -[ RECORD 10 ]-------------------------------------------------------------------------------------
 Name        | timescaledb
-Version     | 2.18.2
+Version     | 2.19.0
 Schema      | public
 Description | Enables scalable inserts and complex queries for time-series data (Community Edition)
 -[ RECORD 11 ]-------------------------------------------------------------------------------------
@@ -111,14 +111,14 @@ laninline     | 13566
 lanvalidator  | 13567
 lanacl        | 
 -[ RECORD 5 ]-+-----------
-oid           | 18223
+oid           | 18225
 lanname       | plpython3u
 lanowner      | 10
 lanispl       | t
 lanpltrusted  | t
-lanplcallfoid | 18220
-laninline     | 18221
-lanvalidator  | 18222
+lanplcallfoid | 18222
+laninline     | 18223
+lanvalidator  | 18224
 lanacl        | 
 
 -[ RECORD 1 ]+-----------
@@ -675,12 +675,12 @@ overpass_py_fn | {"name": "Port de la Ginesta", "type": "multipolygon", "leisure
 overpass_py_fn | {"name": "Norra hamnen", "leisure": "marina"}
 
 -[ RECORD 1 ]----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-versions_fn | {"api_version" : "0.8.1", "sys_version" : "PostgreSQL 16.8", "mobilitydb" : "1.2.0", "timescaledb" : "2.18.2", "postgis" : "3.5.2", "postgrest" : "PostgREST 12.2.8"}
+versions_fn | {"api_version" : "0.9.0", "sys_version" : "PostgreSQL 16.8", "mobilitydb" : "1.2.0", "timescaledb" : "2.19.0", "postgis" : "3.5.2", "postgrest" : "PostgREST 12.2.8"}
 
 -[ RECORD 1 ]-----------------
-api_version | 0.8.1
+api_version | 0.9.0
 sys_version | PostgreSQL 16.8
-timescaledb | 2.18.2
+timescaledb | 2.19.0
 postgis     | 3.5.2
 postgrest   | PostgREST 12.2.8
 
