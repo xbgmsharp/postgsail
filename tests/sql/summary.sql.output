@@ -62,6 +62,11 @@ Version     | 2.19.1
 Schema      | public
 Description | Enables scalable inserts and complex queries for time-series data (Community Edition)
 -[ RECORD 11 ]-------------------------------------------------------------------------------------
+Name        | timescaledb_toolkit
+Version     | 1.19.0
+Schema      | public
+Description | Library of analytical hyperfunctions, time-series pipelining, and other SQL utilities
+-[ RECORD 12 ]-------------------------------------------------------------------------------------
 Name        | uuid-ossp
 Version     | 1.1
 Schema      | public
