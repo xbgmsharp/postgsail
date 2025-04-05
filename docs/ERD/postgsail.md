@@ -23,14 +23,21 @@ erDiagram
         text notes 
         tgeogpoint trip "MobilityDB trajectory"
         tfloat trip_batt_charge "Battery Charge"
+        tfloat trip_batt_current "Battery current"
         tfloat trip_batt_voltage "Battery Voltage"
         tfloat trip_cog "courseovergroundtrue"
         tfloat trip_depth "Depth"
+        tfloat trip_heading "heading True"
         tfloat trip_hum_out "Humidity outside"
         ttext trip_notes 
         tfloat trip_pres_out "Pressure outside"
         tfloat trip_sog "speedoverground"
+        tfloat trip_solar_current "Solar current"
+        tfloat trip_solar_power "solar powerPanel"
+        tfloat trip_solar_voltage "solar voltage"
         ttext trip_status 
+        tfloat trip_tank_capacity "Tank capacity"
+        tfloat trip_tank_level "Tank currentLevel"
         tfloat trip_temp_out "Temperature outside"
         tfloat trip_temp_water "Temperature water"
         tfloat trip_twa "windspeedapparent"
@@ -45,8 +52,6 @@ erDiagram
         jsonb available_keys "Signalk paths with unit for custom mapping"
         jsonb available_keys 
         double_precision beam 
-        text client_id "Deprecated client_id to be removed"
-        text client_id 
         jsonb configuration "Signalk path mapping for metrics"
         jsonb configuration 
         timestamp_with_time_zone created_at "{NOT_NULL}"
