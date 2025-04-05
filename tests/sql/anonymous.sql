@@ -18,3 +18,10 @@ SELECT api.ispublic_fn('kapla', 'public_logs', 1);
 SELECT api.ispublic_fn('kapla', 'public_logs', 3);
 SELECT api.ispublic_fn('kapla', 'public_monitoring');
 SELECT api.ispublic_fn('kapla', 'public_timelapse');
+
+SELECT api.ispublic_fn('aava', 'public_test');
+SELECT api.ispublic_fn('aava', 'public_logs_list');
+SELECT api.ispublic_fn('aava', 'public_logs', 1);
+SELECT api.ispublic_fn('aava', 'public_logs', 3);
+SELECT api.ispublic_fn('aava', 'public_monitoring');
+SELECT api.ispublic_fn('aava', 'public_timelapse');
