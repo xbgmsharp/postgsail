@@ -23,7 +23,6 @@ erDiagram
         text notes 
         tgeogpoint trip "MobilityDB trajectory"
         tfloat trip_batt_charge "Battery Charge"
-        tfloat trip_batt_current "Battery current"
         tfloat trip_batt_voltage "Battery Voltage"
         tfloat trip_cog "courseovergroundtrue"
         tfloat trip_depth "Depth"
@@ -32,11 +31,9 @@ erDiagram
         ttext trip_notes 
         tfloat trip_pres_out "Pressure outside"
         tfloat trip_sog "speedoverground"
-        tfloat trip_solar_current "Solar current"
         tfloat trip_solar_power "solar powerPanel"
         tfloat trip_solar_voltage "solar voltage"
         ttext trip_status 
-        tfloat trip_tank_capacity "Tank capacity"
         tfloat trip_tank_level "Tank currentLevel"
         tfloat trip_temp_out "Temperature outside"
         tfloat trip_temp_water "Temperature water"
