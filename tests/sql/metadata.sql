@@ -29,4 +29,4 @@ UPDATE api.metadata SET configuration = '{ "depthKey": "environment.depth.belowT
 select configuration->'depthKey' AS depthKey, configuration->'update_at' IS NOT NULL AS update_at from api.metadata WHERE vessel_id = current_setting('vessel.id', false);
 
 \echo 'api.metadata get configuration base on update_at value'
-select configuration->'depthKey' AS depthKey, configuration->'update_at' IS NOT NULL AS update_at from api.metadata WHERE vessel_id = current_setting('vessel.id', false) AND configuration->>'update_at' = to_char(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"');
+select configuration->'depthKey' AS depthKey, configuration->'update_at' IS NOT NULL AS update_at from api.metadata WHERE vessel_id = current_setting('vessel.id', false) AND configuration->>'update_at' <= to_char(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"');
