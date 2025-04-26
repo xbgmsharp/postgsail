@@ -680,12 +680,12 @@ overpass_py_fn | {"name": "Port de la Ginesta", "type": "multipolygon", "leisure
 overpass_py_fn | {"name": "Norra hamnen", "leisure": "marina"}
 
 -[ RECORD 1 ]-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-versions_fn | {"api_version" : "0.9.1", "sys_version" : "PostgreSQL 16.8", "mobilitydb" : "1.2.0", "timescaledb" : "2.19.3", "postgis" : "3.5.2", "postgrest" : "PostgREST 12.2.10"}
+versions_fn | {"api_version" : "0.9.1", "sys_version" : "PostgreSQL 16.8", "mobilitydb" : "1.2.0", "timescaledb" : "2.19.3", "postgis" : "3.5.2", "postgrest" : "PostgREST 12.2.11"}
 
 -[ RECORD 1 ]------------------
 api_version | 0.9.1
 sys_version | PostgreSQL 16.8
 timescaledb | 2.19.3
 postgis     | 3.5.2
-postgrest   | PostgREST 12.2.10
+postgrest   | PostgREST 12.2.11
 
