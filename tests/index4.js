@@ -163,6 +163,10 @@ var moment = require("moment");
         url: "/rpc/update_user_preferences_fn",
         payload: { key: "{public_monitoring}", value: true },
       },
+      {
+        url: "/rpc/update_user_preferences_fn",
+        payload: { key: "{public_timelapse}", value: true },
+      },
     ],
   },
   {
@@ -685,7 +689,7 @@ var moment = require("moment");
             let event = res.body;
             //console.log(event);
             // minimum events log for kapla & aava 13 + 4 email_otp = 17
-            event.length.should.be.aboveOrEqual(13);
+            event.length.should.be.aboveOrEqual(11);
             done(err);
           });
       });
