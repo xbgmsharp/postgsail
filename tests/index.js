@@ -636,14 +636,15 @@ request.set('User-Agent', 'PostgSail unit tests');
   describe("Vessel POST metrics, JWT vessel_role", function(){
 
     let data = [];
-    //console.log(vessel_metrics['metrics'][0]);
+    //console.log(test.vessel_metrics['metrics'][0]);
     let i;
     for (i = 0; i < test.vessel_metrics['metrics'].length; i++) {
       data[i] = test.vessel_metrics['metrics'][i];
       // Override time, -2h to allow to new data later without delay.
       data[i]['time'] = moment.utc().subtract(1, 'day').add(i, 'minutes').format();
       // Override client_id
-      data[i]['client_id'] = test.vessel_metadata.client_id;
+      //data[i]['client_id'] = test.vessel_metadata.client_id;
+      data[i]['client_id'] = null;
     }
     // The last entry are invalid and should be ignore.
     // - Invalid status

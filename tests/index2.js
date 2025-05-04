@@ -444,7 +444,8 @@ request.set('User-Agent', 'PostgSail unit tests');
       // Override time, +1h because previous sample include 47 entry.
       data[i]['time'] = moment.utc().subtract(2, 'hours').add(i, 'minutes').format();
       // Override client_id
-      data[i]['client_id'] = test.vessel_metadata.client_id;
+      //data[i]['client_id'] = test.vessel_metadata.client_id;
+      data[i]['client_id'] = null;
     }
     //console.log(data[0]);
 
