@@ -126,8 +126,8 @@ available_keys  |
 api.logs_view
 -[ RECORD 1 ]----+-----------------------
 id               | 2
-name             | Norra hamnen to Ekenäs
-from             | Norra hamnen
+name             | Formanshagen to Ekenäs
+from             | Formanshagen
 to               | Ekenäs
 distance         | 8.8968
 duration         | PT20M
@@ -137,7 +137,7 @@ _to_moorage_id   | 3
 id               | 1
 name             | patch log name 3
 from             | patch moorage name 3
-to               | Norra hamnen
+to               | Formanshagen
 distance         | 7.6447
 duration         | PT27M
 _from_moorage_id | 1
@@ -191,7 +191,7 @@ api.stays_view
 -[ RECORD 1 ]+---------------------
 id           | 2
 name         | t
-moorage      | Norra hamnen
+moorage      | Formanshagen
 moorage_id   | 2
 duration     | PT2M
 stayed_at    | Dock
@@ -226,7 +226,7 @@ notes     | new moorage note 3
 -[ RECORD 2 ]-------------------------------------------------
 id        | 2
 vessel_id | t
-name      | Norra hamnen
+name      | Formanshagen
 country   | fi
 stay_code | 4
 latitude  | 59.9768833333333
@@ -249,7 +249,7 @@ notes     |
 api.moorages_view
 -[ RECORD 1 ]-------+---------------------
 id                  | 2
-moorage             | Norra hamnen
+moorage             | Formanshagen
 default_stay        | Dock
 default_stay_id     | 4
 arrivals_departures | 2
@@ -287,7 +287,7 @@ stay_first_seen    | f
 stay_last_seen     | f
 -[ RECORD 2 ]------+---------------------------------------------------
 id                 | 2
-name               | Norra hamnen
+name               | Formanshagen
 default_stay       | Dock
 latitude           | 59.9768833333333
 longitude          | 23.4321
