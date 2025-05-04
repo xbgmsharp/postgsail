@@ -17,19 +17,21 @@ select current_database();
 \echo 'Force timezone, just in case'
 set timezone to 'UTC';
 
--- Mark client_id as deprecated
+-- Update metadata table, mark client_id as deprecated
 COMMENT ON COLUMN api.metadata.client_id IS 'Deprecated client_id to be removed';
+-- Update metrics table, mark client_id as deprecated
 COMMENT ON COLUMN api.metrics.client_id IS 'Deprecated client_id to be removed';
 
--- Update metadata table COLUMN type to jsonb
+-- Update metadata table update configuration column type to jsonb and comment
 ALTER TABLE api.metadata ALTER COLUMN "configuration" TYPE jsonb USING "configuration"::jsonb;
 COMMENT ON COLUMN api.metadata.configuration IS 'Signalk path mapping for metrics';
 
--- Add new column available_keys
+-- Update metadata table add new column available_keys and comment
 ALTER TABLE api.metadata ADD available_keys jsonb NULL;
 COMMENT ON COLUMN api.metadata.available_keys IS 'Signalk paths with unit for custom mapping';
 
 --DROP FUNCTION public.metadata_upsert_trigger_fn();
+-- Update metadata_upsert_trigger_fn to metadata table to support configuration and available_keys and deprecated client_id
 CREATE OR REPLACE FUNCTION public.metadata_upsert_trigger_fn()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -92,6 +94,7 @@ $function$
 COMMENT ON FUNCTION public.metadata_upsert_trigger_fn() IS 'process metadata from vessel, upsert';
 
 -- Create or replace the function that will be executed by the trigger
+-- Add metadata table trigger for update_metadata_configuration
 CREATE OR REPLACE FUNCTION api.update_metadata_configuration()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -118,7 +121,7 @@ BEFORE UPDATE ON api.metadata
 FOR EACH ROW
 EXECUTE FUNCTION api.update_metadata_configuration();
 
--- Update api.export_logbook_geojson_linestring_trip_fn, add metadata
+-- Update api.export_logbook_geojson_linestring_trip_fn, add metadata properties
 CREATE OR REPLACE FUNCTION api.export_logbooks_geojson_linestring_trips_fn(
     start_log integer DEFAULT NULL::integer,
     end_log integer DEFAULT NULL::integer,

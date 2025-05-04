@@ -123,7 +123,7 @@ $function$;
 -- Description
 COMMENT ON FUNCTION api.export_logbooks_geojson_linestring_trips_fn IS 'Generate geojson geometry LineString from trip with the corresponding properties';
 
--- Updaste public.check_jwt, Make new mobilitydb export geojson function anonymous access
+-- Update public.check_jwt, Make new mobilitydb export geojson function anonymous access
 CREATE OR REPLACE FUNCTION public.check_jwt()
  RETURNS void
  LANGUAGE plpgsql
@@ -998,7 +998,7 @@ COMMENT ON VIEW
     api.monitoring_view
     IS 'Monitoring static web view';
 
--- api.monitoring_live view, the live tracking view
+-- Add api.monitoring_live view, the live tracking view
 DROP VIEW IF EXISTS api.monitoring_live;
 CREATE or replace VIEW api.monitoring_live WITH (security_invoker=true,security_barrier=true) AS
     SELECT
@@ -1140,13 +1140,6 @@ GRANT EXECUTE ON FUNCTION public.stay_active_geojson_fn to api_anonymous;
 GRANT EXECUTE ON FUNCTION public.logbook_active_geojson_fn to api_anonymous;
 GRANT EXECUTE ON FUNCTION public.stay_active_geojson_fn to grafana;
 GRANT EXECUTE ON FUNCTION public.logbook_active_geojson_fn to grafana;
-
--- TODO 
--- DELETE all unused public.logbook_backup column to keep id, vessel_id, trip and embeding_*
--- UPDATE Delete/desactivated function accordingly
--- Run 99_migrations_202504.sql full to update version get new trigger
--- Run this migration 99_migrations_202505.sql full to update version.
--- Solve issue with update trip trigger
 
 -- Update version
 UPDATE public.app_settings

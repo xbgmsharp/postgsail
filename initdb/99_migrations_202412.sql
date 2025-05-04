@@ -248,7 +248,7 @@ RETURNS TABLE (
 ) AS $$
 DECLARE
 BEGIN
-    -- Aggregate all metrics as trip ios short.
+    -- Aggregate all metrics as trip is short.
     RETURN QUERY
     WITH metrics AS (
         -- Extract metrics
