@@ -183,6 +183,7 @@ var moment = require("moment");
             should.exist(res.header["server"]);
             res.header["content-type"].should.match(new RegExp("json", "g"));
             res.header["server"].should.match(new RegExp("postgrest", "g"));
+            should.exist(res.body.geojson);
             done(err);
           });
       });
@@ -193,12 +194,13 @@ var moment = require("moment");
           .post(test.replay_full.url)
           .set("Accept", "application/json")
           .end(function (err, res) {
-            console.log(res.text);
+            console.log(res.body);
             res.status.should.equal(200);
             should.exist(res.header["content-type"]);
             should.exist(res.header["server"]);
             res.header["content-type"].should.match(new RegExp("json", "g"));
             res.header["server"].should.match(new RegExp("postgrest", "g"));
+            should.exist(res.body.geojson);
             done(err);
           });
       });

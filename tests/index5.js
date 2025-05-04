@@ -151,7 +151,7 @@ var moment = require("moment");
     request.set("User-Agent", "PostgSail unit tests");
 
     describe("With no JWT as api_anonymous", function () {
-      it("/logs_view, api_anonymous no jwt token", function (done) {
+      it("/logs_view, api_anonymous no jwt token, x-is-public header", function (done) {
         // Reset agent so we do not save cookies
         request = supertest.agent(test.cname);
         request
@@ -167,7 +167,7 @@ var moment = require("moment");
             done(err);
           });
       });
-      it("/log_view, api_anonymous no jwt token", function (done) {
+      it("/log_view, api_anonymous no jwt token, x-is-public header", function (done) {
         // Reset agent so we do not save cookies
         request = supertest.agent(test.cname);
         request
@@ -183,7 +183,7 @@ var moment = require("moment");
             done(err);
           });
       });
-      it("/monitoring_view, api_anonymous no jwt token", function (done) {
+      it("/monitoring_view, api_anonymous no jwt token, x-is-public header", function (done) {
         // Reset agent so we do not save cookies
         request = supertest.agent(test.cname);
         request
@@ -200,7 +200,7 @@ var moment = require("moment");
             done(err);
           });
       });
-      it("/rpc/export_logbooks_geojson_linestring_trips_fn, api_anonymous no jwt token", function (done) {
+      it("/rpc/export_logbooks_geojson_linestring_trips_fn, api_anonymous no jwt token, x-is-public header", function (done) {
         // Reset agent so we do not save cookies
         request = supertest.agent(test.cname);
         request
@@ -214,10 +214,18 @@ var moment = require("moment");
             should.exist(res.header["server"]);
             res.header["content-type"].should.match(new RegExp("json", "g"));
             res.header["server"].should.match(new RegExp("postgrest", "g"));
+            should.exist(res.body.geojson);
+            /*
+            if (res.body.geojson.features == null) { // aava
+              //res.body.geojson.features.should.not.be.ok();
+              done(err);
+            }
+            res.body.geojson.features.length.should.be.equal(4);
+            */
             done(err);
           });
       });
-      it("/rpc/export_logbooks_geojson_point_trips_fn, api_anonymous no jwt token", function (done) {
+      it("/rpc/export_logbooks_geojson_point_trips_fn, api_anonymous no jwt token, x-is-public header", function (done) {
         // Reset agent so we do not save cookies
         request = supertest.agent(test.cname);
         request
@@ -231,6 +239,14 @@ var moment = require("moment");
             should.exist(res.header["server"]);
             res.header["content-type"].should.match(new RegExp("json", "g"));
             res.header["server"].should.match(new RegExp("postgrest", "g"));
+            should.exist(res.body.geojson);
+            /*
+            if (res.body.geojson.features == null) { // aava
+              //res.body.geojson.features.should.not.be.ok();
+              done(err);
+            }
+            res.body.geojson.features.length.should.be.equal(53);
+            */
             done(err);
           });
       });
