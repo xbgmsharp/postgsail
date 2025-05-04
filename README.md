@@ -104,6 +104,8 @@ To understand the why and how, you might want to read [Why.md](https://github.co
 
 Remove the hassle of running PostgSail yourself. Here you can skip the technical setup, the maintenance work and server costs by getting PostgSail on our reliable and secure PostgSail Cloud. Register and try for free at [iot.openplotter.cloud](https://iot.openplotter.cloud/).
 
+PostgSail Cloud is Open Source and free for personal use with a single vessel. If wish to manage multiple boats contact us.
+
 ## On-Premise (for free)
 
 Self host postgSail where you want and how you want. There are no restrictions, you’re in full control. [Install Guide](https://github.com/xbgmsharp/postgsail/blob/main/docs/README.md)
