@@ -54,6 +54,8 @@ erDiagram
         timestamp_with_time_zone created_at "{NOT_NULL}"
         double_precision height 
         integer id "{NOT_NULL}"
+        text ip "Store vessel ip address"
+        text ip 
         double_precision length 
         numeric mmsi 
         text name 
@@ -64,6 +66,18 @@ erDiagram
         timestamp_with_time_zone time "{NOT_NULL}"
         timestamp_with_time_zone updated_at "{NOT_NULL}"
         text vessel_id "Link auth.vessels with api.metadata via FOREIGN KEY and REFERENCES {NOT_NULL}"
+        text vessel_id "{NOT_NULL}"
+    }
+
+    api_metadata_ext {
+        timestamp_with_time_zone created_at "{NOT_NULL}"
+        bytea image "Store user boat image in bytea format"
+        text image_b64 
+        text image_type "Store user boat image type in text format"
+        timestamp_with_time_zone image_updated_at 
+        text make_model 
+        text polar "Store polar data in CSV notation as used on ORC sailboat data"
+        timestamp_with_time_zone polar_updated_at 
         text vessel_id "{NOT_NULL}"
     }
 
@@ -275,6 +289,7 @@ erDiagram
     api_logbook }o--|| api_moorages : ""
     api_logbook }o--|| api_moorages : ""
     api_metadata }o--|| auth_vessels : ""
+    api_metadata_ext |o--|| api_metadata : ""
     api_metrics }o--|| api_metadata : ""
     api_moorages }o--|| api_metadata : ""
     api_stays }o--|| api_metadata : ""
