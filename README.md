@@ -55,7 +55,7 @@ postgsail-telegram-bot:
 - [About The Project](#about-the-project)
 - [Features](#features)
 - [Cloud-hosted PostgSail](#cloud-hosted-postgsail)
-- [On-Premise (for free)](#on-premise-for-free)
+- [On-Premise](#on-premise)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
   - [Creating A Pull Request](#creating-a-pull-request)
@@ -106,9 +106,13 @@ Remove the hassle of running PostgSail yourself. Here you can skip the technical
 
 PostgSail Cloud is Open Source and free for personal use with a single vessel. If wish to manage multiple boats contact us.
 
-## On-Premise (for free)
+PostgSail is free to use, but is not free to make or host. The stability and accuracy of PostgSail depends on its volunteers and donations from its users. Please consider making an annual recurring gift to PostgSail.
+
+## On-Premise
 
 Self host postgSail where you want and how you want. There are no restrictions, you’re in full control. [Install Guide](https://github.com/xbgmsharp/postgsail/blob/main/docs/README.md)
+
+PostgSail is free to use, but is not free to make or host. The stability and accuracy of PostgSail depends on its volunteers and donations from its users. Please consider making an annual recurring gift to PostgSail.
 
 ## Roadmap
 
