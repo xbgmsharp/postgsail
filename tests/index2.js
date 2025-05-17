@@ -413,19 +413,19 @@ request.set('User-Agent', 'PostgSail unit tests');
 
   describe("Vessel POST metadata, JWT vessel_role", function(){
 
-    it('/metadata', function(done) {
+    it('/metadata?on_conflict=vessel_id', function(done) {
       request = supertest.agent(test.cname);
       request
-        .post('/metadata')
+        .post('/metadata?on_conflict=vessel_id')
         .send(test.vessel_metadata)
         .set('Authorization', `Bearer ${vessel_jwt}`)
         .set('Accept', 'application/json')
         .set('Content-Type', 'application/json')
-        .set('Prefer', 'return=headers-only')
+        .set('Prefer', 'missing=default,return=headers-only,resolution=merge-duplicates')
         .end(function(err,res){
           //console.log(res.body);
           //console.log(res.header);
-          res.status.should.equal(201);
+          res.status.should.equal(200);
           should.exist(res.header['server']);
           res.header['server'].should.match(new RegExp('postgrest','g'));
           done(err);

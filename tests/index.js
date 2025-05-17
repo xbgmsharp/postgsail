@@ -343,6 +343,18 @@ let configtime = new Date().toISOString();
           obj_name: 'settings'
         }
       },
+    ],
+    meta_ext_fn: [
+      { url: '/metadata_ext?',
+        res: {
+          obj_name: 'configuration'
+        }
+      },
+      { url: `/metadata_ext?`,
+        res: {
+          obj_name: 'image'
+        }
+      },
     ]
   }
 ].forEach( function(test){
@@ -621,7 +633,7 @@ request.set('User-Agent', 'PostgSail unit tests');
         .set('Authorization', `Bearer ${vessel_jwt}`)
         .set('Accept', 'application/json')
         .set('Content-Type', 'application/json')
-        .set('Prefer', 'return=headers-only,resolution=merge-duplicates')
+        .set('Prefer', 'missing=default,return=headers-only,resolution=merge-duplicates')
         .end(function(err,res){
           res.status.should.equal(201);
           //console.log(res.header);
