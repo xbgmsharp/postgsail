@@ -53,7 +53,6 @@ erDiagram
         jsonb configuration 
         timestamp_with_time_zone created_at "{NOT_NULL}"
         double_precision height 
-        integer id "{NOT_NULL}"
         text ip "Store vessel ip address"
         text ip 
         double_precision length 
