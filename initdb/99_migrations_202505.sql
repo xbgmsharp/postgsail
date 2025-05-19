@@ -50,8 +50,8 @@ COMMENT ON COLUMN api.metadata_ext.make_model IS 'Store user make & model in tex
 
 -- Cleanup trigger on api schema
 DROP FUNCTION IF EXISTS api.update_metadata_ext_added_at_fn();
-DROP FUNCTION IF EXISTS api.update_metadata_configuration();
 DROP TRIGGER IF EXISTS metadata_update_configuration_trigger ON api.metadata;
+DROP FUNCTION IF EXISTS api.update_metadata_configuration();
 
 -- Move trigger on public schema
 CREATE OR REPLACE FUNCTION public.update_metadata_configuration_trigger_fn()
