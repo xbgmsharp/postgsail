@@ -199,7 +199,7 @@ let configtime = new Date().toISOString();
     preferences: { key: '{email_notifications}', value: false }, /* Disable email_notifications */
     vessel_metadata: {
             name: "aava",
-            mmsi: "787654321",
+            mmsi: "n/a",
             //client_id: "vessels.urn:mrn:imo:mmsi:787654321",
             length: "12",
             beam: "10",
