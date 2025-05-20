@@ -56,7 +56,7 @@ erDiagram
         text ip "Store vessel ip address"
         text ip 
         double_precision length 
-        numeric mmsi 
+        text mmsi 
         text name 
         text platform 
         text plugin_version "{NOT_NULL}"
@@ -74,7 +74,7 @@ erDiagram
         text image_b64 
         text image_type "Store user boat image type in text format"
         timestamp_with_time_zone image_updated_at 
-        text make_model 
+        text make_model "Store user make & model in text format"
         text polar "Store polar data in CSV notation as used on ORC sailboat data"
         timestamp_with_time_zone polar_updated_at 
         text vessel_id "{NOT_NULL}"
