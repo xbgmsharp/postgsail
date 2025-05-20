@@ -21,6 +21,7 @@ set timezone to 'UTC';
 ALTER TABLE api.metadata DROP COLUMN IF EXISTS id;
 ALTER TABLE api.metadata ALTER COLUMN vessel_id SET DEFAULT current_setting('vessel.id'::text, false);
 ALTER TABLE api.metadata ADD COLUMN IF NOT EXISTS ip TEXT NULL;
+ALTER TABLE api.metadata ALTER COLUMN mmsi TYPE text USING mmsi::text;
 COMMENT ON COLUMN api.metadata.ip IS 'Store vessel ip address';
 
 -- Add metadata_ext, new table to store vessel extended metadata from user
@@ -165,13 +166,18 @@ BEGIN
       WHERE vessel_id = v_vessel_id;
 
     IF FOUND AND NOT metadata_record.active THEN
-        -- Send notification as the vessel was inactive
-        INSERT INTO process_queue (channel, payload, stored, ref_id)
-          VALUES ('monitoring_online', v_vessel_id, NOW(), v_vessel_id);
+      -- Send notification as the vessel was inactive
+      INSERT INTO process_queue (channel, payload, stored, ref_id)
+        VALUES ('monitoring_online', v_vessel_id, NOW(), v_vessel_id);
     ELSIF NOT FOUND THEN
-        -- First insert, Send notification as the vessel is active
-        INSERT INTO process_queue (channel, payload, stored, ref_id)
-          VALUES ('monitoring_online', v_vessel_id, NOW(), v_vessel_id);   
+      -- First insert, Send notification as the vessel is active
+      INSERT INTO process_queue (channel, payload, stored, ref_id)
+        VALUES ('monitoring_online', v_vessel_id, NOW(), v_vessel_id);
+    END IF;
+
+    -- Check if mmsi is a valid 9-digit number
+    IF NEW.mmsi::TEXT !~ '^\d{9}$' THEN
+      NEW.mmsi := NULL;
     END IF;
 
     -- Normalize and overwrite vessel metadata
@@ -678,7 +684,7 @@ CREATE or replace VIEW api.monitoring_live WITH (security_invoker=true,security_
           mt.metrics->'humidity'->>'outside',
           mt.metrics->>(md.configuration->>'outsideHumidityKey'),
           mt.metrics->>'environment.outside.relativeHumidity',
-          mt.metrics->>'environment.inside.humidity'
+          mt.metrics->>'environment.outside.humidity'
       )::FLOAT AS outsideHumidity,
 
       -- Outside Pressure
@@ -830,7 +836,7 @@ BEGIN
                 mt.metrics->'humidity'->>'outside',
                 mt.metrics->>(md.configuration->>'outsideHumidityKey'),
                 mt.metrics->>'environment.outside.relativeHumidity',
-                mt.metrics->>'environment.inside.humidity'
+                mt.metrics->>'environment.outside.humidity'
             )::FLOAT AS outsideHumidity,
             -- Outside Pressure
             COALESCE(
@@ -1004,7 +1010,7 @@ BEGIN
                 t.metrics->'humidity'->>'outside',
                 t.metrics->>(t.configuration->>'outsideHumidityKey'),
                 t.metrics->>'environment.outside.relativeHumidity',
-                t.metrics->>'environment.inside.humidity'
+                t.metrics->>'environment.outside.humidity'
             )::FLOAT AS outsideHumidity,
             -- Outside Pressure
             COALESCE(
@@ -1108,7 +1114,7 @@ BEGIN
                 mt.metrics->'humidity'->>'outside',
                 mt.metrics->>(md.configuration->>'outsideHumidityKey'),
                 mt.metrics->>'environment.outside.relativeHumidity',
-                mt.metrics->>'environment.inside.humidity'
+                mt.metrics->>'environment.outside.humidity'
             )::FLOAT AS outsideHumidity,
             -- Outside Pressure
             COALESCE(
@@ -1208,7 +1214,7 @@ BEGIN
                 mt.metrics->'humidity'->>'outside',
                 mt.metrics->>(md.configuration->>'outsideHumidityKey'),
                 mt.metrics->>'environment.outside.relativeHumidity',
-                mt.metrics->>'environment.inside.humidity'
+                mt.metrics->>'environment.outside.humidity'
             )::FLOAT AS outsideHumidity,
             -- Outside Pressure
             COALESCE(
@@ -1358,84 +1364,84 @@ BEGIN
             last(mt.status, mt.time) as status,
             -- Heading True
             COALESCE(
-                mt.metrics->>'heading',
-                mt.metrics->>'navigation.headingTrue'
+                last(mt.metrics->>'heading', mt.time),
+                last(mt.metrics->>'navigation.headingTrue', mt.time)
             )::FLOAT AS heading,
             -- Wind Speed True
             COALESCE(
-                mt.metrics->'wind'->>'speed',
-                mt.metrics->>(md.configuration->>'windSpeedKey'),
-                mt.metrics->>'environment.wind.speedTrue'
+                last(mt.metrics->'wind'->>'speed', mt.time),
+                last(mt.metrics->>(md.configuration->>'windSpeedKey'), mt.time),
+                last(mt.metrics->>'environment.wind.speedTrue', mt.time)
             )::FLOAT AS truewindspeed,
             -- Wind Direction True
             COALESCE(
-                mt.metrics->'wind'->>'direction',
-                mt.metrics->>(md.configuration->>'windDirectionKey'),
-                mt.metrics->>'environment.wind.directionTrue'
+                last(mt.metrics->'wind'->>'direction', mt.time),
+                last(mt.metrics->>(md.configuration->>'windDirectionKey'), mt.time),
+                last(mt.metrics->>'environment.wind.directionTrue', mt.time)
             )::FLOAT AS truewinddirection,
             -- Water Temperature
             COALESCE(
-                mt.metrics->'water'->>'temperature',
-                mt.metrics->>(md.configuration->>'waterTemperatureKey'),
-                mt.metrics->>'environment.water.temperature'
+                last(mt.metrics->'water'->>'temperature', mt.time),
+                last(mt.metrics->>(md.configuration->>'waterTemperatureKey'), mt.time),
+                last(mt.metrics->>'environment.water.temperature', mt.time)
             )::FLOAT AS waterTemperature,
             -- Water Depth
             COALESCE(
-                mt.metrics->'water'->>'depth',
-                mt.metrics->>(md.configuration->>'depthKey'),
-                mt.metrics->>'environment.depth.belowTransducer'
+                last(mt.metrics->'water'->>'depth', mt.time),
+                last(mt.metrics->>(md.configuration->>'depthKey'), mt.time),
+                last(mt.metrics->>'environment.depth.belowTransducer', mt.time)
             )::FLOAT AS depth,
             -- Outside Humidity
             COALESCE(
-                mt.metrics->'humidity'->>'outside',
-                mt.metrics->>(md.configuration->>'outsideHumidityKey'),
-                mt.metrics->>'environment.outside.relativeHumidity',
-                mt.metrics->>'environment.inside.humidity'
+                last(mt.metrics->'humidity'->>'outside', mt.time),
+                last(mt.metrics->>(md.configuration->>'outsideHumidityKey'), mt.time),
+                last(mt.metrics->>'environment.outside.relativeHumidity', mt.time),
+                last(mt.metrics->>'environment.outside.humidity', mt.time)
             )::FLOAT AS outsideHumidity,
             -- Outside Pressure
             COALESCE(
-                mt.metrics->'pressure'->>'outside',
-                mt.metrics->>(md.configuration->>'outsidePressureKey'),
-                mt.metrics->>'environment.outside.pressure'
+                last(mt.metrics->'pressure'->>'outside', mt.time),
+                last(mt.metrics->>(md.configuration->>'outsidePressureKey'), mt.time),
+                last(mt.metrics->>'environment.outside.pressure', mt.time)
             )::FLOAT AS outsidePressure,
             -- Outside Temperature
             COALESCE(
-                mt.metrics->'temperature'->>'outside',
-                mt.metrics->>(md.configuration->>'outsideTemperatureKey'),
-                mt.metrics->>'environment.outside.temperature'
+                last(mt.metrics->'temperature'->>'outside', mt.time),
+                last(mt.metrics->>(md.configuration->>'outsideTemperatureKey'), mt.time),
+                last(mt.metrics->>'environment.outside.temperature', mt.time)
             )::FLOAT AS outsideTemperature,
             -- Battery Charge (State of Charge)
             COALESCE(
-                mt.metrics->'battery'->>'charge',
-                mt.metrics->>(md.configuration->>'stateOfChargeKey'),
-                mt.metrics->>'electrical.batteries.House.capacity.stateOfCharge'
+                last(mt.metrics->'battery'->>'charge', mt.time),
+                last(mt.metrics->>(md.configuration->>'stateOfChargeKey'), mt.time),
+                last(mt.metrics->>'electrical.batteries.House.capacity.stateOfCharge', mt.time)
             )::FLOAT AS stateofcharge,
             -- Battery Voltage
             COALESCE(
-                mt.metrics->'battery'->>'voltage',
-                mt.metrics->>(md.configuration->>'voltageKey'),
-                mt.metrics->>'electrical.batteries.House.voltage'
+                last(mt.metrics->'battery'->>'voltage', mt.time),
+                last(mt.metrics->>(md.configuration->>'voltageKey'), mt.time),
+                last(mt.metrics->>'electrical.batteries.House.voltage', mt.time)
             )::FLOAT AS voltage,
             -- Solar Power
             COALESCE(
-                mt.metrics->'solar'->>'power',
-                mt.metrics->>(md.configuration->>'solarPowerKey'),
-                mt.metrics->>'electrical.solar.Main.panelPower'
+                last(mt.metrics->'solar'->>'power', mt.time),
+                last(mt.metrics->>(md.configuration->>'solarPowerKey'), mt.time),
+                last(mt.metrics->>'electrical.solar.Main.panelPower', mt.time)
             )::FLOAT AS solarPower,
             -- Solar Voltage
             COALESCE(
-                mt.metrics->'solar'->>'voltage',
-                mt.metrics->>(md.configuration->>'solarVoltageKey'),
-                mt.metrics->>'electrical.solar.Main.panelVoltage'
+                last(mt.metrics->'solar'->>'voltage', mt.time),
+                last(mt.metrics->>(md.configuration->>'solarVoltageKey'), mt.time),
+                last(mt.metrics->>'electrical.solar.Main.panelVoltage', mt.time)
             )::FLOAT AS solarVoltage,
             -- Tank Level
             COALESCE(
-                mt.metrics->'tank'->>'level',
-                mt.metrics->>(md.configuration->>'tankLevelKey'),
-                mt.metrics->>'tanks.fuel.0.currentLevel'
+                last(mt.metrics->'tank'->>'level', mt.time),
+                last(mt.metrics->>(md.configuration->>'tankLevelKey'), mt.time),
+                last(mt.metrics->>'tanks.fuel.0.currentLevel', mt.time)
             )::FLOAT AS tankLevel,
             -- Geo Point
-            ST_MakePoint(last(m.longitude, m.time),last(m.latitude, m.time)) AS geo_point
+            ST_MakePoint(last(mt.longitude, mt.time),last(mt.latitude, mt.time)) AS geo_point
         FROM api.metrics mt
         JOIN api.metadata md ON md.vessel_id = mt.vessel_id
         WHERE mt.latitude IS NOT NULL
@@ -1491,7 +1497,7 @@ BEGIN
                 mt.metrics->'humidity'->>'outside',
                 mt.metrics->>(md.configuration->>'outsideHumidityKey'),
                 mt.metrics->>'environment.outside.relativeHumidity',
-                mt.metrics->>'environment.inside.humidity'
+                mt.metrics->>'environment.outside.humidity'
             )::FLOAT AS outsideHumidity,
             -- Outside Pressure
             COALESCE(
@@ -1536,7 +1542,7 @@ BEGIN
                 mt.metrics->>'tanks.fuel.0.currentLevel'
             )::FLOAT AS tankLevel,
             -- Geo Point
-            ST_MakePoint(m.longitude, m.latitude) AS geo_point
+            ST_MakePoint(mt.longitude, mt.latitude) AS geo_point
         FROM api.metrics mt
         JOIN api.metadata md ON md.vessel_id = mt.vessel_id
         WHERE mt.latitude IS NOT NULL
@@ -1591,7 +1597,7 @@ BEGIN
                 mt.metrics->'humidity'->>'outside',
                 mt.metrics->>(md.configuration->>'outsideHumidityKey'),
                 mt.metrics->>'environment.outside.relativeHumidity',
-                mt.metrics->>'environment.inside.humidity'
+                mt.metrics->>'environment.outside.humidity'
             )::FLOAT AS outsideHumidity,
             -- Outside Pressure
             COALESCE(
@@ -1636,7 +1642,7 @@ BEGIN
                 mt.metrics->>'tanks.fuel.0.currentLevel'
             )::FLOAT AS tankLevel,
             -- Geo Point
-            ST_MakePoint(m.longitude, m.latitude) AS geo_point
+            ST_MakePoint(mt.longitude, mt.latitude) AS geo_point
         FROM api.metrics mt
         JOIN api.metadata md ON md.vessel_id = mt.vessel_id
         WHERE mt.latitude IS NOT NULL
@@ -1671,11 +1677,11 @@ BEGIN
         tfloatseq(array_agg(tfloat(o.outsidepressure, o.time_bucket) ORDER BY o.time_bucket ASC) FILTER (WHERE o.outsidepressure IS NOT NULL)) AS outsidepressure,
         tfloatseq(array_agg(tfloat(o.outsidetemperature, o.time_bucket) ORDER BY o.time_bucket ASC) FILTER (WHERE o.outsidetemperature IS NOT NULL)) AS outsidetemperature,
         tfloatseq(array_agg(tfloat(o.stateofcharge, o.time_bucket) ORDER BY o.time_bucket ASC) FILTER (WHERE o.stateofcharge IS NOT NULL)) AS stateofcharge,
-        tfloatseq(array_agg(tfloat(o.voltage, o.time) ORDER BY o.time ASC) FILTER (WHERE o.voltage IS NOT NULL)) AS voltage,
-        tfloatseq(array_agg(tfloat(o.solarPower, o.time) ORDER BY o.time ASC) FILTER (WHERE o.solarPower IS NOT NULL)) AS solarPower,
-        tfloatseq(array_agg(tfloat(o.solarVoltage, o.time) ORDER BY o.time ASC) FILTER (WHERE o.solarVoltage IS NOT NULL)) AS solarVoltage,
-        tfloatseq(array_agg(tfloat(o.tankLevel, o.time) ORDER BY o.time ASC) FILTER (WHERE o.tankLevel IS NOT NULL)) AS tankLevel,
-        tfloatseq(array_agg(tfloat(o.heading, o.time) ORDER BY o.time ASC) FILTER (WHERE o.heading IS NOT NULL)) AS heading
+        tfloatseq(array_agg(tfloat(o.voltage, o.time_bucket) ORDER BY o.time_bucket ASC) FILTER (WHERE o.voltage IS NOT NULL)) AS voltage,
+        tfloatseq(array_agg(tfloat(o.solarPower, o.time_bucket) ORDER BY o.time_bucket ASC) FILTER (WHERE o.solarPower IS NOT NULL)) AS solarPower,
+        tfloatseq(array_agg(tfloat(o.solarVoltage, o.time_bucket) ORDER BY o.time_bucket ASC) FILTER (WHERE o.solarVoltage IS NOT NULL)) AS solarVoltage,
+        tfloatseq(array_agg(tfloat(o.tankLevel, o.time_bucket) ORDER BY o.time_bucket ASC) FILTER (WHERE o.tankLevel IS NOT NULL)) AS tankLevel,
+        tfloatseq(array_agg(tfloat(o.heading, o.time_bucket) ORDER BY o.time_bucket ASC) FILTER (WHERE o.heading IS NOT NULL)) AS heading
     FROM optimize_metrics o;
 END;
 $$ LANGUAGE plpgsql;
