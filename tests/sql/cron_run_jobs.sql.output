@@ -9,6 +9,9 @@ Check the number of process pending
 -[ RECORD 1 ]
 jobs | 26
 
+-[ RECORD 1 ]
+jobs | 26
+
 -[ RECORD 1 ]-+-
 run_cron_jobs | 
 
