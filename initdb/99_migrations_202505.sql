@@ -17,6 +17,10 @@ select current_database();
 \echo 'Force timezone, just in case'
 set timezone to 'UTC';
 
+-- Update email_templates table, add new autodiscovery template
+INSERT INTO public.email_templates ("name",email_subject,email_content,pushover_title,pushover_message)
+	VALUES ('autodiscovery','PostgSail Personalize Your Boat Profile',E'Hello __RECIPIENT__,\nGood news! Your boat is now connected! ⚓\nWe\’ve updated your SignalK path mapping, so you might want to take a quick look and make sure everything\’s set up just right. You can check it out here: __APP_URL__/boat/mapping.\n\nWhile you\'re at it, why not add a personal touch to your Postgsail profile and let the world see your amazing boat?\n📸 Add a great photo – whether it\’s out on the water or chilling at the dock.\n🛠️ Enter the make and model – so everything\’s accurate.\n🧭 Upload your polar - it\’s super easy.\nHappy sailing! 🌊\n','PostgSail autodiscovery',E'We updated your signalk path mapping.');
+
 -- Update metadata table, add IP address column, remove id column, update vessel_id default
 ALTER TABLE api.metadata DROP COLUMN IF EXISTS id;
 ALTER TABLE api.metadata ALTER COLUMN vessel_id SET DEFAULT current_setting('vessel.id'::text, false);
@@ -144,7 +148,7 @@ CREATE TRIGGER metadata_ext_decode_image_trigger
 -- Description
 COMMENT ON TRIGGER metadata_ext_decode_image_trigger ON api.metadata_ext IS 'BEFORE INSERT OR UPDATE ON api.metadata_ext run function update_metadata_ext_decode_base64_image_trigger_fn';
 
--- refactor metadata_upsert_trigger_fn with the new metadata schema, remove id.
+-- refactor metadata_upsert_trigger_fn with the new metadata schema, remove id and check valid mmsi.
 CREATE OR REPLACE FUNCTION public.metadata_upsert_trigger_fn()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -176,6 +180,7 @@ BEGIN
     END IF;
 
     -- Check if mmsi is a valid 9-digit number
+    NEW.mmsi := regexp_replace(NEW.mmsi::TEXT, '\s', '', 'g');  -- remove all whitespace
     IF NEW.mmsi::TEXT !~ '^\d{9}$' THEN
       NEW.mmsi := NULL;
     END IF;
@@ -197,7 +202,7 @@ DROP TRIGGER metadata_upsert_trigger ON api.metadata;
 CREATE TRIGGER metadata_upsert_trigger
   BEFORE INSERT OR UPDATE ON api.metadata
   FOR EACH ROW
-  EXECUTE FUNCTION metadata_upsert_trigger_fn();
+  EXECUTE FUNCTION public.metadata_upsert_trigger_fn();
 -- Description
 COMMENT ON TRIGGER metadata_upsert_trigger ON api.metadata IS 'BEFORE INSERT OR UPDATE ON api.metadata run function metadata_upsert_trigger_fn';
 
@@ -218,6 +223,231 @@ $function$
 ;
 -- Description
 COMMENT ON FUNCTION public.metadata_grafana_trigger_fn() IS 'process metadata grafana provisioning from vessel';
+
+-- Create function public.autodiscovery_config_fn, to generate autodiscovery monitoring configuration
+CREATE OR REPLACE FUNCTION public.autodiscovery_config_fn(input_json jsonb)
+RETURNS jsonb AS $$
+DECLARE
+    key TEXT;
+    path TEXT;
+    result_json jsonb := '{}';
+    latest_metrics jsonb;
+    alt_path TEXT;
+BEGIN
+    -- Get the most recent metrics row
+    SELECT metrics INTO latest_metrics
+      FROM api.metrics
+      WHERE vessel_id = current_setting('vessel.id', false)
+      ORDER BY time DESC
+      LIMIT 1;
+
+    -- Iterate over each key and path in the input
+    FOR key, path IN
+        SELECT je.key, je.value
+        FROM jsonb_each_text(input_json) AS je(key, value)
+    LOOP
+        -- If the path exists, keep it
+        IF latest_metrics ? path THEN
+            result_json := result_json || jsonb_build_object(key, path);
+
+        -- If path doesn't exist and it's 'voltageKey', search for an alternative
+        ELSIF key = 'voltageKey' THEN
+            SELECT metric_key INTO alt_path
+            FROM jsonb_object_keys(latest_metrics) AS metric_key
+            WHERE metric_key ILIKE 'electrical.batteries.%.voltage'
+            LIMIT 1;
+
+            IF alt_path IS NOT NULL THEN
+                result_json := result_json || jsonb_build_object(key, alt_path);
+            END IF;
+
+        ELSIF key = 'solarPowerKey' THEN
+            SELECT metric_key INTO alt_path
+            FROM jsonb_object_keys(latest_metrics) AS metric_key
+            WHERE metric_key ILIKE 'electrical.solar.%.panelPower'
+            LIMIT 1;
+
+            IF alt_path IS NOT NULL THEN
+                result_json := result_json || jsonb_build_object(key, alt_path);
+            END IF;
+
+        ELSIF key = 'solarVoltageKey' THEN
+            SELECT metric_key INTO alt_path
+            FROM jsonb_object_keys(latest_metrics) AS metric_key
+            WHERE metric_key ILIKE 'electrical.solar.%.panelVoltage'
+            LIMIT 1;
+
+            IF alt_path IS NOT NULL THEN
+                result_json := result_json || jsonb_build_object(key, alt_path);
+            END IF;
+
+        ELSIF key = 'stateOfChargeKey' THEN
+            SELECT metric_key INTO alt_path
+            FROM jsonb_object_keys(latest_metrics) AS metric_key
+            WHERE metric_key ILIKE 'electrical.batteries.%.stateOfCharge'
+            LIMIT 1;
+
+            IF alt_path IS NOT NULL THEN
+                result_json := result_json || jsonb_build_object(key, alt_path);
+            END IF;
+
+        ELSIF key = 'tankLevelKey' THEN
+            SELECT metric_key INTO alt_path
+            FROM jsonb_object_keys(latest_metrics) AS metric_key
+            WHERE metric_key ILIKE 'tanks.fuel.%.currentLevel'
+            LIMIT 1;
+
+            IF alt_path IS NOT NULL THEN
+                result_json := result_json || jsonb_build_object(key, alt_path);
+            END IF;
+
+        ELSIF key = 'outsideHumidityKey' THEN
+            SELECT metric_key INTO alt_path
+            FROM jsonb_object_keys(latest_metrics) AS metric_key
+            WHERE metric_key ILIKE 'environment.%.humidity'
+            LIMIT 1;
+
+            IF alt_path IS NOT NULL THEN
+                result_json := result_json || jsonb_build_object(key, alt_path);
+            END IF;
+
+        ELSIF key = 'outsidePressureKey' THEN
+            SELECT metric_key INTO alt_path
+            FROM jsonb_object_keys(latest_metrics) AS metric_key
+            WHERE metric_key ILIKE 'environment.%.pressure'
+            LIMIT 1;
+
+            IF alt_path IS NOT NULL THEN
+                result_json := result_json || jsonb_build_object(key, alt_path);
+            END IF;
+
+        ELSIF key = 'outsideTemperatureKey' THEN
+            SELECT metric_key INTO alt_path
+            FROM jsonb_object_keys(latest_metrics) AS metric_key
+            WHERE metric_key ILIKE 'environment.%.temperature'
+            LIMIT 1;
+
+            IF alt_path IS NOT NULL THEN
+                result_json := result_json || jsonb_build_object(key, alt_path);
+            END IF;
+
+        END IF;
+
+    END LOOP;
+
+    RETURN result_json;
+END;
+$$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION public.autodiscovery_config_fn(input_json jsonb) IS 'Clean the JSONB column by removing keys that are not present in the latest metrics row.';
+
+-- Update metadata_autodiscovery_trigger_fn with the new metadata schema, remove id.
+CREATE OR REPLACE FUNCTION public.metadata_autodiscovery_trigger_fn()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+    DECLARE
+    BEGIN
+        RAISE NOTICE 'metadata_autodiscovery_trigger_fn [%]', NEW;
+        INSERT INTO process_queue (channel, payload, stored, ref_id)
+            VALUES ('autodiscovery', NEW.vessel_id, NOW(), NEW.vessel_id);
+        RETURN NULL;
+    END;
+$function$
+;
+-- Description
+COMMENT ON FUNCTION public.metadata_autodiscovery_trigger_fn() IS 'process metadata autodiscovery config provisioning from vessel';
+
+-- Create trigger to process metadata for autodiscovery_config provisioning
+CREATE TRIGGER metadata_autodiscovery_trigger
+  AFTER INSERT ON api.metadata
+  FOR EACH ROW
+  EXECUTE FUNCTION public.metadata_autodiscovery_trigger_fn();
+-- Description
+COMMENT ON TRIGGER metadata_autodiscovery_trigger ON api.metadata IS 'AFTER INSERT ON api.metadata run function metadata_autodiscovery_trigger_fn for later signalk mapping provisioning on new vessel';
+
+-- Create cron_process_autodiscovery_fn to process autodiscovery config provisioning
+CREATE OR REPLACE FUNCTION public.cron_process_autodiscovery_fn()
+ RETURNS void
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    process_rec record;
+    data_rec record;
+    app_settings jsonb;
+    user_settings jsonb;
+    config jsonb;
+    config_default jsonb := '{
+        "depthKey": "environment.depth.belowTransducer",
+        "voltageKey": "electrical.batteries.House.voltage",
+        "windSpeedKey": "environment.wind.speedTrue",
+        "solarPowerKey": "electrical.solar.Main.panelPower",
+        "solarVoltageKey": "electrical.solar.Main.panelVoltage",
+        "stateOfChargeKey": "electrical.batteries.House.capacity.stateOfCharge",
+        "windDirectionKey": "environment.wind.directionTrue",
+        "insideHumidityKey": "environment.outside.humidity",
+        "insidePressureKey": "environment.inside.mainCabin.pressure",
+        "outsideHumidityKey": "environment.outside.humidity",
+        "outsidePressureKey": "environment.outside.pressure",
+        "waterTemperatureKey": "environment.water.temperature",
+        "insideTemperatureKey": "environment.inside.temperature",
+        "outsideTemperatureKey": "environment.outside.temperature"
+      }'::JSONB;
+BEGIN
+    -- We run autodiscovery provisioning only after the first received vessel metadata
+    -- Check for new vessel metadata pending autodiscovery provisioning
+    RAISE NOTICE 'cron_process_autodiscovery_fn';
+    FOR process_rec in
+        SELECT * from process_queue
+            where channel = 'autodiscovery' and processed is null
+            order by stored asc
+    LOOP
+        RAISE NOTICE '-> cron_process_autodiscovery_fn [%]', process_rec.payload;
+        -- Gather url from app settings
+        app_settings := get_app_settings_fn();
+        -- Get vessel details base on vessel id
+        SELECT
+            v.owner_email, coalesce(m.name, v.name) as name, m.vessel_id, m.configuration into data_rec
+            FROM auth.vessels v
+            LEFT JOIN api.metadata m ON v.vessel_id = m.vessel_id
+            WHERE m.vessel_id = process_rec.payload::TEXT;
+        IF data_rec.vessel_id IS NULL OR data_rec.name IS NULL THEN
+            RAISE WARNING '-> DEBUG cron_process_autodiscovery_fn error [%]', data_rec;
+            RETURN;
+        END IF;
+        PERFORM set_config('vessel.id', data_rec.vessel_id::TEXT, false);
+        -- as we got data from the vessel we can do the autodiscovery provisioning.
+        IF data_rec.configuration IS NULL THEN
+            data_rec.configuration := '{}'::JSONB; -- Initialize empty configuration if NULL
+        END IF;
+        --RAISE DEBUG '-> DEBUG cron_process_autodiscovery_fn autodiscovery_config_fn provisioning [%] [%] [%]', config_default, data_rec.configuration, (config_default || data_rec.configuration);
+        SELECT public.autodiscovery_config_fn(config_default || data_rec.configuration) INTO config;
+        --RAISE DEBUG '-> DEBUG cron_process_autodiscovery_fn autodiscovery_config_fn [%]', config;
+        -- Check if config is empty
+        IF config IS NULL OR config = '{}'::JSONB THEN
+            RAISE WARNING '-> DEBUG cron_process_autodiscovery_fn autodiscovery_config_fn error [%]', config;
+            RETURN;
+        END IF;
+        UPDATE api.metadata
+            SET configuration = config
+            WHERE vessel_id = data_rec.vessel_id::TEXT;
+        -- Gather user settings
+        user_settings := get_user_settings_from_vesselid_fn(data_rec.vessel_id::TEXT);
+        --RAISE DEBUG '-> DEBUG cron_process_autodiscovery_fn get_user_settings_from_vesselid_fn [%]', user_settings;
+        -- Send notification
+        PERFORM send_notification_fn('autodiscovery'::TEXT, user_settings::JSONB);
+        -- update process_queue entry as processed
+        UPDATE process_queue
+            SET
+                processed = NOW()
+            WHERE id = process_rec.id;
+        RAISE NOTICE '-> cron_process_autodiscovery_fn updated process_queue table [%]', process_rec.id;
+    END LOOP;
+END;
+$function$
+;
+-- Description
+COMMENT ON FUNCTION public.cron_process_autodiscovery_fn() IS 'init by pg_cron to check for new vessel pending autodiscovery config provisioning';
 
 -- Create api.vessel_image to fetch boat image
 create domain "*/*" as bytea;
@@ -1857,7 +2087,7 @@ begin
             order by stored asc
     LOOP
         RAISE NOTICE '-> cron_process_monitor_online_fn metadata_vessel_id [%]', process_rec.payload;
-        SELECT * INTO metadata_rec 
+        SELECT vessel_id INTO metadata_rec
             FROM api.metadata
             WHERE vessel_id = process_rec.payload::TEXT;
 
@@ -1907,7 +2137,7 @@ begin
     RAISE NOTICE 'cron_process_monitor_offline_fn';
     FOR metadata_rec in 
         SELECT
-            *, 
+            vessel_id,
             NOW() AT TIME ZONE 'UTC' as now, 
             NOW() AT TIME ZONE 'UTC' - INTERVAL '70 MINUTES' as interval
         FROM api.metadata m
@@ -2054,12 +2284,386 @@ $function$
 -- Description
 COMMENT ON FUNCTION public.cron_process_skplugin_upgrade_fn() IS 'init by pg_cron, check for signalk plugin version and notify for upgrade';
 
+-- DROP FUNCTION public.cron_alerts_fn();
+-- Update public.cron_alerts_fn, add support for custom monitoring path
+CREATE OR REPLACE FUNCTION public.cron_alerts_fn()
+ RETURNS void
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    alert_rec record;
+    default_last_metric TIMESTAMPTZ := NOW() - interval '1 day';
+    last_metric TIMESTAMPTZ;
+    metric_rec record;
+    app_settings JSONB;
+    user_settings JSONB;
+    alerting JSONB;
+    _alarms JSONB;
+    alarms TEXT;
+    alert_default JSONB := '{
+        "low_pressure_threshold": 990,
+        "high_wind_speed_threshold": 30,
+        "low_water_depth_threshold": 1,
+        "min_notification_interval": 6,
+        "high_pressure_drop_threshold": 12,
+        "low_battery_charge_threshold": 90,
+        "low_battery_voltage_threshold": 12.5,
+        "low_water_temperature_threshold": 10,
+        "low_indoor_temperature_threshold": 7,
+        "low_outdoor_temperature_threshold": 3
+    }';
+BEGIN
+    -- Check for new event notification pending update
+    RAISE NOTICE 'cron_alerts_fn';
+    FOR alert_rec in
+        SELECT
+            a.user_id,a.email,v.vessel_id,
+            COALESCE((a.preferences->'alert_last_metric')::TEXT, default_last_metric::TEXT) as last_metric,
+            (alert_default || (a.preferences->'alerting')::JSONB) as alerting,
+            (a.preferences->'alarms')::JSONB as alarms,
+            m.configuration as config
+            FROM auth.accounts a
+            LEFT JOIN auth.vessels AS v ON v.owner_email = a.email
+            LEFT JOIN api.metadata AS m ON m.vessel_id = v.vessel_id
+            WHERE (a.preferences->'alerting'->'enabled')::boolean = True
+                AND m.active = True
+        LOOP
+        RAISE NOTICE '-> cron_alerts_fn for [%]', alert_rec;
+        PERFORM set_config('vessel.id', alert_rec.vessel_id, false);
+        PERFORM set_config('user.email', alert_rec.email, false);
+        --RAISE WARNING 'public.cron_process_alert_rec_fn() scheduler vessel.id %, user.id', current_setting('vessel.id', false), current_setting('user.id', false);
+        -- Gather user settings
+        user_settings := get_user_settings_from_vesselid_fn(alert_rec.vessel_id::TEXT);
+        RAISE NOTICE '-> cron_alerts_fn checking user_settings [%]', user_settings;
+        -- Get all metrics from the last last_metric avg by 5 minutes
+        FOR metric_rec in
+            SELECT time_bucket('5 minutes', m.time) AS time_bucket,
+                    avg((m.metrics->'environment.inside.temperature')::numeric) AS intemp,
+                    avg((m.metrics->'environment.wind.speedTrue')::numeric) AS wind,
+                    avg((m.metrics->'environment.depth.belowTransducer')::numeric) AS watdepth,
+                    avg(-- Outside Temperature
+                        COALESCE(
+                            m.metrics->'temperature'->>'outside',
+                            m.metrics->>(alert_rec.config->>'outsideTemperatureKey'),
+                            m.metrics->>'environment.outside.temperature'
+                        )::NUMERIC) AS outtemp,
+                    avg(-- Water Temperature
+                        COALESCE(
+                            m.metrics->'water'->>'temperature',
+                            m.metrics->>(alert_rec.config->>'waterTemperatureKey'),
+                            m.metrics->>'environment.water.temperature'
+                        )::NUMERIC) AS wattemp,
+                    avg(-- Outside Pressure
+                        COALESCE(
+                            m.metrics->'pressure'->>'outside',
+                            m.metrics->>(alert_rec.config->>'outsidePressureKey'),
+                            m.metrics->>'environment.outside.pressure'
+                        )::NUMERIC) AS pressure,
+                    avg(-- Battery Voltage
+                        COALESCE(
+                            m.metrics->'battery'->>'voltage',
+                            m.metrics->>(alert_rec.config->>'voltageKey'),
+                            m.metrics->>'electrical.batteries.House.voltage'
+                        )::NUMERIC) AS voltage,
+                    avg(-- Battery Charge (State of Charge)
+                        COALESCE(
+                            m.metrics->'battery'->>'charge',
+                            m.metrics->>(alert_rec.config->>'stateOfChargeKey'),
+                            m.metrics->>'electrical.batteries.House.capacity.stateOfCharge'
+                        )::NUMERIC) AS charge
+                FROM api.metrics m
+                WHERE vessel_id = alert_rec.vessel_id
+                    AND m.time >= alert_rec.last_metric::TIMESTAMPTZ
+                GROUP BY time_bucket
+                ORDER BY time_bucket ASC LIMIT 100
+        LOOP
+            RAISE NOTICE '-> cron_alerts_fn checking metrics [%]', metric_rec;
+            RAISE NOTICE '-> cron_alerts_fn checking alerting [%]', alert_rec.alerting;
+            --RAISE NOTICE '-> cron_alerts_fn checking debug [%] [%]', kelvinToCel(metric_rec.intemp), (alert_rec.alerting->'low_indoor_temperature_threshold');
+            IF metric_rec.intemp IS NOT NULL AND public.kelvintocel(metric_rec.intemp::NUMERIC) < (alert_rec.alerting->'low_indoor_temperature_threshold')::NUMERIC then
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', (alert_rec.alarms->'low_indoor_temperature_threshold'->>'date')::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
+                -- Get latest alarms
+                SELECT preferences->'alarms' INTO _alarms FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
+                -- Is alarm in the min_notification_interval time frame
+                IF (
+                    ((_alarms->'low_indoor_temperature_threshold'->>'date') IS NULL) OR
+                    (((_alarms->'low_indoor_temperature_threshold'->>'date')::TIMESTAMPTZ
+                    + ((interval '1 hour') * (alert_rec.alerting->>'min_notification_interval')::NUMERIC))
+                    < metric_rec.time_bucket::TIMESTAMPTZ)
+                    ) THEN
+                    -- Add alarm
+                    alarms := '{"low_indoor_temperature_threshold": {"value": '|| kelvinToCel(metric_rec.intemp) ||', "date":"' || metric_rec.time_bucket || '"}}';
+                    -- Merge alarms
+                    SELECT public.jsonb_recursive_merge(_alarms::jsonb, alarms::jsonb) into _alarms;
+                    -- Update alarms for user
+                    PERFORM api.update_user_preferences_fn('{alarms}'::TEXT, _alarms::TEXT);
+                    -- Gather user settings
+                    user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
+                    SELECT user_settings::JSONB || ('{"alert": "low_outdoor_temperature_threshold value:'|| kelvinToCel(metric_rec.intemp) ||' date:'|| metric_rec.time_bucket ||' "}'::text)::JSONB into user_settings;
+                    -- Send notification
+                    PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
+                    -- DEBUG
+                    RAISE NOTICE '-> cron_alerts_fn checking debug low_indoor_temperature_threshold +interval';
+                END IF;
+                RAISE NOTICE '-> cron_alerts_fn checking debug low_indoor_temperature_threshold';
+            END IF;
+            IF metric_rec.outtemp IS NOT NULL AND public.kelvintocel(metric_rec.outtemp::NUMERIC) < (alert_rec.alerting->>'low_outdoor_temperature_threshold')::NUMERIC then
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', (alert_rec.alarms->'low_outdoor_temperature_threshold'->>'date')::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
+                -- Get latest alarms
+                SELECT preferences->'alarms' INTO _alarms FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
+                -- Is alarm in the min_notification_interval time frame
+                IF (
+                    ((_alarms->'low_outdoor_temperature_threshold'->>'date') IS NULL) OR
+                    (((_alarms->'low_outdoor_temperature_threshold'->>'date')::TIMESTAMPTZ
+                    + ((interval '1 hour') * (alert_rec.alerting->>'min_notification_interval')::NUMERIC))
+                    < metric_rec.time_bucket::TIMESTAMPTZ)
+                    ) THEN
+                    -- Add alarm
+                    alarms := '{"low_outdoor_temperature_threshold": {"value": '|| kelvinToCel(metric_rec.outtemp) ||', "date":"' || metric_rec.time_bucket || '"}}';
+                    -- Merge alarms
+                    SELECT public.jsonb_recursive_merge(_alarms::jsonb, alarms::jsonb) into _alarms;
+                    -- Update alarms for user
+                    PERFORM api.update_user_preferences_fn('{alarms}'::TEXT, _alarms::TEXT);
+                    -- Gather user settings
+                    user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
+                    SELECT user_settings::JSONB || ('{"alert": "low_outdoor_temperature_threshold value:'|| kelvinToCel(metric_rec.outtemp) ||' date:'|| metric_rec.time_bucket ||' "}'::text)::JSONB into user_settings;
+                    -- Send notification
+                    PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
+                    -- DEBUG
+                    RAISE NOTICE '-> cron_alerts_fn checking debug low_outdoor_temperature_threshold +interval';
+                END IF;
+                RAISE NOTICE '-> cron_alerts_fn checking debug low_outdoor_temperature_threshold';
+            END IF;
+            IF metric_rec.wattemp IS NOT NULL AND public.kelvintocel(metric_rec.wattemp::NUMERIC) < (alert_rec.alerting->>'low_water_temperature_threshold')::NUMERIC then
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', (alert_rec.alarms->'low_water_temperature_threshold'->>'date')::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
+                -- Get latest alarms
+                SELECT preferences->'alarms' INTO _alarms FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
+                -- Is alarm in the min_notification_interval time frame
+                IF (
+                    ((_alarms->'low_water_temperature_threshold'->>'date') IS NULL) OR
+                    (((_alarms->'low_water_temperature_threshold'->>'date')::TIMESTAMPTZ
+                    + ((interval '1 hour') * (alert_rec.alerting->>'min_notification_interval')::NUMERIC))
+                    < metric_rec.time_bucket::TIMESTAMPTZ)
+                    ) THEN
+                    -- Add alarm
+                    alarms := '{"low_water_temperature_threshold": {"value": '|| kelvinToCel(metric_rec.wattemp) ||', "date":"' || metric_rec.time_bucket || '"}}';
+                    -- Merge alarms
+                    SELECT public.jsonb_recursive_merge(_alarms::jsonb, alarms::jsonb) into _alarms;
+                    -- Update alarms for user
+                    PERFORM api.update_user_preferences_fn('{alarms}'::TEXT, _alarms::TEXT);
+                    -- Gather user settings
+                    user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
+                    SELECT user_settings::JSONB || ('{"alert": "low_water_temperature_threshold value:'|| kelvinToCel(metric_rec.wattemp) ||' date:'|| metric_rec.time_bucket ||' "}'::text)::JSONB into user_settings;
+                    -- Send notification
+                    PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
+                    -- DEBUG
+                    RAISE NOTICE '-> cron_alerts_fn checking debug low_water_temperature_threshold +interval';
+                END IF;
+                RAISE NOTICE '-> cron_alerts_fn checking debug low_water_temperature_threshold';
+            END IF;
+            IF metric_rec.watdepth IS NOT NULL AND metric_rec.watdepth::NUMERIC < (alert_rec.alerting->'low_water_depth_threshold')::NUMERIC then
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', (alert_rec.alarms->'low_water_depth_threshold'->>'date')::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
+                -- Get latest alarms
+                SELECT preferences->'alarms' INTO _alarms FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
+                -- Is alarm in the min_notification_interval time frame
+                IF (
+                    ((_alarms->'low_water_depth_threshold'->>'date') IS NULL) OR
+                    (((_alarms->'low_water_depth_threshold'->>'date')::TIMESTAMPTZ
+                    + ((interval '1 hour') * (alert_rec.alerting->>'min_notification_interval')::NUMERIC))
+                    < metric_rec.time_bucket::TIMESTAMPTZ)
+                    ) THEN
+                    -- Add alarm
+                    alarms := '{"low_water_depth_threshold": {"value": '|| metric_rec.watdepth ||', "date":"' || metric_rec.time_bucket || '"}}';
+                    -- Merge alarms
+                    SELECT public.jsonb_recursive_merge(_alarms::jsonb, alarms::jsonb) into _alarms;
+                    -- Update alarms for user
+                    PERFORM api.update_user_preferences_fn('{alarms}'::TEXT, _alarms::TEXT);
+                    -- Gather user settings
+                    user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
+                    SELECT user_settings::JSONB || ('{"alert": "low_water_depth_threshold value:'|| ROUND(metric_rec.watdepth,2) ||' date:'|| metric_rec.time_bucket ||' "}'::text)::JSONB into user_settings;
+                    -- Send notification
+                    PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
+                    -- DEBUG
+                    RAISE NOTICE '-> cron_alerts_fn checking debug low_water_depth_threshold +interval';
+                END IF;
+                RAISE NOTICE '-> cron_alerts_fn checking debug low_water_depth_threshold';
+            END IF;
+            if metric_rec.pressure IS NOT NULL AND metric_rec.pressure::NUMERIC < (alert_rec.alerting->'high_pressure_drop_threshold')::NUMERIC then
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', (alert_rec.alarms->'high_pressure_drop_threshold'->>'date')::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
+                -- Get latest alarms
+                SELECT preferences->'alarms' INTO _alarms FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
+                -- Is alarm in the min_notification_interval time frame
+                IF (
+                    ((_alarms->'high_pressure_drop_threshold'->>'date') IS NULL) OR
+                    (((_alarms->'high_pressure_drop_threshold'->>'date')::TIMESTAMPTZ
+                    + ((interval '1 hour') * (alert_rec.alerting->>'min_notification_interval')::NUMERIC))
+                    < metric_rec.time_bucket::TIMESTAMPTZ)
+                    ) THEN
+                    -- Add alarm
+                    alarms := '{"high_pressure_drop_threshold": {"value": '|| metric_rec.pressure ||', "date":"' || metric_rec.time_bucket || '"}}';
+                    -- Merge alarms
+                    SELECT public.jsonb_recursive_merge(_alarms::jsonb, alarms::jsonb) into _alarms;
+                    -- Update alarms for user
+                    PERFORM api.update_user_preferences_fn('{alarms}'::TEXT, _alarms::TEXT);
+                    -- Gather user settings
+                    user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
+                    SELECT user_settings::JSONB || ('{"alert": "high_pressure_drop_threshold value:'|| ROUND(metric_rec.pressure,2) ||' date:'|| metric_rec.time_bucket ||' "}'::text)::JSONB into user_settings;
+                    -- Send notification
+                    PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
+                    -- DEBUG
+                    RAISE NOTICE '-> cron_alerts_fn checking debug high_pressure_drop_threshold +interval';
+                END IF;
+                RAISE NOTICE '-> cron_alerts_fn checking debug high_pressure_drop_threshold';
+            END IF;
+            IF metric_rec.wind IS NOT NULL AND metric_rec.wind::NUMERIC > (alert_rec.alerting->'high_wind_speed_threshold')::NUMERIC then
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', (alert_rec.alarms->'high_wind_speed_threshold'->>'date')::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
+                -- Get latest alarms
+                SELECT preferences->'alarms' INTO _alarms FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
+                -- Is alarm in the min_notification_interval time frame
+                IF (
+                    ((_alarms->'high_wind_speed_threshold'->>'date') IS NULL) OR
+                    (((_alarms->'high_wind_speed_threshold'->>'date')::TIMESTAMPTZ
+                    + ((interval '1 hour') * (alert_rec.alerting->>'min_notification_interval')::NUMERIC))
+                    < metric_rec.time_bucket::TIMESTAMPTZ)
+                    ) THEN
+                    -- Add alarm
+                    alarms := '{"high_wind_speed_threshold": {"value": '|| metric_rec.wind ||', "date":"' || metric_rec.time_bucket || '"}}';
+                    -- Merge alarms
+                    SELECT public.jsonb_recursive_merge(_alarms::jsonb, alarms::jsonb) into _alarms;
+                    -- Update alarms for user
+                    PERFORM api.update_user_preferences_fn('{alarms}'::TEXT, _alarms::TEXT);
+                    -- Gather user settings
+                    user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
+                    SELECT user_settings::JSONB || ('{"alert": "high_wind_speed_threshold value:'|| ROUND(metric_rec.wind,2) ||' date:'|| metric_rec.time_bucket ||' "}'::text)::JSONB into user_settings;
+                    -- Send notification
+                    PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
+                    -- DEBUG
+                    RAISE NOTICE '-> cron_alerts_fn checking debug high_wind_speed_threshold +interval';
+                END IF;
+                RAISE NOTICE '-> cron_alerts_fn checking debug high_wind_speed_threshold';
+            END IF;
+            if metric_rec.voltage IS NOT NULL AND metric_rec.voltage::NUMERIC < (alert_rec.alerting->'low_battery_voltage_threshold')::NUMERIC then
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', (alert_rec.alarms->'low_battery_voltage_threshold'->>'date')::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
+                -- Get latest alarms
+                SELECT preferences->'alarms' INTO _alarms FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
+                -- Is alarm in the min_notification_interval time frame
+                IF (
+                    ((_alarms->'low_battery_voltage_threshold'->>'date') IS NULL) OR
+                    (((_alarms->'low_battery_voltage_threshold'->>'date')::TIMESTAMPTZ
+                    + ((interval '1 hour') * (alert_rec.alerting->>'min_notification_interval')::NUMERIC))
+                    < metric_rec.time_bucket::TIMESTAMPTZ)
+                    ) THEN
+                    -- Add alarm
+                    alarms := '{"low_battery_voltage_threshold": {"value": '|| metric_rec.voltage ||', "date":"' || metric_rec.time_bucket || '"}}';
+                    -- Merge alarms
+                    SELECT public.jsonb_recursive_merge(_alarms::jsonb, alarms::jsonb) into _alarms;
+                    -- Update alarms for user
+                    PERFORM api.update_user_preferences_fn('{alarms}'::TEXT, _alarms::TEXT);
+                    -- Gather user settings
+                    user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
+                    SELECT user_settings::JSONB || ('{"alert": "low_battery_voltage_threshold value:'|| ROUND(metric_rec.voltage,2) ||' date:'|| metric_rec.time_bucket ||' "}'::text)::JSONB into user_settings;
+                    -- Send notification
+                    PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
+                    -- DEBUG
+                    RAISE NOTICE '-> cron_alerts_fn checking debug low_battery_voltage_threshold +interval';
+                END IF;
+                RAISE NOTICE '-> cron_alerts_fn checking debug low_battery_voltage_threshold';
+            END IF;
+            if metric_rec.charge IS NOT NULL AND (metric_rec.charge::NUMERIC*100) < (alert_rec.alerting->'low_battery_charge_threshold')::NUMERIC then
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', (alert_rec.alarms->'low_battery_charge_threshold'->>'date')::TIMESTAMPTZ;
+                RAISE NOTICE '-> cron_alerts_fn checking debug [%]', metric_rec.time_bucket::TIMESTAMPTZ;
+                -- Get latest alarms
+                SELECT preferences->'alarms' INTO _alarms FROM auth.accounts a WHERE a.email = current_setting('user.email', false);
+                -- Is alarm in the min_notification_interval time frame
+                IF (
+                    ((_alarms->'low_battery_charge_threshold'->>'date') IS NULL) OR
+                    (((_alarms->'low_battery_charge_threshold'->>'date')::TIMESTAMPTZ
+                    + ((interval '1 hour') * (alert_rec.alerting->>'min_notification_interval')::NUMERIC))
+                    < metric_rec.time_bucket::TIMESTAMPTZ)
+                    ) THEN
+                    -- Add alarm
+                    alarms := '{"low_battery_charge_threshold": {"value": '|| (metric_rec.charge*100) ||', "date":"' || metric_rec.time_bucket || '"}}';
+                    -- Merge alarms
+                    SELECT public.jsonb_recursive_merge(_alarms::jsonb, alarms::jsonb) into _alarms;
+                    -- Update alarms for user
+                    PERFORM api.update_user_preferences_fn('{alarms}'::TEXT, _alarms::TEXT);
+                    -- Gather user settings
+                    user_settings := get_user_settings_from_vesselid_fn(current_setting('vessel.id', false));
+                    SELECT user_settings::JSONB || ('{"alert": "low_battery_charge_threshold value:'|| ROUND(metric_rec.charge::NUMERIC*100,2) ||' date:'|| metric_rec.time_bucket ||' "}'::text)::JSONB into user_settings;
+                    -- Send notification
+                    PERFORM send_notification_fn('alert'::TEXT, user_settings::JSONB);
+                    -- DEBUG
+                    RAISE NOTICE '-> cron_alerts_fn checking debug low_battery_charge_threshold +interval';
+                END IF;
+                RAISE NOTICE '-> cron_alerts_fn checking debug low_battery_charge_threshold';
+            END IF;
+            -- Record last metrics time
+            SELECT metric_rec.time_bucket INTO last_metric;
+        END LOOP;
+        PERFORM api.update_user_preferences_fn('{alert_last_metric}'::TEXT, last_metric::TEXT);
+    END LOOP;
+END;
+$function$
+;
+-- Description
+COMMENT ON FUNCTION public.cron_alerts_fn() IS 'init by pg_cron to check for alerts';
+
+DROP FUNCTION IF EXISTS public.kelvintocel(numeric);
+-- Update public.kelvintocel, Add an overloaded kelvintocel(double precision) function
+CREATE OR REPLACE FUNCTION public.kelvintocel(temperature double precision)
+ RETURNS numeric
+ LANGUAGE plpgsql
+ IMMUTABLE
+AS $function$
+BEGIN
+	RETURN ROUND((((temperature)::numeric - 273.15) * 10) / 10);
+END
+$function$
+;
+-- Description
+COMMENT ON FUNCTION public.kelvintocel(double precision) IS 'convert kelvin To Celsius';
+
+-- DROP FUNCTION public.run_cron_jobs();
+-- Udpate public.run_cron_jobs, add cron_process_autodiscovery_fn function calls
+CREATE OR REPLACE FUNCTION public.run_cron_jobs()
+ RETURNS void
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    -- In correct order
+    perform public.cron_process_new_notification_fn();
+    perform public.cron_process_monitor_online_fn();
+    --perform public.cron_process_grafana_fn();
+    perform public.cron_process_pre_logbook_fn();
+    perform public.cron_process_new_logbook_fn();
+    perform public.cron_process_post_logbook_fn();
+    perform public.cron_process_new_stay_fn();
+    --perform public.cron_process_new_moorage_fn();
+    perform public.cron_process_monitor_offline_fn();
+    perform public.cron_process_autodiscovery_fn();
+END
+$function$
+;
+
+-- Revoke security definer
+ALTER FUNCTION api.update_logbook_observations_fn(_id integer, observations text) SECURITY INVOKER;
+ALTER FUNCTION api.delete_logbook_fn(_id integer) SECURITY INVOKER;
+
 -- Grant access to the new table
 GRANT SELECT ON TABLE api.metadata_ext TO user_role;
 -- Allow users to update certain columns on metadata_ext table on API schema
 GRANT INSERT,UPDATE (make_model, polar, image, image_b64, image_type) ON api.metadata_ext TO user_role;
 -- Allow users to update certain columns on metadata table on API schema
 GRANT INSERT,UPDATE (configuration) ON api.metadata TO user_role;
+-- Allow users to update certain columns on logbook table on API schema
+GRANT UPDATE (extra) ON api.logbook TO user_role;
 -- Allow anonymous to read api.metadata_ext table on API schema
 GRANT SELECT ON TABLE api.metadata_ext TO api_anonymous;
 -- Allow anonymous to export the vessel image on API schema
@@ -2108,6 +2712,12 @@ GRANT SELECT ON ALL TABLES IN SCHEMA api TO user_role;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA api TO user_role;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO user_role;
 GRANT SELECT ON ALL TABLES IN SCHEMA api TO api_anonymous;
+-- Allow users to write table in public schema
+GRANT USAGE, CREATE ON SCHEMA public TO  user_role;
+-- Scheduler
+GRANT SELECT ON ALL TABLES IN SCHEMA api TO user_role;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA api TO user_role;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO user_role;
 
 -- Update version
 UPDATE public.app_settings
@@ -2115,3 +2725,6 @@ UPDATE public.app_settings
 	WHERE "name"='app.version';
 
 \c postgres
+-- Create a every 8 minute job cron_process_autodiscovery_fn
+SELECT cron.schedule('cron_autodiscovery', '*/8 * * * *', 'select public.cron_process_autodiscovery_fn()');
+UPDATE cron.job SET username = 'scheduler', database = 'signalk' WHERE jobname = 'cron_autodiscovery';
