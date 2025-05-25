@@ -55,34 +55,34 @@ name        | aava
 role        | vessel_role
 
 api.metadata details
--[ RECORD 1 ]------+----------------
-vessel_id_not_null | t
-name               | kapla
-mmsi               | 123456789
-length             | 12
-beam               | 10
-height             | 24
-ship_type          | 36
-plugin_version     | 0.0.1
-signalk_version    | signalk_version
-time               | t
-active             | t
-configuration      | t
-available_keys     | 
--[ RECORD 2 ]------+----------------
-vessel_id_not_null | t
-name               | aava
-mmsi               | 787654321
-length             | 12
-beam               | 10
-height             | 24
-ship_type          | 37
-plugin_version     | 1.0.2
-signalk_version    | 1.20.0
-time               | t
-active             | t
-configuration      | f
-available_keys     | []
+-[ RECORD 1 ]----------+----------------
+vessel_id_not_null     | t
+name                   | kapla
+mmsi                   | 123456789
+length                 | 12
+beam                   | 10
+height                 | 24
+ship_type              | 36
+plugin_version         | 0.0.1
+signalk_version        | signalk_version
+time                   | t
+active                 | t
+configuration_not_null | t
+available_keys         | 
+-[ RECORD 2 ]----------+----------------
+vessel_id_not_null     | t
+name                   | aava
+mmsi                   | 787654321
+length                 | 12
+beam                   | 10
+height                 | 24
+ship_type              | 37
+plugin_version         | 1.0.2
+signalk_version        | 1.20.0
+time                   | t
+active                 | t
+configuration_not_null | t
+available_keys         | []
 
 SET
 ROLE grafana current_setting
@@ -108,20 +108,20 @@ name        | kapla
 role        | vessel_role
 
 api.metadata details
--[ RECORD 1 ]------+----------------
-vessel_id_not_null | t
-name               | kapla
-mmsi               | 123456789
-length             | 12
-beam               | 10
-height             | 24
-ship_type          | 36
-plugin_version     | 0.0.1
-signalk_version    | signalk_version
-time               | t
-active             | t
-configuration      | t
-available_keys     | 
+-[ RECORD 1 ]----------+----------------
+vessel_id_not_null     | t
+name                   | kapla
+mmsi                   | 123456789
+length                 | 12
+beam                   | 10
+height                 | 24
+ship_type              | 36
+plugin_version         | 0.0.1
+signalk_version        | signalk_version
+time                   | t
+active                 | t
+configuration_not_null | t
+available_keys         | 
 
 api.logs_view
 -[ RECORD 1 ]----+-----------------------
