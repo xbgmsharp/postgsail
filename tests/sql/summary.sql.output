@@ -9,7 +9,7 @@ Expanded display is on.
 server_version | 16.9 (Debian 16.9-1.pgdg120+1)
 
 -[ RECORD 1 ]--------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-postgis_full_version | POSTGIS="3.5.2 dea6d0a" [EXTENSION] PGSQL="160" GEOS="3.11.1-CAPI-1.17.1" PROJ="9.1.1 NETWORK_ENABLED=OFF URL_ENDPOINT=https://cdn.proj.org USER_WRITABLE_DIRECTORY=/var/lib/postgresql/.local/share/proj DATABASE_PATH=/usr/share/proj/proj.db" (compiled against PROJ 9.1.1) LIBXML="2.9.14" LIBJSON="0.16" LIBPROTOBUF="1.4.1" WAGYU="0.5.0 (Internal)"
+postgis_full_version | POSTGIS="3.5.3 aab5f55" [EXTENSION] PGSQL="160" GEOS="3.11.1-CAPI-1.17.1" PROJ="9.1.1 NETWORK_ENABLED=OFF URL_ENDPOINT=https://cdn.proj.org USER_WRITABLE_DIRECTORY=/var/lib/postgresql/.local/share/proj DATABASE_PATH=/usr/share/proj/proj.db" (compiled against PROJ 9.1.1) LIBXML="2.9.14" LIBJSON="0.16" LIBPROTOBUF="1.4.1" WAGYU="0.5.0 (Internal)"
 
 -[ RECORD 1 ]--------------------------------------------------------------------------------------
 Name        | citext
@@ -53,7 +53,7 @@ Schema      | pg_catalog
 Description | PL/Python3U untrusted procedural language
 -[ RECORD 9 ]--------------------------------------------------------------------------------------
 Name        | postgis
-Version     | 3.5.2
+Version     | 3.5.3
 Schema      | public
 Description | PostGIS geometry and geography spatial types and functions
 -[ RECORD 10 ]-------------------------------------------------------------------------------------
@@ -709,12 +709,12 @@ overpass_py_fn | {"name": "Port de la Ginesta", "type": "multipolygon", "leisure
 overpass_py_fn | {"name": "Norra hamnen", "leisure": "marina", "seamark:type": "harbour", "seamark:harbour:category": "marina"}
 
 -[ RECORD 1 ]----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-versions_fn | {"api_version" : "0.9.1", "sys_version" : "PostgreSQL 16.9", "mobilitydb" : "1.2.0", "timescaledb" : "2.20.0", "postgis" : "3.5.2", "postgrest" : "PostgREST 13.0.0"}
+versions_fn | {"api_version" : "0.9.1", "sys_version" : "PostgreSQL 16.9", "mobilitydb" : "1.2.0", "timescaledb" : "2.20.0", "postgis" : "3.5.3", "postgrest" : "PostgREST 13.0.0"}
 
 -[ RECORD 1 ]-----------------
 api_version | 0.9.1
 sys_version | PostgreSQL 16.9
 timescaledb | 2.20.0
-postgis     | 3.5.2
+postgis     | 3.5.3
 postgrest   | PostgREST 13.0.0
 
