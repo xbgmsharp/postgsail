@@ -21,6 +21,9 @@ SELECT v.vessel_id as "vessel_id" FROM auth.vessels v WHERE v.owner_email = 'dem
 --\echo :"vessel_id"
 SELECT set_config('vessel.id', :'vessel_id', false) IS NOT NULL as vessel_id;
 
+-- user_role
+SET ROLE user_role;
+
 -- Test logbook for user
 \echo 'logbook'
 SELECT count(*) FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
@@ -38,7 +41,7 @@ SELECT active,name IS NOT NULL AS name,geog,stay_code FROM api.stays WHERE vesse
 \echo 'eventlogs_view'
 SELECT count(*) from api.eventlogs_view;
 
--- Test event logs view for user
+-- Test stats logs view for user
 \echo 'stats_logs_fn'
 SELECT api.stats_logs_fn(null, null) INTO stats_jsonb;
 SELECT stats_logs_fn->'name' AS name,

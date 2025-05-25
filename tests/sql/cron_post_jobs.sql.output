@@ -11,6 +11,7 @@ user_id | t
 -[ RECORD 1 ]
 vessel_id | t
 
+SET
 logbook
 -[ RECORD 1 ]
 count | 2
@@ -66,23 +67,23 @@ stay_code | 4
 
 eventlogs_view
 -[ RECORD 1 ]
-count | 11
+count | 12
 
 stats_logs_fn
 SELECT 1
--[ RECORD 1 ]+----------
-name         | "aava"
-count        | 4
-max_speed    | 9.5
-max_distance | 68.8677
-max_duration | "PT1H11M"
-?column?     | 3
-?column?     | 90.6030
-?column?     | "PT2H44M"
-?column?     | 44.2
-?column?     | 3
-?column?     | 4
-?column?     | 4
+-[ RECORD 1 ]+--------
+name         | "kapla"
+count        | 2
+max_speed    | 6.5
+max_distance | 8.8968
+max_duration | "PT27M"
+?column?     | 2
+?column?     | 16.5415
+?column?     | "PT47M"
+?column?     | 37.2
+?column?     | 2
+?column?     | 1
+?column?     | 2
 first_date   | t
 last_date    | t
 
