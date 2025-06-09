@@ -58,7 +58,7 @@ Schema      | public
 Description | PostGIS geometry and geography spatial types and functions
 -[ RECORD 10 ]-------------------------------------------------------------------------------------
 Name        | timescaledb
-Version     | 2.20.0
+Version     | 2.20.2
 Schema      | public
 Description | Enables scalable inserts and complex queries for time-series data (Community Edition)
 -[ RECORD 11 ]-------------------------------------------------------------------------------------
@@ -233,6 +233,8 @@ schema_api | moorages
 schema_api | stays
 -[ RECORD 7 ]------------
 schema_api | stays_at
+-[ RECORD 8 ]------------
+schema_api | stays_ext
 
 -[ RECORD 1 ]-+------------------------------
 schema_public | aistypes
@@ -505,7 +507,7 @@ qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | true
 -[ RECORD 27 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
-tablename  | metadata_ext
+tablename  | stays_ext
 policyname | admin_all
 permissive | PERMISSIVE
 roles      | {username}
@@ -640,7 +642,7 @@ qual       | true
 with_check | false
 -[ RECORD 42 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
-tablename  | metadata_ext
+tablename  | stays_ext
 policyname | api_user_role
 permissive | PERMISSIVE
 roles      | {user_role}
@@ -649,7 +651,7 @@ qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
 -[ RECORD 43 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
-tablename  | metadata_ext
+tablename  | stays_ext
 policyname | api_anonymous_role
 permissive | PERMISSIVE
 roles      | {api_anonymous}
@@ -658,6 +660,51 @@ qual       | true
 with_check | false
 -[ RECORD 44 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
+tablename  | stays_ext
+policyname | api_vessel_role
+permissive | PERMISSIVE
+roles      | {vessel_role}
+cmd        | ALL
+qual       | false
+with_check | false
+-[ RECORD 45 ]-----------------------------------------------------------------------------------------------------------------------------
+schemaname | api
+tablename  | metadata_ext
+policyname | admin_all
+permissive | PERMISSIVE
+roles      | {username}
+cmd        | ALL
+qual       | true
+with_check | true
+-[ RECORD 46 ]-----------------------------------------------------------------------------------------------------------------------------
+schemaname | api
+tablename  | metadata_ext
+policyname | api_user_role
+permissive | PERMISSIVE
+roles      | {user_role}
+cmd        | ALL
+qual       | (vessel_id = current_setting('vessel.id'::text, false))
+with_check | (vessel_id = current_setting('vessel.id'::text, false))
+-[ RECORD 47 ]-----------------------------------------------------------------------------------------------------------------------------
+schemaname | api
+tablename  | metadata_ext
+policyname | api_anonymous_role
+permissive | PERMISSIVE
+roles      | {api_anonymous}
+cmd        | ALL
+qual       | true
+with_check | false
+-[ RECORD 48 ]-----------------------------------------------------------------------------------------------------------------------------
+schemaname | api
+tablename  | metadata_ext
+policyname | api_vessel_role
+permissive | PERMISSIVE
+roles      | {vessel_role}
+cmd        | ALL
+qual       | false
+with_check | false
+-[ RECORD 49 ]-----------------------------------------------------------------------------------------------------------------------------
+schemaname | api
 tablename  | metrics
 policyname | api_user_role
 permissive | PERMISSIVE
@@ -665,7 +712,7 @@ roles      | {user_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
--[ RECORD 45 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 50 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | metrics
 policyname | api_vessel_role
@@ -674,7 +721,7 @@ roles      | {vessel_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
--[ RECORD 46 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 51 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | metadata
 policyname | api_vessel_role
@@ -683,7 +730,7 @@ roles      | {vessel_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
--[ RECORD 47 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 52 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | metadata
 policyname | api_user_role
@@ -709,12 +756,12 @@ overpass_py_fn | {"name": "Port de la Ginesta", "type": "multipolygon", "leisure
 overpass_py_fn | {"name": "Norra hamnen", "leisure": "marina", "seamark:type": "harbour", "seamark:harbour:category": "marina"}
 
 -[ RECORD 1 ]----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-versions_fn | {"api_version" : "0.9.1", "sys_version" : "PostgreSQL 16.9", "mobilitydb" : "1.2.0", "timescaledb" : "2.20.0", "postgis" : "3.5.3", "postgrest" : "PostgREST 13.0.0"}
+versions_fn | {"api_version" : "0.9.1", "sys_version" : "PostgreSQL 16.9", "mobilitydb" : "1.2.0", "timescaledb" : "2.20.2", "postgis" : "3.5.3", "postgrest" : "PostgREST 13.0.2"}
 
 -[ RECORD 1 ]-----------------
 api_version | 0.9.1
 sys_version | PostgreSQL 16.9
-timescaledb | 2.20.0
+timescaledb | 2.20.2
 postgis     | 3.5.3
-postgrest   | PostgREST 13.0.0
+postgrest   | PostgREST 13.0.2
 
