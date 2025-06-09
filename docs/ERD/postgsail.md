@@ -74,6 +74,7 @@ erDiagram
         text image_b64 
         text image_type "Store user boat image type in text format"
         timestamp_with_time_zone image_updated_at 
+        text image_url 
         text make_model "Store user make & model in text format"
         text polar "Store polar data in CSV notation as used on ORC sailboat data"
         timestamp_with_time_zone polar_updated_at 
@@ -128,6 +129,17 @@ erDiagram
     api_stays_at {
         text description "{NOT_NULL}"
         integer stay_code "{NOT_NULL}"
+    }
+
+    api_stays_ext {
+        timestamp_with_time_zone created_at "{NOT_NULL}"
+        bytea image "Store stays image in bytea format"
+        text image_b64 
+        text image_type "Store stays image type in text format"
+        timestamp_with_time_zone image_updated_at 
+        text image_url 
+        integer stay_id "{NOT_NULL}"
+        text vessel_id "{NOT_NULL}"
     }
 
     auth_accounts {
@@ -292,9 +304,11 @@ erDiagram
     api_metrics }o--|| api_metadata : ""
     api_moorages }o--|| api_metadata : ""
     api_stays }o--|| api_metadata : ""
+    api_stays_ext }o--|| api_metadata : ""
     api_moorages }o--|| api_stays_at : ""
     api_stays }o--|| api_moorages : ""
     api_stays }o--|| api_stays_at : ""
+    api_stays_ext |o--|| api_stays : ""
     auth_otp |o--|| auth_accounts : ""
     auth_vessels }o--|| auth_accounts : ""
 ```
