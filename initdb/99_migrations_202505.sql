@@ -30,8 +30,8 @@ COMMENT ON COLUMN api.metadata.ip IS 'Store vessel ip address';
 
 -- Add metadata_ext, new table to store vessel extended metadata from user
 CREATE TABLE api.metadata_ext (
-  vessel_id text PRIMARY KEY 
-             DEFAULT current_setting('vessel.id'::text, false) 
+  vessel_id text PRIMARY KEY
+             DEFAULT current_setting('vessel.id'::text, false)
              REFERENCES api.metadata(vessel_id) ON DELETE RESTRICT,
   make_model text NULL,
   polar text NULL, -- Store polar data in CSV notation as used on ORC sailboat data
@@ -39,6 +39,7 @@ CREATE TABLE api.metadata_ext (
   image_b64 text NULL, -- Store user boat image in b64 format
   image bytea NULL, -- Store user boat image in bytea format
   image_type text NULL, -- Store user boat image type in text format
+  image_url TEXT NULL, -- Store user boat image url in text format
   image_updated_at timestamptz NULL,
   created_at timestamptz DEFAULT now() NOT NULL
 );
@@ -52,6 +53,28 @@ COMMENT ON COLUMN api.metadata_ext.polar IS 'Store polar data in CSV notation as
 COMMENT ON COLUMN api.metadata_ext.image IS 'Store user boat image in bytea format';
 COMMENT ON COLUMN api.metadata_ext.image_type IS 'Store user boat image type in text format';
 COMMENT ON COLUMN api.metadata_ext.make_model IS 'Store user make & model in text format';
+
+-- Add stays_ext, new table to store vessel extended stays from user
+CREATE TABLE api.stays_ext (
+    vessel_id text NOT NULL
+             DEFAULT current_setting('vessel.id'::text, false)
+             REFERENCES api.metadata(vessel_id) ON DELETE RESTRICT,
+    stay_id INT PRIMARY KEY REFERENCES api.stays(id) ON DELETE RESTRICT,
+    image bytea NULL, -- Store user boat image in bytea format
+    image_b64 text NULL, -- Store user boat image in b64 format
+    image_type text NULL, -- Store user boat image type in text format
+    image_url TEXT NULL, -- Store user boat image url in text format
+    image_updated_at timestamptz NULL,
+    created_at timestamptz DEFAULT now() NOT NULL
+);
+-- Description
+COMMENT ON TABLE
+    api.stays_ext
+    IS 'Stores stays extended information for the stays from user';
+
+-- Comments
+COMMENT ON COLUMN api.stays_ext.image IS 'Store stays image in bytea format';
+COMMENT ON COLUMN api.stays_ext.image_type IS 'Store stays image type in text format';
 
 -- Cleanup trigger on api schema
 DROP FUNCTION IF EXISTS api.update_metadata_ext_added_at_fn();
@@ -159,6 +182,24 @@ DECLARE
     client_ip TEXT := coalesce(headers->>'x-client-ip', NULL);
     metadata_record RECORD;
 BEGIN
+    -- run only if from vessel as vessel_role
+    --RAISE NOTICE 'metadata_upsert_trigger_fn request.jwt.claims role [%] [%]', current_role, current_setting('request.jwt.claims', true)::json->>'role';
+    IF current_role IS DISTINCT FROM 'vessel_role' THEN
+        RAISE NOTICE 'metadata_upsert_trigger_fn skipped: role is not vessel_role or is NULL role:[%]', current_role;
+        RETURN NEW; -- Skip further processing
+    END IF;
+    -- If monitoring set offline or configuration changed, skip processing
+    -- active state is set by the monitoring service
+    -- configuration is set by the user_role
+    IF TG_OP = 'UPDATE'
+        AND (
+            (OLD.configuration IS DISTINCT FROM NEW.configuration AND NEW.configuration IS NOT NULL)
+            OR (OLD.active IS DISTINCT FROM NEW.active AND NEW.active IS FALSE)
+        ) THEN
+        RAISE NOTICE 'metadata_upsert_trigger_fn skipped for update on configuration or active only';
+        RETURN NEW; -- Skip further processing
+    END IF;
+
     -- Ensure vessel_id is set in NEW
     IF NEW.vessel_id IS NULL THEN
       NEW.vessel_id := v_vessel_id;
@@ -169,12 +210,16 @@ BEGIN
       FROM api.metadata
       WHERE vessel_id = v_vessel_id;
 
-    IF FOUND AND NOT metadata_record.active THEN
+    --RAISE NOTICE 'metadata_upsert_trigger_fn update vessel FOUND:[%] metadata:[%]', FOUND, metadata_record;
+    -- PostgREST - trigger runs twice INSERT on conflict UPDATE
+    IF FOUND AND NOT metadata_record.active AND TG_OP = 'UPDATE' THEN
       -- Send notification as the vessel was inactive
+      RAISE NOTICE 'metadata_upsert_trigger_fn set monitoring_online as the vessel was inactive';
       INSERT INTO process_queue (channel, payload, stored, ref_id)
         VALUES ('monitoring_online', v_vessel_id, NOW(), v_vessel_id);
-    ELSIF NOT FOUND THEN
+    ELSIF NOT FOUND AND TG_OP = 'INSERT' THEN
       -- First insert, Send notification as the vessel is active
+      RAISE NOTICE 'metadata_upsert_trigger_fn First insert, set monitoring_online as the vessel is now active';
       INSERT INTO process_queue (channel, payload, stored, ref_id)
         VALUES ('monitoring_online', v_vessel_id, NOW(), v_vessel_id);
     END IF;
@@ -190,7 +235,7 @@ BEGIN
     NEW.time := NOW();
     NEW.active := TRUE;
     NEW.ip := client_ip;
-    RETURN NEW; -- Insert new vessel metadata
+    RETURN NEW; -- Insert or Update vessel metadata
 END;
 $function$;
 -- Description
@@ -224,6 +269,38 @@ $function$
 -- Description
 COMMENT ON FUNCTION public.metadata_grafana_trigger_fn() IS 'process metadata grafana provisioning from vessel';
 
+-- Create update_stays_ext_decode_base64_image_trigger_fn to decode base64 image
+CREATE OR REPLACE FUNCTION public.update_stays_ext_decode_base64_image_trigger_fn()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Check if image_b64 contains a base64 string to decode
+    IF NEW.image_b64 IS NOT NULL AND NEW.image_b64 IS DISTINCT FROM OLD.image_b64 THEN
+        BEGIN
+            -- Decode base64 string and assign to image column (BYTEA type)
+            NEW.image := decode(NEW.image_b64, 'base64');
+
+            -- Clear the base64 text column - Not working
+            --NEW.image_b64 := NULL;
+        EXCEPTION
+            WHEN others THEN
+                RAISE EXCEPTION 'Failed to decode base64 image string: %', SQLERRM;
+        END;
+    END IF;
+
+    -- Return the modified row with the decoded image
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+-- Description
+COMMENT ON FUNCTION public.update_stays_ext_decode_base64_image_trigger_fn() IS 'Decode base64 image string to bytea format';
+
+CREATE TRIGGER stays_ext_decode_image_trigger
+  BEFORE INSERT OR UPDATE ON api.stays_ext
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_stays_ext_decode_base64_image_trigger_fn();
+-- Description
+COMMENT ON TRIGGER stays_ext_decode_image_trigger ON api.stays_ext IS 'BEFORE INSERT OR UPDATE ON api.stays_ext run function update_stays_ext_decode_base64_image_trigger_fn';
+
 -- Create function public.autodiscovery_config_fn, to generate autodiscovery monitoring configuration
 CREATE OR REPLACE FUNCTION public.autodiscovery_config_fn(input_json jsonb)
 RETURNS jsonb AS $$
@@ -240,6 +317,11 @@ BEGIN
       WHERE vessel_id = current_setting('vessel.id', false)
       ORDER BY time DESC
       LIMIT 1;
+
+    IF NOT FOUND THEN
+        RAISE WARNING 'autodiscovery_config_fn, No metrics found for vessel_id: %', current_setting('vessel.id', false);
+        RETURN result_json; -- Return empty JSON if no metrics found
+    END IF;
 
     -- Iterate over each key and path in the input
     FOR key, path IN
@@ -374,6 +456,7 @@ AS $function$
 DECLARE
     process_rec record;
     data_rec record;
+    latest_metrics record;
     app_settings jsonb;
     user_settings jsonb;
     config jsonb;
@@ -416,6 +499,15 @@ BEGIN
             RETURN;
         END IF;
         PERFORM set_config('vessel.id', data_rec.vessel_id::TEXT, false);
+        SELECT metrics INTO latest_metrics
+            FROM api.metrics
+            WHERE vessel_id = current_setting('vessel.id', false)
+            ORDER BY time DESC
+            LIMIT 1;
+        IF NOT FOUND THEN
+            RAISE WARNING '-> DEBUG cron_process_autodiscovery_fn, No metrics found for vessel_id: %', current_setting('vessel.id', false);
+            CONTINUE; -- Skip to the next process_rec
+        END IF;
         -- as we got data from the vessel we can do the autodiscovery provisioning.
         IF data_rec.configuration IS NULL THEN
             data_rec.configuration := '{}'::JSONB; -- Initialize empty configuration if NULL
@@ -425,12 +517,20 @@ BEGIN
         --RAISE DEBUG '-> DEBUG cron_process_autodiscovery_fn autodiscovery_config_fn [%]', config;
         -- Check if config is empty
         IF config IS NULL OR config = '{}'::JSONB THEN
-            RAISE WARNING '-> DEBUG cron_process_autodiscovery_fn autodiscovery_config_fn error [%]', config;
-            RETURN;
+            RAISE WARNING '-> DEBUG cron_process_autodiscovery_fn, vessel.id [%], autodiscovery_config_fn error [%]', current_setting('vessel.id', false), config;
+            -- update process_queue entry as processed
+            UPDATE process_queue
+                SET
+                    processed = NOW()
+                WHERE id = process_rec.id;
+            RAISE NOTICE '-> cron_process_autodiscovery_fn updated process_queue table [%]', process_rec.id;
+            CONTINUE; -- Skip to the next process_rec
         END IF;
+        -- Update metadata configuration with the new config
+        RAISE NOTICE '-> cron_process_autodiscovery_fn, vessel.id [%], update api.metadata configuration', current_setting('vessel.id', false);
         UPDATE api.metadata
             SET configuration = config
-            WHERE vessel_id = data_rec.vessel_id::TEXT;
+            WHERE vessel_id = current_setting('vessel.id', false);
         -- Gather user settings
         user_settings := get_user_settings_from_vesselid_fn(data_rec.vessel_id::TEXT);
         --RAISE DEBUG '-> DEBUG cron_process_autodiscovery_fn get_user_settings_from_vesselid_fn [%]', user_settings;
@@ -449,8 +549,36 @@ $function$
 -- Description
 COMMENT ON FUNCTION public.cron_process_autodiscovery_fn() IS 'init by pg_cron to check for new vessel pending autodiscovery config provisioning';
 
--- Create api.vessel_image to fetch boat image
+-- Create api.stays_image to fetch stays image
 create domain "*/*" as bytea;
+create or replace function api.stays_image(v_id TEXT default NULL, _id INTEGER default NULL) returns "*/*"
+LANGUAGE plpgsql
+AS $function$
+  declare headers text;
+  declare blob bytea;
+  begin
+    select format(
+      '[{"Content-Type": "%s"},'
+       '{"Content-Disposition": "inline; filename=\"%s\""},'
+       '{"Cache-Control": "max-age=900"}]'
+      , image_type, v_id)
+      into headers
+      from api.stays_ext where vessel_id = v_id and stay_id = _id;
+    perform set_config('response.headers', headers, true);
+    select image into blob from api.stays_ext where vessel_id = v_id and stay_id = _id;
+    if FOUND -- special var, see https://www.postgresql.org/docs/current/plpgsql-statements.html#PLPGSQL-STATEMENTS-DIAGNOSTICS
+    then return(blob);
+    else raise sqlstate 'PT404' using
+      message = 'NOT FOUND',
+      detail = 'File not found',
+      hint = format('%s seems to be an invalid file', v_id);
+    end if;
+  end
+$function$ ;
+-- Description
+COMMENT ON FUNCTION api.stays_image IS 'Return stays image from stays_ext (image url)';
+
+-- Create api.vessel_image to fetch boat image
 create or replace function api.vessel_image(v_id TEXT default NULL) returns "*/*" 
 LANGUAGE plpgsql
 AS $function$
@@ -492,10 +620,11 @@ BEGIN
           'has_polar', polar IS NOT NULL,
           'has_image', image IS NOT NULL,
           'image_url', 
-              CASE WHEN image IS NOT NULL 
-                  THEN 'https://api.openplotter.cloud/rpc/vessel_image?v_id=' || v_id
-                  ELSE NULL 
-              END,
+            CASE
+                WHEN image IS NOT NULL AND image_url IS NOT NULL THEN image_url
+                WHEN image IS NOT NULL AND image_url IS NULL THEN '/rpc/vessel_image?v_id=' || vessel_id
+                ELSE NULL
+            END,
           'image_updated_at', image_updated_at
       )
       INTO result
@@ -599,32 +728,39 @@ COMMENT ON FUNCTION api.vessel_fn(out jsonb) IS 'Expose vessel details to API';
 DROP VIEW IF EXISTS api.monitoring_view;
 DROP VIEW IF EXISTS api.monitoring_live;
 DROP FUNCTION IF EXISTS public.stay_active_geojson_fn();
--- Update public.stay_active_geojson_fn function to produce a GeoJSON with the last position and stay details
-CREATE or replace FUNCTION public.stay_active_geojson_fn(
+-- Update public.stay_active_geojson_fn function to produce a GeoJSON with the last position and stay details and anchor details
+CREATE OR REPLACE FUNCTION public.stay_active_geojson_fn(
     IN _time TIMESTAMPTZ DEFAULT NOW(),
     OUT _track_geojson jsonb
- ) AS $stay_active_geojson_fn$
+) AS $stay_active_geojson_fn$
 BEGIN
     WITH stay_active AS (
-        SELECT * FROM api.stays WHERE active IS true
+        SELECT * FROM api.stays WHERE active IS TRUE
     ),
-    stay_gis_point AS (
-        SELECT
-            ST_AsGeoJSON(t.*)::jsonb AS GeoJSONPoint
-        FROM (
-            SELECT
-                m.name,
-                _time as time,
-                s.stay_code,
-                ST_MakePoint(s.longitude, s.latitude) AS geo_point,
-                s.arrived,
-                s.latitude,
-                s.longitude
-            FROM stay_active s
-            LEFT JOIN api.moorages m ON m.id = s.moorage_id
-        ) as t
+    metric_active AS (
+        SELECT * FROM api.metrics ORDER BY time DESC LIMIT 1
+    ),
+    stay_features AS (
+        SELECT jsonb_build_object(
+            'type', 'Feature',
+            'geometry', ST_AsGeoJSON(ST_MakePoint(s.longitude, s.latitude))::jsonb,
+            'properties', jsonb_build_object(
+                'name', m.name,
+                'time', _time,
+                'stay_code', s.stay_code,
+                'arrived', s.arrived,
+                'latitude', s.latitude,
+                'longitude', s.longitude,
+                'anchor', l.metrics->'anchor'
+            )
+        ) AS feature
+        FROM stay_active s
+        LEFT JOIN api.moorages m ON m.id = s.moorage_id
+        CROSS JOIN metric_active l
     )
-    SELECT stay_gis_point.GeoJSONPoint::jsonb INTO _track_geojson FROM stay_gis_point;
+    SELECT feature
+    INTO _track_geojson
+    FROM stay_features;
 END;
 $stay_active_geojson_fn$ LANGUAGE plpgsql;
 -- Description
@@ -666,9 +802,9 @@ CREATE VIEW api.monitoring_view WITH (security_invoker=true,security_barrier=tru
         current_setting('vessel.name', false) AS name,
         m.status,
         CASE
-            WHEN m.status <> 'moored' THEN (
+            WHEN m.status <> 'moored' AND m.status <> 'anchored' THEN (
                 SELECT public.logbook_active_geojson_fn() )
-            WHEN m.status = 'moored' THEN (
+            WHEN m.status = 'moored' OR m.status = 'anchored' THEN (
                 SELECT public.stay_active_geojson_fn(time) )
         END AS live
     FROM api.metrics m
@@ -813,7 +949,7 @@ COMMENT ON FUNCTION api.export_logbooks_geojson_linestring_trips_fn(in int4, in 
 
 -- Update api.monitoring_live, add live tracking view, Add support 6h outside barometer
 DROP VIEW IF EXISTS api.monitoring_live;
-CREATE or replace VIEW api.monitoring_live WITH (security_invoker=true,security_barrier=true) AS
+CREATE OR REPLACE VIEW api.monitoring_live WITH (security_invoker=true,security_barrier=true) AS
   -- Gather the last 6h average outside pressure by 10 min range
   WITH pressure AS (
     SELECT 
@@ -974,10 +1110,10 @@ CREATE or replace VIEW api.monitoring_live WITH (security_invoker=true,security_
       )::FLOAT AS tankLevel,
 
       CASE
-          WHEN mt.status <> 'moored' THEN (
-              SELECT public.logbook_active_geojson_fn() )
-          WHEN mt.status = 'moored' THEN (
-              SELECT public.stay_active_geojson_fn() )
+        WHEN mt.status <> 'moored' AND mt.status <> 'anchored' THEN (
+            SELECT public.logbook_active_geojson_fn() )
+        WHEN mt.status = 'moored' OR mt.status = 'anchored' THEN (
+            SELECT public.stay_active_geojson_fn(mt.time) )
       END AS live,
       -- Add the pressure history as a time series array
       pressure.outsidePressureHistory
@@ -2119,6 +2255,8 @@ begin
 END;
 $function$
 ;
+-- Description
+COMMENT ON FUNCTION public.cron_process_monitor_online_fn() IS 'refactor of metadata';
 
 -- DROP FUNCTION public.cron_process_monitor_offline_fn();
 -- Update public.cron_process_monitor_offline_fn, Refactor metadata
@@ -2138,6 +2276,7 @@ begin
     FOR metadata_rec in 
         SELECT
             vessel_id,
+            time,
             NOW() AT TIME ZONE 'UTC' as now, 
             NOW() AT TIME ZONE 'UTC' - INTERVAL '70 MINUTES' as interval
         FROM api.metadata m
@@ -2156,7 +2295,6 @@ begin
         END IF;
 
         PERFORM set_config('vessel.id', metadata_rec.vessel_id, false);
-        RAISE NOTICE 'cron_process_monitor_offline_fn, vessel.id [%], updated api.metadata table to inactive for [%]', current_setting('vessel.id', false), metadata_rec.vessel_id;
 
         -- Ensure we don't have any metrics for the same period.
         SELECT time AS "time",
@@ -2165,16 +2303,19 @@ begin
             FROM api.metrics m 
             WHERE vessel_id = current_setting('vessel.id', false)
             ORDER BY time DESC LIMIT 1;
+        RAISE NOTICE '-> cron_process_monitor_offline_fn metadata:[%] metrics:[%]', metadata_rec, metrics_rec;
         IF metrics_rec.offline IS False THEN
-            RETURN;
+            CONTINUE; -- skip if we have metrics for the same period
         END IF;
 
-        -- update api.metadata table, set active to bool false
+        -- vessel is offline, update api.metadata table, set active to bool false
         UPDATE api.metadata
             SET 
                 active = False
             WHERE vessel_id = current_setting('vessel.id', false);
-        
+
+        RAISE NOTICE '-> cron_process_monitor_offline_fn, vessel.id [%], updated api.metadata table to inactive', current_setting('vessel.id', false);
+
         -- Gather email and pushover app settings
         --app_settings = get_app_settings_fn();
         -- Gather user settings
@@ -2338,9 +2479,9 @@ BEGIN
         -- Get all metrics from the last last_metric avg by 5 minutes
         FOR metric_rec in
             SELECT time_bucket('5 minutes', m.time) AS time_bucket,
-                    avg((m.metrics->'environment.inside.temperature')::numeric) AS intemp,
-                    avg((m.metrics->'environment.wind.speedTrue')::numeric) AS wind,
-                    avg((m.metrics->'environment.depth.belowTransducer')::numeric) AS watdepth,
+                    avg((m.metrics->'environment.inside.temperature')::NUMERIC) AS intemp,
+                    avg((m.metrics->'environment.wind.speedTrue')::NUMERIC) AS wind,
+                    avg((m.metrics->'environment.depth.belowTransducer')::NUMERIC) AS watdepth,
                     avg(-- Outside Temperature
                         COALESCE(
                             m.metrics->'temperature'->>'outside',
@@ -2652,24 +2793,599 @@ END
 $function$
 ;
 
+-- Create view api.noteshistory_view, List stays and moorages notes order by stays
+DROP VIEW IF EXISTS api.noteshistory_view;
+CREATE OR REPLACE VIEW api.noteshistory_view WITH (security_invoker=true,security_barrier=true) AS
+    -- List moorages notes order by stays
+    SELECT
+        s.id AS stay_id,
+        m.id AS moorage_id,
+        m.name AS moorage_name,
+        s.name AS stay_name,
+        s.arrived,
+        s.stay_code,
+        s.latitude,
+        s.longitude,
+        s.notes as stay_notes,
+        m.notes as moorage_notes,
+        --image IS NOT NULL AS has_image,
+        CASE
+            WHEN image IS NULL AND image_url IS NOT NULL THEN True
+            WHEN image IS NOT NULL AND image_url IS NULL THEN True
+            ELSE False
+        END AS has_image,
+        CASE
+            WHEN image IS NULL AND image_url IS NOT NULL THEN image_url
+            WHEN image IS NOT NULL AND image_url IS NULL THEN '/rpc/stays_image?v_id=' || s.vessel_id || '&_id=' || s.id
+            ELSE NULL
+        END AS image_url
+    FROM
+        api.stays s
+    LEFT JOIN
+        api.moorages m ON s.moorage_id = m.id
+    LEFT JOIN
+        api.stays_ext se ON s.vessel_id = se.vessel_id AND s.id = se.stay_id
+    WHERE s.vessel_id = current_setting('vessel.id', false)
+    ORDER BY s.arrived DESC;
+-- Description
+COMMENT ON VIEW api.noteshistory_view IS 'List moorages notes order by stays';
+
+-- DROP FUNCTION public.process_stay_queue_fn(int4);
+-- Udpate public.process_stay_queue_fn, replace '0 day' stay name by 'short stay' name
+CREATE OR REPLACE FUNCTION public.process_stay_queue_fn(_id integer)
+ RETURNS void
+ LANGUAGE plpgsql
+AS $function$
+    DECLARE
+        stay_rec record;
+        moorage record;
+    BEGIN
+        RAISE NOTICE 'process_stay_queue_fn';
+        -- If _id is valid, not NULL
+        IF _id IS NULL OR _id < 1 THEN
+            RAISE WARNING '-> process_stay_queue_fn invalid input %', _id;
+            RETURN;
+        END IF;
+        -- Get the stay record with all necessary fields exist
+        SELECT * INTO stay_rec
+            FROM api.stays
+            WHERE active IS false
+                AND departed IS NOT NULL
+                AND arrived IS NOT NULL
+                AND longitude IS NOT NULL
+                AND latitude IS NOT NULL
+                AND id = _id;
+        -- Ensure the query is successful
+        IF stay_rec.vessel_id IS NULL THEN
+            RAISE WARNING '-> process_stay_queue_fn invalid stay %', _id;
+            RETURN;
+        END IF;
+
+        PERFORM set_config('vessel.id', stay_rec.vessel_id, false);
+
+        -- Do we have an existing moorage within 300m of the new stay
+        moorage := process_lat_lon_fn(stay_rec.longitude::NUMERIC, stay_rec.latitude::NUMERIC);
+
+        RAISE NOTICE '-> process_stay_queue_fn Updating stay entry [%]', stay_rec.id;
+        UPDATE api.stays
+        SET
+            name = CONCAT(
+                CASE
+                    WHEN ROUND(EXTRACT(EPOCH FROM (stay_rec.departed::timestamptz - stay_rec.arrived::timestamptz)) / 86400) = 0
+                    THEN 'Short'
+                    ELSE ROUND(EXTRACT(EPOCH FROM (stay_rec.departed::timestamptz - stay_rec.arrived::timestamptz)) / 86400)::TEXT || ' days'
+                END,
+                ' stay at ',
+                moorage.moorage_name,
+                ' in ',
+                RTRIM(TO_CHAR(stay_rec.departed, 'Month')),
+                ' ',
+                TO_CHAR(stay_rec.departed, 'YYYY')
+            ),
+            moorage_id = moorage.moorage_id,
+            duration = (stay_rec.departed::timestamptz - stay_rec.arrived::timestamptz),
+            stay_code = moorage.moorage_type,
+            geog = Geography(ST_MakePoint(stay_rec.longitude, stay_rec.latitude))
+        WHERE id = stay_rec.id;
+
+        RAISE NOTICE '-> process_stay_queue_fn Updating moorage entry [%]', moorage.moorage_id;
+        /* reference_count and stay_duration are dynamically calculated
+        UPDATE api.moorages
+            SET
+                reference_count = (
+                    with _from as (select count(*) from api.logbook where _from_moorage_id = moorage.moorage_id),
+                        _to as (select count(*) from api.logbook where _to_moorage_id = moorage.moorage_id)
+                        select _from.count+_to.count from _from,_to
+                ),
+                stay_duration = (
+                    select sum(departed-arrived) from api.stays where moorage_id = moorage.moorage_id
+                )
+            WHERE id = moorage.moorage_id;
+        */
+        -- Process badges
+        PERFORM badges_moorages_fn();
+    END;
+$function$
+;
+
+COMMENT ON FUNCTION public.process_stay_queue_fn(int4) IS 'Update stay details, reverse_geocode_py_fn';
+
+CREATE OR REPLACE FUNCTION api.logs_geojson_fn() RETURNS SETOF api.log_view AS $$
+  SELECT * FROM api.log_view;
+$$ LANGUAGE SQL STABLE;
+
+CREATE OR REPLACE FUNCTION api.moorages_geojson_fn() RETURNS SETOF api.moorage_view AS $$
+  SELECT * FROM api.moorage_view;
+$$ LANGUAGE SQL STABLE;
+
+CREATE OR REPLACE FUNCTION api.stays_geojson_fn() RETURNS SETOF api.noteshistory_view AS $$
+  SELECT * FROM api.noteshistory_view;
+$$ LANGUAGE SQL STABLE;
+
+DROP VIEW IF EXISTS api.logs_geojson_view;
+-- Create view api.logs_geojson_view, List logs with geojson
+CREATE OR REPLACE VIEW api.logs_geojson_view WITH (security_invoker=true,security_barrier=true) AS
+    SELECT
+        tbl.id,
+        tbl.name,
+        tbl.starttimestamp,
+        ST_AsGeoJSON(tbl.*)::JSONB as geojson
+        FROM
+            ( SELECT id, name,
+            starttimestamp(trip),
+            endtimestamp(trip),
+            --speed(trip_sog),
+            duration(trip),
+            --length(trip) as length, -- Meters
+            (length(trip) * 0.0005399568)::numeric as distance, -- NM
+            maxValue(trip_sog) as max_sog, -- SOG
+            maxValue(trip_tws) as max_tws, -- Wind Speed
+            maxValue(trip_twd) as max_twd, -- Wind Direction
+            maxValue(trip_depth) as max_depth, -- Depth
+            maxValue(trip_temp_water) as max_temp_water, -- Temperature water
+            maxValue(trip_temp_out) as max_temp_out, -- Temperature outside
+            maxValue(trip_pres_out) as max_pres_out, -- Pressure outside
+            maxValue(trip_hum_out) as max_hum_out, -- Humidity outside
+            maxValue(trip_batt_charge) as max_stateofcharge, -- stateofcharge
+            maxValue(trip_batt_voltage) as max_voltage, -- voltage
+            maxValue(trip_solar_voltage) as max_solar_voltage, -- solar voltage
+            maxValue(trip_solar_power) as max_solar_power, -- solar power
+            maxValue(trip_tank_level) as max_tank_level, -- tank level
+            twavg(trip_sog) as avg_sog, -- SOG
+            twavg(trip_tws) as avg_tws, -- Wind Speed
+            twavg(trip_twd) as avg_twd, -- Wind Direction
+            twavg(trip_depth) as avg_depth, -- Depth
+            twavg(trip_temp_water) as avg_temp_water, -- Temperature water
+            twavg(trip_temp_out) as avg_temp_out, -- Temperature outside
+            twavg(trip_pres_out) as avg_pres_out, -- Pressure outside
+            twavg(trip_hum_out) as avg_hum_out, -- Humidity outside
+            twavg(trip_batt_charge) as avg_stateofcharge, -- stateofcharge
+            twavg(trip_batt_voltage) as avg_voltage, -- voltage
+            twavg(trip_solar_voltage) as avg_solar_voltage, -- solar voltage
+            twavg(trip_solar_power) as avg_solar_power, -- solar power
+            twavg(trip_tank_level) as avg_tank_level, -- tank level
+            trajectory(l.trip)::geometry as track_geog, -- extract trip to geography
+            extra,
+            _to_moorage_id,
+            _from_moorage_id
+        FROM api.logbook l
+        WHERE _to_time IS NOT NULL AND trip IS NOT NULL
+        ORDER BY _from_time DESC
+    ) AS tbl;
+-- Description
+COMMENT ON VIEW api.logs_geojson_view IS 'List logs with geojson';
+
+DROP VIEW IF EXISTS api.moorages_geojson_view;
+-- Create view api.moorages_geojson_view, List moorages with geojson
+CREATE OR REPLACE VIEW api.moorages_geojson_view WITH (security_invoker=true,security_barrier=true) AS
+    SELECT
+        m.id,
+        m.name,
+        ST_AsGeoJSON(m.*)::JSONB as geojson
+        FROM
+        ( SELECT
+            m.id,
+            m.name,
+            m.default_stay,
+            m.default_stay_id,
+            m.home,
+            m.notes,
+            m.geog,
+            logs_count, -- Counting the number of logs
+            stays_count, -- Counting the number of stays
+            stays_sum_duration, -- Summing the stay durations
+            stay_first_seen, -- First stay observed
+            stay_last_seen,  -- Last stay observed
+            stay_first_seen_id, -- First stay id observed
+            stay_last_seen_id  -- Last stay id observed
+            FROM api.moorage_view m
+            WHERE geog IS NOT null
+        ) AS m;
+-- Description
+COMMENT ON VIEW api.moorages_geojson_view IS 'List moorages with geojson';
+
+DROP VIEW IF EXISTS api.stays_geojson_view;
+CREATE OR REPLACE VIEW api.stays_geojson_view WITH (security_invoker=true,security_barrier=true) AS
+    SELECT
+        ST_AsGeoJSON(tbl.*)::JSONB as geojson
+        FROM
+        ( SELECT
+            *,
+            ST_MakePoint(longitude, latitude) FROM api.noteshistory_view
+        ) AS tbl;
+-- Description
+COMMENT ON VIEW api.stays_geojson_view IS 'List stays with geojson';
+
+-- Create view api.export_stays_geojson_fn, List stays with geojson
+CREATE OR REPLACE FUNCTION api.export_stays_geojson_fn(OUT geojson jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+AS $function$
+    DECLARE
+    BEGIN
+        SELECT jsonb_build_object(
+            'type', 'FeatureCollection',
+            'features',
+                ( SELECT
+                    json_agg(ST_AsGeoJSON(stays.*)::JSON) as stays_geojson
+                    FROM
+                    ( SELECT
+                        *,
+                        ST_MakePoint(longitude, latitude)
+                        FROM api.noteshistory_view
+                    ) AS stays
+                )
+            ) INTO geojson;
+    END;
+$function$
+;
+-- Description
+COMMENT ON FUNCTION api.export_stays_geojson_fn(out jsonb) IS 'Export stays as geojson';
+
+-- Create api.export_vessel_geojson_fn, export vessel as geojson
+CREATE OR REPLACE FUNCTION api.export_vessel_geojson_fn(OUT geojson jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+AS $function$
+    DECLARE
+    BEGIN
+        SELECT jsonb_build_object(
+            'type', 'FeatureCollection',
+            'features',
+                ( SELECT
+                    json_agg(ST_AsGeoJSON(vessel.*)::JSON) as vessel_geojson
+                    FROM
+                    ( SELECT
+                        current_setting('vessel.name') as name,
+                        time,
+                        courseovergroundtrue,
+                        speedoverground,
+                        anglespeedapparent,
+                        longitude,latitude,
+                        st_makepoint(longitude,latitude) AS geo_point
+                        FROM api.metrics
+                        WHERE
+                            latitude IS NOT NULL
+                            AND longitude IS NOT NULL
+                            AND vessel_id = current_setting('vessel.id', false)
+                        ORDER BY time DESC LIMIT 1
+                    ) AS vessel
+                )
+            ) INTO geojson;
+    END;
+$function$
+;
+-- Description
+COMMENT ON FUNCTION api.export_vessel_geojson_fn(out jsonb) IS 'Export vessel as geojson';
+
+-- DROP FUNCTION api.export_logbook_geojson_linestring_trip_fn(int4);
+-- Update api.export_logbook_geojson_linestring_trip_fn, add more trip properties to geojson
+CREATE OR REPLACE FUNCTION api.export_logbook_geojson_linestring_trip_fn(_id integer)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+BEGIN
+    -- Return a geojson with a geometry linestring and the corresponding properties
+    RETURN
+            json_build_object(
+            'type', 'FeatureCollection',
+            'features', json_agg(ST_AsGeoJSON(log.*)::json))
+    FROM -- Extract max/avg values from trip and return as geojson
+        ( SELECT id, name,
+            starttimestamp(trip),
+            endtimestamp(trip),
+            --speed(trip_sog),
+            duration(trip),
+            --length(trip) as length, -- Meters
+            (length(trip) * 0.0005399568)::numeric as distance, -- NM
+            maxValue(trip_sog) as max_sog, -- SOG
+            maxValue(trip_tws) as max_tws, -- Wind Speed
+            maxValue(trip_twd) as max_twd, -- Wind Direction
+            maxValue(trip_depth) as max_depth, -- Depth
+            maxValue(trip_temp_water) as max_temp_water, -- Temperature water
+            maxValue(trip_temp_out) as max_temp_out, -- Temperature outside
+            maxValue(trip_pres_out) as max_pres_out, -- Pressure outside
+            maxValue(trip_hum_out) as max_hum_out, -- Humidity outside
+            maxValue(trip_batt_charge) as max_stateofcharge, -- stateofcharge
+            maxValue(trip_batt_voltage) as max_voltage, -- voltage
+            maxValue(trip_solar_voltage) as max_solar_voltage, -- solar voltage
+            maxValue(trip_solar_power) as max_solar_power, -- solar power
+            maxValue(trip_tank_level) as max_tank_level, -- tank level
+            twavg(trip_sog) as avg_sog, -- SOG
+            twavg(trip_tws) as avg_tws, -- Wind Speed
+            twavg(trip_twd) as avg_twd, -- Wind Direction
+            twavg(trip_depth) as avg_depth, -- Depth
+            twavg(trip_temp_water) as avg_temp_water, -- Temperature water
+            twavg(trip_temp_out) as avg_temp_out, -- Temperature outside
+            twavg(trip_pres_out) as avg_pres_out, -- Pressure outside
+            twavg(trip_hum_out) as avg_hum_out, -- Humidity outside
+            twavg(trip_batt_charge) as avg_stateofcharge, -- stateofcharge
+            twavg(trip_batt_voltage) as avg_voltage, -- voltage
+            twavg(trip_solar_voltage) as avg_solar_voltage, -- solar voltage
+            twavg(trip_solar_power) as avg_solar_power, -- solar power
+            twavg(trip_tank_level) as avg_tank_level, -- tank level
+            trajectory(trip)::geometry as track_geog, -- extract trip to geography
+            extra,
+            _to_moorage_id,
+            _from_moorage_id,
+            timestamps(trip) as times -- extract timestamps to array
+            FROM api.logbook l
+            WHERE id = _id
+           ) AS log;
+END;
+$function$
+;
+
+COMMENT ON FUNCTION api.export_logbook_geojson_linestring_trip_fn(int4) IS 'Generate geojson geometry LineString from trip with the corresponding properties';
+
+-- DROP FUNCTION api.export_logbook_geojson_trip_fn(int4);
+-- Update api.export_logbook_geojson_trip_fn, add more trip properties to geojson
+CREATE OR REPLACE FUNCTION api.export_logbook_geojson_trip_fn(_id integer)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    logbook_rec RECORD;
+    log_geojson JSONB;
+    metrics_geojson JSONB;
+    first_feature_obj JSONB;
+    second_feature_note JSONB;
+    last_feature_note JSONB;
+BEGIN
+    -- Validate input
+    IF _id IS NULL OR _id < 1 THEN
+        RAISE WARNING '-> export_logbook_geojson_trip_fn invalid input %', _id;
+        RETURN NULL;
+    END IF;
+
+    -- Fetch the processed logbook data.
+    SELECT id, name, distance, duration, avg_speed, max_speed, max_wind_speed, extra->>'avg_wind_speed' AS avg_wind_speed,
+           _from, _to, _from_time, _to_time, _from_moorage_id, _to_moorage_id, notes,
+           trajectory(trip) AS trajectory,
+           timestamps(trip) AS times
+    INTO logbook_rec
+    FROM api.logbook
+    WHERE id = _id;
+
+    -- Create JSON notes for feature properties
+    first_feature_obj := jsonb_build_object('trip', jsonb_build_object('name', logbook_rec.name, 'duration', logbook_rec.duration, 'distance', logbook_rec.distance));
+    second_feature_note := jsonb_build_object('notes', COALESCE(logbook_rec._from, ''));
+    last_feature_note := jsonb_build_object('notes', COALESCE(logbook_rec._to, ''));
+
+    -- GeoJSON Feature for Logbook linestring
+    SELECT ST_AsGeoJSON(logbook_rec.*)::jsonb INTO log_geojson;
+
+    -- GeoJSON Features for Metrics Points
+    SELECT jsonb_agg(ST_AsGeoJSON(t.*)::jsonb) INTO metrics_geojson
+    FROM ( -- Extract points from trip and their corresponding metrics
+        SELECT
+            geometry(getvalue(points.point)) AS point_geometry,
+            getTimestamp(points.point) AS time,
+            valueAtTimestamp(points.trip_cog, getTimestamp(points.point)) AS courseovergroundtrue,
+            valueAtTimestamp(points.trip_sog, getTimestamp(points.point)) AS speedoverground,
+            valueAtTimestamp(points.trip_twa, getTimestamp(points.point)) AS windspeedapparent,
+            valueAtTimestamp(points.trip_tws, getTimestamp(points.point)) AS truewindspeed,
+            valueAtTimestamp(points.trip_twd, getTimestamp(points.point)) AS truewinddirection,
+            valueAtTimestamp(points.trip_notes, getTimestamp(points.point)) AS notes,
+            valueAtTimestamp(points.trip_status, getTimestamp(points.point)) AS status,
+            valueAtTimestamp(points.trip_depth, getTimestamp(points.point)) AS depth,
+            valueAtTimestamp(points.trip_batt_charge, getTimestamp(points.point)) AS stateofcharge,
+            valueAtTimestamp(points.trip_batt_voltage, getTimestamp(points.point)) AS voltage,
+            valueAtTimestamp(points.trip_temp_water, getTimestamp(points.point)) AS watertemperature,
+            valueAtTimestamp(points.trip_temp_out, getTimestamp(points.point)) AS outsidetemperature,
+            valueAtTimestamp(points.trip_pres_out, getTimestamp(points.point)) AS outsidepressure,
+            valueAtTimestamp(points.trip_hum_out, getTimestamp(points.point)) AS outsidehumidity,
+            valueAtTimestamp(points.trip_solar_voltage, getTimestamp(points.point)) AS solarvoltage,
+            valueAtTimestamp(points.trip_solar_power, getTimestamp(points.point)) AS solarpower,
+            valueAtTimestamp(points.trip_tank_level, getTimestamp(points.point)) AS tanklevel,
+            valueAtTimestamp(points.trip_heading, getTimestamp(points.point)) AS heading
+        FROM (
+            SELECT unnest(instants(trip)) AS point,
+                    trip_cog,
+                    trip_sog,
+                    trip_twa,
+                    trip_tws,
+                    trip_twd,
+                    trip_notes,
+                    trip_status,
+                    trip_depth,
+                    trip_batt_charge,
+                    trip_batt_voltage,
+                    trip_temp_water,
+                    trip_temp_out,
+                    trip_pres_out,
+                    trip_hum_out,
+					trip_solar_voltage,
+					trip_solar_power,
+					trip_tank_level,
+					trip_heading
+            FROM api.logbook
+            WHERE id = _id
+                AND trip IS NOT NULL
+        ) AS points
+    ) AS t;
+
+    -- Update the properties of the first feature
+    metrics_geojson := jsonb_set(
+        metrics_geojson,
+        '{0, properties}',
+        (metrics_geojson->0->'properties' || first_feature_obj)::jsonb,
+        true
+    );
+    -- Update the properties of the third feature
+    metrics_geojson := jsonb_set(
+        metrics_geojson,
+        '{1, properties}',
+        CASE
+            WHEN (metrics_geojson->1->'properties'->>'notes') = '' THEN
+                (metrics_geojson->1->'properties' || second_feature_note)::jsonb
+            ELSE
+                metrics_geojson->1->'properties'
+        END,
+        true
+    );
+    -- Update the properties of the last feature
+    metrics_geojson := jsonb_set(
+        metrics_geojson,
+        '{-1, properties}',
+        CASE
+            WHEN (metrics_geojson->-1->'properties'->>'notes') = '' THEN
+                (metrics_geojson->-1->'properties' || last_feature_note)::jsonb
+            ELSE
+                metrics_geojson->-1->'properties'
+        END,
+        true
+    );
+
+    -- Combine Logbook and Metrics GeoJSON
+    RETURN jsonb_build_object('type', 'FeatureCollection', 'features', log_geojson || metrics_geojson);
+
+END;
+$function$
+;
+-- Description
+COMMENT ON FUNCTION api.export_logbook_geojson_trip_fn(int4) IS 'Export a log trip entry to GEOJSON format with custom properties for timelapse replay';
+
+-- DROP FUNCTION api.export_logbooks_geojson_linestring_trips_fn(in int4, in int4, in text, in text, out jsonb);
+-- Update api.export_logbooks_geojson_linestring_trips_fn, add more trip properties to geojson
+CREATE OR REPLACE FUNCTION api.export_logbooks_geojson_linestring_trips_fn(start_log integer DEFAULT NULL::integer, end_log integer DEFAULT NULL::integer, start_date text DEFAULT NULL::text, end_date text DEFAULT NULL::text, OUT geojson jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    logs_geojson jsonb;
+BEGIN
+    -- Normalize start and end values
+    IF start_log IS NOT NULL AND end_log IS NULL THEN end_log := start_log; END IF;
+    IF start_date IS NOT NULL AND end_date IS NULL THEN end_date := start_date; END IF;
+
+    WITH logbook_data AS (
+        -- get the logbook geometry and metadata, an array for each log
+        SELECT id, name,
+            starttimestamp(trip),
+            endtimestamp(trip),
+            --speed(trip_sog),
+            duration(trip),
+            --length(trip) as length, -- Meters
+            (length(trip) * 0.0005399568)::numeric as distance, -- NM
+            maxValue(trip_sog) as max_sog, -- SOG
+            maxValue(trip_tws) as max_tws, -- Wind Speed
+            maxValue(trip_twd) as max_twd, -- Wind Direction
+            maxValue(trip_depth) as max_depth, -- Depth
+            maxValue(trip_temp_water) as max_temp_water, -- Temperature water
+            maxValue(trip_temp_out) as max_temp_out, -- Temperature outside
+            maxValue(trip_pres_out) as max_pres_out, -- Pressure outside
+            maxValue(trip_hum_out) as max_hum_out, -- Humidity outside
+            maxValue(trip_batt_charge) as max_stateofcharge, -- stateofcharge
+            maxValue(trip_batt_voltage) as max_voltage, -- voltage
+            maxValue(trip_solar_voltage) as max_solar_voltage, -- Solar voltage
+            maxValue(trip_solar_power) as max_solar_power, -- Solar power
+            maxValue(trip_tank_level) as max_tank_level, -- tank level
+            twavg(trip_sog) as avg_sog, -- SOG
+            twavg(trip_tws) as avg_tws, -- Wind Speed
+            twavg(trip_twd) as avg_twd, -- Wind Direction
+            twavg(trip_depth) as avg_depth, -- Depth
+            twavg(trip_temp_water) as avg_temp_water, -- Temperature water
+            twavg(trip_temp_out) as avg_temp_out, -- Temperature outside
+            twavg(trip_pres_out) as avg_pres_out, -- Pressure outside
+            twavg(trip_hum_out) as avg_hum_out, -- Humidity outside
+            twavg(trip_batt_charge) as avg_stateofcharge, -- stateofcharge
+            twavg(trip_batt_voltage) as avg_voltage, -- voltage
+            twavg(trip_solar_voltage) as avg_solar_voltage, -- Solar voltage
+            twavg(trip_solar_power) as avg_solar_power, -- Solar power
+            twavg(trip_tank_level) as avg_tank_level, -- tank level
+            trajectory(l.trip)::geometry as track_geog, -- extract trip to geography
+            extra,
+            _to_moorage_id,
+            _from_moorage_id
+        FROM api.logbook l
+        WHERE (start_log IS NULL OR l.id >= start_log) AND
+              (end_log IS NULL OR l.id <= end_log) AND
+              (start_date IS NULL OR l._from_time >= start_date::TIMESTAMPTZ) AND
+              (end_date IS NULL OR l._to_time <= end_date::TIMESTAMPTZ + interval '23 hours 59 minutes') AND
+              l.trip IS NOT NULL
+        ORDER BY l._from_time ASC
+    ),
+    collect as (
+        SELECT ST_Collect(
+                        ARRAY(
+                            SELECT track_geog FROM logbook_data))
+    )
+    -- Create the GeoJSON response
+    SELECT jsonb_build_object(
+        'type', 'FeatureCollection',
+        'features', json_agg(ST_AsGeoJSON(logs.*)::json)) INTO geojson FROM logbook_data logs;
+END;
+$function$
+;
+-- Description
+COMMENT ON FUNCTION api.export_logbooks_geojson_linestring_trips_fn(in int4, in int4, in text, in text, out jsonb) IS 'Generate geojson geometry LineString from trip with the corresponding properties';
+
 -- Revoke security definer
 ALTER FUNCTION api.update_logbook_observations_fn(_id integer, observations text) SECURITY INVOKER;
 ALTER FUNCTION api.delete_logbook_fn(_id integer) SECURITY INVOKER;
 
 -- Grant access to the new table
-GRANT SELECT ON TABLE api.metadata_ext TO user_role;
+GRANT SELECT ON TABLE api.metadata_ext,api.stays_ext TO user_role;
 -- Allow users to update certain columns on metadata_ext table on API schema
-GRANT INSERT,UPDATE (make_model, polar, image, image_b64, image_type) ON api.metadata_ext TO user_role;
+GRANT INSERT,UPDATE (make_model, polar, image, image_b64, image_type, image_url) ON api.metadata_ext TO user_role;
+-- Allow users to update certain columns on stays_ext table on API schema
+GRANT INSERT,UPDATE (stay_id, image, image_b64, image_type, image_url) ON api.stays_ext TO user_role;
 -- Allow users to update certain columns on metadata table on API schema
 GRANT INSERT,UPDATE (configuration) ON api.metadata TO user_role;
 -- Allow users to update certain columns on logbook table on API schema
 GRANT UPDATE (extra) ON api.logbook TO user_role;
 -- Allow anonymous to read api.metadata_ext table on API schema
 GRANT SELECT ON TABLE api.metadata_ext TO api_anonymous;
--- Allow anonymous to export the vessel image on API schema
+-- Allow anonymous to export the vessel and stays image on API schema
+-- Imgage reuqest from browser does not include the JWT token therfore thread as anonymous
 GRANT EXECUTE ON FUNCTION api.vessel_image TO api_anonymous;
+GRANT EXECUTE ON FUNCTION api.stays_image TO api_anonymous;
 GRANT SELECT ON ALL TABLES IN SCHEMA api TO api_anonymous;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO api_anonymous;
+-- Allow anonymous to execute the stats functions
+GRANT EXECUTE ON FUNCTION api.stats_logs_fn to api_anonymous;
+GRANT EXECUTE ON FUNCTION api.stats_stays_fn to api_anonymous;
+GRANT EXECUTE ON FUNCTION api.stats_fn to api_anonymous;
+
+ALTER TABLE api.stays_ext ENABLE ROW LEVEL SECURITY;
+-- Administrator can see all rows and add any rows
+CREATE POLICY admin_all ON api.stays_ext TO current_user
+    USING (true)
+    WITH CHECK (true);
+-- Allow user_role to insert, update and select on their own records
+CREATE POLICY api_user_role ON api.stays_ext TO user_role
+    USING (vessel_id = current_setting('vessel.id', false))
+    WITH CHECK (vessel_id = current_setting('vessel.id', false));
+-- Allow anonymous to select
+CREATE POLICY api_anonymous_role ON api.stays_ext TO api_anonymous
+    USING (true)
+    WITH CHECK (false);
+-- Disallow vessel_role
+CREATE POLICY api_vessel_role ON api.stays_ext TO vessel_role
+    USING (false)
+    WITH CHECK (false);
 
 ALTER TABLE api.metadata_ext ENABLE ROW LEVEL SECURITY;
 -- Administrator can see all rows and add any rows
@@ -2683,6 +3399,10 @@ CREATE POLICY api_user_role ON api.metadata_ext TO user_role
 -- Allow anonymous to select
 CREATE POLICY api_anonymous_role ON api.metadata_ext TO api_anonymous
     USING (true)
+    WITH CHECK (false);
+-- Disallow vessel_role
+CREATE POLICY api_vessel_role ON api.metadata_ext TO vessel_role
+    USING (false)
     WITH CHECK (false);
 
 -- Allow user_role to select on their own records
@@ -2715,9 +3435,9 @@ GRANT SELECT ON ALL TABLES IN SCHEMA api TO api_anonymous;
 -- Allow users to write table in public schema
 GRANT USAGE, CREATE ON SCHEMA public TO  user_role;
 -- Scheduler
-GRANT SELECT ON ALL TABLES IN SCHEMA api TO user_role;
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA api TO user_role;
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO user_role;
+GRANT SELECT ON ALL TABLES IN SCHEMA api TO scheduler;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA api TO scheduler;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO scheduler;
 
 -- Update version
 UPDATE public.app_settings
@@ -2725,6 +3445,10 @@ UPDATE public.app_settings
 	WHERE "name"='app.version';
 
 \c postgres
--- Create a every 8 minute job cron_process_autodiscovery_fn
-SELECT cron.schedule('cron_autodiscovery', '*/8 * * * *', 'select public.cron_process_autodiscovery_fn()');
-UPDATE cron.job SET username = 'scheduler', database = 'signalk' WHERE jobname = 'cron_autodiscovery';
+-- Create a every 20 minute job cron_process_autodiscovery_fn, no rush we want the metrics to be collected first
+SELECT cron.schedule('cron_autodiscovery', '*/20 * * * *', 'select public.cron_process_autodiscovery_fn()');
+UPDATE cron.job
+    SET username = current_user,
+        database = 'signalk',
+        active = True
+    WHERE jobname = 'cron_autodiscovery';
