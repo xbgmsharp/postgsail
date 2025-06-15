@@ -3441,7 +3441,7 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO scheduler;
 
 -- Update version
 UPDATE public.app_settings
-	SET value='0.9.1'
+	SET value='0.9.2'
 	WHERE "name"='app.version';
 
 \c postgres
