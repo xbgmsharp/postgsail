@@ -139,6 +139,19 @@ else
     exit
 fi
 
+# Stays extended unit tests
+psql ${PGSAIL_DB_URI} < sql/stays_ext.sql > output/stays_ext.sql.output
+diff sql/stays_ext.sql.output output/stays_ext.sql.output > /dev/null
+#diff -u sql/stays_ext.sql.output output/stays_ext.sql.output | wc -l
+#echo 0
+if [ $? -eq 0 ]; then
+    echo OK
+else
+    echo SQL stays_ext.sql FAILED
+    diff -u sql/stays_ext.sql.output output/stays_ext.sql.output
+    exit 1
+fi
+
 # Summary unit tests
 psql ${PGSAIL_DB_URI} < sql/summary.sql > output/summary.sql.output
 diff sql/summary.sql.output output/summary.sql.output > /dev/null
