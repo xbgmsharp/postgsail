@@ -58,7 +58,7 @@ Schema      | public
 Description | PostGIS geometry and geography spatial types and functions
 -[ RECORD 10 ]-------------------------------------------------------------------------------------
 Name        | timescaledb
-Version     | 2.20.3
+Version     | 2.21.0
 Schema      | public
 Description | Enables scalable inserts and complex queries for time-series data (Community Edition)
 -[ RECORD 11 ]-------------------------------------------------------------------------------------
@@ -116,14 +116,14 @@ laninline     | 13566
 lanvalidator  | 13567
 lanacl        | 
 -[ RECORD 5 ]-+-----------
-oid           | 18245
+oid           | 18251
 lanname       | plpython3u
 lanowner      | 10
 lanispl       | t
 lanpltrusted  | t
-lanplcallfoid | 18242
-laninline     | 18243
-lanvalidator  | 18244
+lanplcallfoid | 18248
+laninline     | 18249
+lanvalidator  | 18250
 lanacl        | 
 
 -[ RECORD 1 ]+-----------
@@ -706,15 +706,15 @@ with_check | false
 -[ RECORD 49 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | metrics
-policyname | api_user_role
+policyname | api_vessel_role
 permissive | PERMISSIVE
-roles      | {user_role}
+roles      | {vessel_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
-with_check | false
+with_check | (vessel_id = current_setting('vessel.id'::text, false))
 -[ RECORD 50 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
-tablename  | metrics
+tablename  | metadata
 policyname | api_vessel_role
 permissive | PERMISSIVE
 roles      | {vessel_role}
@@ -724,15 +724,15 @@ with_check | (vessel_id = current_setting('vessel.id'::text, false))
 -[ RECORD 51 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | metadata
-policyname | api_vessel_role
+policyname | api_user_role
 permissive | PERMISSIVE
-roles      | {vessel_role}
+roles      | {user_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
 -[ RECORD 52 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
-tablename  | metadata
+tablename  | metrics
 policyname | api_user_role
 permissive | PERMISSIVE
 roles      | {user_role}
@@ -756,12 +756,12 @@ overpass_py_fn | {"name": "Port de la Ginesta", "type": "multipolygon", "leisure
 overpass_py_fn | {"name": "Norra hamnen", "leisure": "marina", "seamark:type": "harbour", "seamark:harbour:category": "marina"}
 
 -[ RECORD 1 ]----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-versions_fn | {"api_version" : "0.9.2", "sys_version" : "PostgreSQL 16.9", "mobilitydb" : "1.2.0", "timescaledb" : "2.20.3", "postgis" : "3.5.3", "postgrest" : "PostgREST 13.0.4"}
+versions_fn | {"api_version" : "0.9.2", "sys_version" : "PostgreSQL 16.9", "mobilitydb" : "1.2.0", "timescaledb" : "2.21.0", "postgis" : "3.5.3", "postgrest" : "PostgREST 13.0.4"}
 
 -[ RECORD 1 ]-----------------
 api_version | 0.9.2
 sys_version | PostgreSQL 16.9
-timescaledb | 2.20.3
+timescaledb | 2.21.0
 postgis     | 3.5.3
 postgrest   | PostgREST 13.0.4
 
