@@ -22,12 +22,26 @@ SELECT v.vessel_id as "vessel_id" FROM auth.vessels v WHERE v.owner_email = 'dem
 --\echo :"vessel_id"
 SELECT set_config('vessel.id', :'vessel_id', false) IS NOT NULL as vessel_id;
 
--- Delete logbook for user
+-- Count logbook for user
 \echo 'logbook'
 SELECT count(*) FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
 \echo 'logbook'
 -- track_geom and track_geojson are now dynamic from mobilitydb
-SELECT name,_from_time IS NOT NULL AS _from_time, _to_time IS NOT NULL AS _to_time, trajectory(trip) AS track_geom, distance,duration,avg_speed,max_speed,max_wind_speed,notes,extra FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false) ORDER BY id ASC;
+SELECT name,_from_time IS NOT NULL AS _from_time_not_null, _to_time IS NOT NULL AS _to_time_not_null, trajectory(trip) AS track_geom, distance,duration,avg_speed,max_speed,max_wind_speed,notes,extra FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false) ORDER BY id ASC;
+
+--
+-- user_role
+SET ROLE user_role;
+\echo 'ROLE user_role current_setting'
+
+SELECT set_config('vessel.id', :'vessel_id', false) IS NOT NULL as vessel_id;
+
+-- Count logbook for user
+\echo 'logbook'
+SELECT count(*) FROM api.logbook;
+\echo 'logbook'
+-- track_geom and track_geojson are now dynamic from mobilitydb
+SELECT name,_from_time IS NOT NULL AS _from_time_not_null, _to_time IS NOT NULL AS _to_time_not_null, trajectory(trip) AS track_geom, distance,duration,avg_speed,max_speed,max_wind_speed,notes,extra FROM api.logbook ORDER BY id ASC;
 
 -- Delete logbook for user
 \echo 'Delete logbook for user kapla'
