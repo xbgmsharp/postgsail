@@ -3,7 +3,7 @@
 -- This file is part of PostgSail which is released under Apache License, Version 2.0 (the "License").
 -- See file LICENSE or go to http://www.apache.org/licenses/LICENSE-2.0 for full license details.
 --
--- Migration June 2025
+-- Migration June/July 2025
 --
 -- List current database
 select current_database();
@@ -725,7 +725,7 @@ CREATE POLICY api_user_role ON api.metrics TO user_role
 
 -- Update version
 UPDATE public.app_settings
-	SET value='0.9.2'
+	SET value='0.9.3'
 	WHERE "name"='app.version';
 
 --\c postgres
