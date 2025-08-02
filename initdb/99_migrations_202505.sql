@@ -769,14 +769,14 @@ COMMENT ON FUNCTION
     IS 'Create a GeoJSON with a feature Point with the last position and stay details';
 
 -- Update monitoring view to support live moorage in GeoJSON
-CREATE VIEW api.monitoring_view WITH (security_invoker=true,security_barrier=true) AS
+CREATE OR REPLACE VIEW api.monitoring_view WITH (security_invoker=true,security_barrier=true) AS
     SELECT
         time AS "time",
         (NOW() AT TIME ZONE 'UTC' - time) > INTERVAL '70 MINUTES' as offline,
         metrics-> 'environment.water.temperature' AS waterTemperature,
         metrics-> 'environment.inside.temperature' AS insideTemperature,
         metrics-> 'environment.outside.temperature' AS outsideTemperature,
-        metrics-> 'environment.wind.speedOverGround' AS windSpeedOverGround,
+        metrics-> 'environment.wind.speedTrue' AS windSpeedOverGround,
         metrics-> 'environment.wind.directionTrue' AS windDirectionTrue,
         metrics-> 'environment.inside.relativeHumidity' AS insideHumidity,
         metrics-> 'environment.outside.relativeHumidity' AS outsideHumidity,
