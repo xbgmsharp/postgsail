@@ -24,6 +24,8 @@
     <a href="https://github.com/sponsors/xbgmsharp">Sponsors</a>
     .
     <a href="https://discord.gg/uuZrwz4dCS">Discord</a>
+    .
+    <a href="https://deepwiki.com/xbgmsharp/postgsail/">DeepWiki</a>
   </p>
 </p>
 
@@ -33,19 +35,23 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 ![Contributors](https://img.shields.io/github/contributors/xbgmsharp/postgsail?color=dark-green) 
 [![GitHub Repo stars](https://img.shields.io/github/stars/xbgmsharp/postgsail?style=social)](https://github.com/xbgmsharp/postgsail/stargazers)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/xbgmsharp/postgsail)
 
 [![Test services db, api](https://github.com/xbgmsharp/postgsail/actions/workflows/db-test.yml/badge.svg)](https://github.com/xbgmsharp/postgsail/actions/workflows/db-test.yml)
 [![Test services db, api, web](https://github.com/xbgmsharp/postgsail/actions/workflows/frontend-test.yml/badge.svg)](https://github.com/xbgmsharp/postgsail/actions/workflows/frontend-test.yml)
 [![Test services db, grafana](https://github.com/xbgmsharp/postgsail/actions/workflows/grafana-test.yml/badge.svg)](https://github.com/xbgmsharp/postgsail/actions/workflows/grafana-test.yml)
 
 signalk-postgsail:
-[![GitHub Release](https://img.shields.io/github/release/xbgmsharp/signalk-postgsail.svg)](https://github.com/xbgmsharp/signalk-postgsail/releases/latest)
+[![GitHub Release](https://img.shields.io/github/release/xbgmsharp/signalk-postgsail.svg?color=blue)](https://github.com/xbgmsharp/signalk-postgsail/releases/latest)
+
+postgsail-backend:
+[![GitHub Release](https://img.shields.io/github/release/xbgmsharp/postgsail.svg?color=blue)](https://github.com/xbgmsharp/postgsail/releases/latest)
 
 postgsail-frontend:
-[![GitHub Release](https://img.shields.io/github/release/xbgmsharp/vuestic-postgsail.svg)](https://github.com/xbgmsharp/vuestic-postgsail/releases/latest)
+[![GitHub Release](https://img.shields.io/github/release/xbgmsharp/vuestic-postgsail.svg?color=blue)](https://github.com/xbgmsharp/vuestic-postgsail/releases/latest)
 
 postgsail-telegram-bot:
-[![GitHub Release](https://img.shields.io/github/release/xbgmsharp/postgsail-telegram-bot.svg)](https://github.com/xbgmsharp/postgsail-telegram-bot/releases/latest)
+[![GitHub Release](https://img.shields.io/github/release/xbgmsharp/postgsail-telegram-bot.svg?color=blue)](https://github.com/xbgmsharp/postgsail-telegram-bot/releases/latest)
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8124/badge)](https://www.bestpractices.dev/projects/8124)
 
