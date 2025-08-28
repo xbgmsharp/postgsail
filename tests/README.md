@@ -1,5 +1,5 @@
 # PostgSail Unit Tests
-The Unit Tests allow to automatically validate api workflow.
+The Unit Tests allow to automatically validate SQL and API workflow.
 
 ## A global overview
 Based on `mocha` & `psql`
