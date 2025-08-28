@@ -8,8 +8,5 @@
     "moment": "^2.29.4",
     "should": "^13.2.3",
     "supertest": "^6.3.3"
-  },
-  "devDependencies": {
-    "schemalint": "^2.0.5"
   }
 }
