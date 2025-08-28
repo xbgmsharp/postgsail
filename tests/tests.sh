@@ -14,15 +14,6 @@ if [[ ! -x "/usr/bin/psql" ]]; then
     apt update && apt -y install postgresql-client
 fi
 
-# go install
-if [[ ! -x "/usr/bin/go" || ! -x "/root/go/bin/mermerd" ]]; then
-    #wget -q https://go.dev/dl/go1.21.4.linux-arm64.tar.gz && \
-    #rm -rf /usr/local/go && tar -C /usr/local -xzf go1.21.4.linux-arm64.tar.gz && \
-    apt update && apt -y install golang-go && \
-    #go install github.com/KarnerTh/mermerd@latest require latest go version
-    go install github.com/KarnerTh/mermerd@v0.11.0
-fi
-
 # pnpm install
 if [[ ! -x "/usr/local/bin/pnpm" ]]; then
     npm install -g pnpm
@@ -231,17 +222,17 @@ else
 fi
 
 # Stats SQL unit tests
-#psql ${PGSAIL_DB_URI} < sql/stats.sql > output/stats.sql.output
-#diff sql/stats.sql.output output/stats.sql.output > /dev/null
+psql ${PGSAIL_DB_URI} < sql/stats.sql > output/stats.sql.output
+diff sql/stats.sql.output output/stats.sql.output > /dev/null
 #diff -u sql/stats.sql.output output/stats.sql.output | wc -l
 #echo 0
-#if [ $? -eq 0 ]; then
-#    echo SQL stats.sql OK
-#else
-#    echo SQL stats.sql FAILED
-#    diff -u sql/stats.sql.output output/stats.sql.output
-#    exit 1
-#fi
+if [ $? -eq 0 ]; then
+    echo SQL stats.sql OK
+else
+    echo SQL stats.sql FAILED
+    diff -u sql/stats.sql.output output/stats.sql.output
+    exit 1
+fi
 
 # MobilityDB SQL unit tests
 psql ${PGSAIL_DB_URI} < sql/mobilitydb.sql > output/mobilitydb.sql.output
@@ -292,17 +283,3 @@ else
     echo openapi.json FAILED
     exit 1
 fi
-
-# Generate and update mermaid schema documentation
-/root/go/bin/mermerd --runConfig ../docs/ERD/mermerdConfig.yaml
-#echo $?
-echo 0 # not working in github-actions
-if [ $? -eq 0 ]; then
-    cp postgsail.md ../docs/ERD/postgsail.md
-    echo postgsail.md OK
-else
-    echo postgsail.md FAILED
-    exit 1
-fi
-
-#npm i -D schemalint && npx schemalint
