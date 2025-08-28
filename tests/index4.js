@@ -688,7 +688,7 @@ var moment = require("moment");
             should.exist(res.body);
             let event = res.body;
             //console.log(event);
-            // minimum events log for kapla & aava 13 + 4 email_otp = 17
+            // minimum events log per users 6 + 4 logs + OTP one per login
             event.length.should.be.aboveOrEqual(11);
             done(err);
           });
