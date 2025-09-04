@@ -7,10 +7,10 @@ You are now connected to database "signalk" as user "username".
 Expanded display is on.
 Check the number of process pending
 -[ RECORD 1 ]
-jobs | 26
+jobs | 24
 
 -[ RECORD 1 ]
-jobs | 26
+jobs | 24
 
 -[ RECORD 1 ]-+-
 run_cron_jobs | 
