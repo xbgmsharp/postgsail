@@ -359,7 +359,7 @@ $function$
 COMMENT ON FUNCTION public.cron_windy_fn() IS 'init by pg_cron to create (or update) station and uploading observations to Windy Personal Weather Station observations';
 
 -- DROP FUNCTION api.merge_logbook_fn(int4, int4);
--- Update merge_logbook_fn to handle  more metrics and limit moorage deletion
+-- Update merge_logbook_fn to handle more metrics and limit moorage deletion
 CREATE OR REPLACE FUNCTION api.merge_logbook_fn(id_start integer, id_end integer)
  RETURNS void
  LANGUAGE plpgsql
@@ -565,7 +565,7 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO user_role;
 
 -- Update version
 UPDATE public.app_settings
-	SET value='0.9.3'
+	SET value='0.9.4'
 	WHERE "name"='app.version';
 
 \c postgres
