@@ -81,4 +81,4 @@ select configuration->'depthKey' AS depthKey, configuration->'update_at' IS NOT 
 SET ROLE api_anonymous;
 
 \echo 'api_anonymous get vessel image'
-SELECT api.vessel_image(current_setting('vessel.id', false)) IS NOT NULL AS vessel_image_not_null;
+SELECT api.image('vessel', current_setting('vessel.id', false)) IS NOT NULL AS vessel_image_not_null;
