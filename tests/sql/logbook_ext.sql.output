@@ -12,26 +12,32 @@ count_eq_0 | 0
 vessel_id | t
 
 SET
-api.stays details
+api.logbook details
 -[ RECORD 1 ]------+--
 vessel_id_not_null | t
 name_not_null      | t
 -[ RECORD 2 ]------+--
 vessel_id_not_null | t
 name_not_null      | t
+-[ RECORD 3 ]------+--
+vessel_id_not_null | t
+name_not_null      | t
+-[ RECORD 4 ]------+--
+vessel_id_not_null | t
+name_not_null      | t
 
-api.stays_ext set image/image_b64
+api.logbook_ext set image/image_b64
 INSERT 0 1
-api.stays_ext get image_updated_at
+api.logbook_ext get image_updated_at
 -[ RECORD 1 ]-------------+--
 image_b64_is_null         | f
 image_not_null            | t
 image_updated_at_not_null | t
 
 SET
-api.stays_ext vessel_role denied
+api.logbook_ext vessel_role denied
 SET
-api_anonymous get stays image
--[ RECORD 1 ]-------+--
-stay_image_not_null | t
+api_anonymous get log image
+-[ RECORD 1 ]------+--
+log_image_not_null | t
 
