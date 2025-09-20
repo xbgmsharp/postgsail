@@ -130,6 +130,32 @@ else
     exit
 fi
 
+# Logbook extended unit tests
+psql ${PGSAIL_DB_URI} < sql/logbook_ext.sql > output/logbook_ext.sql.output
+diff sql/logbook_ext.sql.output output/logbook_ext.sql.output > /dev/null
+#diff -u sql/logbook_ext.sql.output output/logbook_ext.sql.output | wc -l
+#echo 0
+if [ $? -eq 0 ]; then
+    echo OK
+else
+    echo SQL logbook_ext.sql FAILED
+    diff -u sql/logbook_ext.sql.output output/logbook_ext.sql.output
+    exit 1
+fi
+
+# Moorages extended unit tests
+psql ${PGSAIL_DB_URI} < sql/moorages_ext.sql > output/moorages_ext.sql.output
+diff sql/moorages_ext.sql.output output/moorages_ext.sql.output > /dev/null
+#diff -u sql/moorages_ext.sql.output output/moorages_ext.sql.output | wc -l
+#echo 0
+if [ $? -eq 0 ]; then
+    echo OK
+else
+    echo SQL moorages_ext.sql FAILED
+    diff -u sql/moorages_ext.sql.output output/moorages_ext.sql.output
+    exit 1
+fi
+
 # Stays extended unit tests
 psql ${PGSAIL_DB_URI} < sql/stays_ext.sql > output/stays_ext.sql.output
 diff sql/stays_ext.sql.output output/stays_ext.sql.output > /dev/null
