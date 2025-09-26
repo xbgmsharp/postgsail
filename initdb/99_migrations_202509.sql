@@ -1294,7 +1294,7 @@ CREATE POLICY api_vessel_role ON api.moorages_ext TO vessel_role
 
 -- Update version
 UPDATE public.app_settings
-	SET value='0.9.4'
+	SET value='0.9.5'
 	WHERE "name"='app.version';
 
 \c postgres
