@@ -586,7 +586,7 @@
 		"windspeedapparent" : 35.8,
 		"anglespeedapparent" : 9.0,
 		"status" : "sailing",
-		"metrics" : {"environment.wind.speedTrue": 0.51, "navigation.speedThroughWater": 3.2255674838104293, "performance.velocityMadeGood": -1.347844785898457, "environment.wind.angleTrueWater": 1.7453292523928399, "environment.depth.belowTransducer": 9.85, "navigation.courseOverGroundMagnetic": 2.292489973017995, "navigation.courseRhumbline.crossTrackError": 0}
+		"metrics" : {"environment.wind.speedTrue": 19.51, "navigation.speedThroughWater": 3.2255674838104293, "performance.velocityMadeGood": -1.347844785898457, "environment.wind.angleTrueWater": 1.7453292523928399, "environment.depth.belowTransducer": 9.85, "navigation.courseOverGroundMagnetic": 2.292489973017995, "navigation.courseRhumbline.crossTrackError": 0}
 	},
 	{
 		"time" : "2022-07-30T15:39:28.867Z",
@@ -598,7 +598,7 @@
 		"windspeedapparent" : 37.2,
 		"anglespeedapparent" : 10.0,
 		"status" : "sailing",
-		"metrics" : {"environment.wind.speedTrue": 0.63, "navigation.speedThroughWater": 3.2255674838104293, "performance.velocityMadeGood": -2.242978345998959, "environment.wind.angleTrueWater": 2.3038346131585485, "environment.depth.belowTransducer": 17.73, "navigation.courseOverGroundMagnetic": 2.129127154994025, "navigation.courseRhumbline.crossTrackError": 0}
+		"metrics" : {"environment.wind.speedTrue": 19.13, "navigation.speedThroughWater": 3.2255674838104293, "performance.velocityMadeGood": -2.242978345998959, "environment.wind.angleTrueWater": 2.3038346131585485, "environment.depth.belowTransducer": 17.73, "navigation.courseOverGroundMagnetic": 2.129127154994025, "navigation.courseRhumbline.crossTrackError": 0}
 	},
 	{
 		"time" : "2022-07-30T15:40:28.867Z",
