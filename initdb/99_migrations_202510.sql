@@ -31,7 +31,7 @@ COMMENT ON COLUMN api.logbook.trip_sog IS 'SOG - Speed Over Ground in knots conv
 COMMENT ON COLUMN api.logbook.trip_cog IS 'COG - Course Over Ground True in degrees converted from radians by signalk plugin';
 COMMENT ON COLUMN api.logbook.trip_twa IS 'AWS (Apparent Wind Speed), windSpeedApparent in knots converted by signalk plugin';
 COMMENT ON COLUMN api.logbook.trip_tws IS 'TWS - True Wind Speed in knots converted from m/s, raw from signalk plugin';
-COMMENT ON COLUMN api.logbook.trip_twd IS 'TWD - True Wind Direction converted from radians, raw from signalk plugin';
+COMMENT ON COLUMN api.logbook.trip_twd IS 'TWD - True Wind Direction in degrees converted from radians, raw from signalk plugin';
 COMMENT ON COLUMN api.logbook.trip_heading IS 'Heading True in degrees converted from radians, raw from signalk plugin';
 COMMENT ON COLUMN api.logbook.trip_depth IS 'Depth in meters, raw from signalk plugin';
 COMMENT ON COLUMN api.logbook.trip_temp_water IS 'Temperature water in Kelvin, raw from signalk plugin';
@@ -2017,11 +2017,11 @@ GRANT SELECT ON TABLE api.monitoring_live TO api_anonymous;
 
 -- Update version
 UPDATE public.app_settings
-	SET value='0.9.5'
+	SET value='0.9.6'
 	WHERE "name"='app.version';
 
 \c postgres
--- 
+-- Set cron job username to current user
 UPDATE cron.job
     SET username = current_user
     WHERE username = 'username';
