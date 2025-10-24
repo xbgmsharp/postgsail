@@ -1131,7 +1131,7 @@ BEGIN
   ELSIF _role = 'api_anonymous' THEN
     --RAISE WARNING 'public.check_jwt() api_anonymous path[%] vid:[%]', current_setting('request.path', true), current_setting('vessel.id', false); 
     -- Check if path is the a valid allow anonymous path
-    SELECT current_setting('request.path', true) ~ '^/(logs_view|log_view|rpc/timelapse_fn|rpc/timelapse2_fn|monitoring_view|stats_logs_view|stats_moorages_view|rpc/stats_logs_fn|rpc/export_logbooks_geojson_point_trips_fn|rpc/export_logbooks_geojson_linestring_trips_fn)$' INTO _ppath;
+    SELECT current_setting('request.path', true) ~ '^/(logs_view|log_view|rpc/timelapse_fn|rpc/timelapse2_fn|monitoring_live|monitoring_view|stats_logs_view|stats_moorages_view|rpc/stats_logs_fn|rpc/export_logbooks_geojson_point_trips_fn|rpc/export_logbooks_geojson_linestring_trips_fn)$' INTO _ppath;
     if _ppath is True then
         -- Check is custom header is present and valid
         SELECT current_setting('request.headers', true)::json->>'x-is-public' into _pheader;
