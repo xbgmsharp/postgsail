@@ -6,7 +6,7 @@
 You are now connected to database "signalk" as user "username".
 Expanded display is on.
 -[ RECORD 1 ]-
-count_eq_0 | 0
+count_eq_2 | 2
 
 -[ RECORD 1 ]
 vessel_id | t
@@ -33,6 +33,10 @@ api.logbook_ext get image_updated_at
 image_b64_is_null         | f
 image_not_null            | t
 image_updated_at_not_null | t
+-[ RECORD 2 ]-------------+--
+image_b64_is_null         | t
+image_not_null            | f
+image_updated_at_not_null | f
 
 SET
 api.logbook_ext vessel_role denied

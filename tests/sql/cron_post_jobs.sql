@@ -29,7 +29,8 @@ SET ROLE user_role;
 SELECT count(*) FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
 \echo 'logbook'
 --SELECT name,_from_time IS NOT NULL AS _from_time,_to_time IS NOT NULL AS _to_time, track_geojson IS NOT NULL AS track_geojson, trajectory(trip)::geometry as track_geom, distance,duration,round(avg_speed::NUMERIC,6),max_speed,max_wind_speed,notes,extra FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
-SELECT name,_from_time IS NOT NULL AS _from_time,_to_time IS NOT NULL AS _to_time, api.export_logbook_geojson_trip_fn(id) IS NOT NULL AS track_geojson, trajectory(trip)::geometry as track_geom, distance,duration,round(avg_speed::NUMERIC,6),max_speed,max_wind_speed,notes,extra FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
+--SELECT name,_from_time IS NOT NULL AS _from_time,_to_time IS NOT NULL AS _to_time, api.export_logbook_geojson_trip_fn(id) IS NOT NULL AS track_geojson, trajectory(trip)::geometry as track_geom, distance,duration,round(avg_speed::NUMERIC,6),max_speed,max_wind_speed,notes,extra FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
+SELECT name,_from_time IS NOT NULL AS _from_time,_to_time IS NOT NULL AS _to_time, api.export_logbook_geojson_trip_fn(id) IS NOT NULL AS track_geojson, trajectory(trip)::geometry as track_geom, distance,duration,avg_speed,max_speed,max_wind_speed,notes,extra FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
 
 -- Test stays for user
 \echo 'stays'
@@ -50,9 +51,9 @@ SELECT stats_logs_fn->'name' AS name,
         stats_logs_fn->'max_distance' AS max_distance,
         stats_logs_fn->'max_duration' AS max_duration,
         stats_logs_fn->'max_speed_id',
-        stats_logs_fn->'sum_distance',
-        stats_logs_fn->'sum_duration',
-        stats_logs_fn->'max_wind_speed',
+        stats_logs_fn->'sum_distance' AS sum_distance,
+        stats_logs_fn->'sum_duration' AS sum_duration,
+        stats_logs_fn->'max_wind_speed' AS max_wind_speed,
         stats_logs_fn->'max_distance_id',
         stats_logs_fn->'max_duration_id',
         stats_logs_fn->'max_wind_speed_id',

@@ -16,6 +16,8 @@ Stats logbook and moorages for user kapla
 boat_name              | t
 logs_count             | t
 max_speed              | t
+max_distance           | t
+max_duration           | t
 home_ports             | t
 unique_moorages        | t
 moorages_top_countries | t
@@ -28,6 +30,7 @@ Stats logbook and moorages for user aava
 boat_name              | t
 logs_count             | t
 max_speed              | t
+max_distance           | t
 home_ports             | t
 unique_moorages        | t
 moorages_top_countries | t

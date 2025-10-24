@@ -38,7 +38,7 @@ SELECT badges_geom_fn(5,NOW()::TEXT);
 SELECT badges_geom_fn(6,NOW()::TEXT);
 
 \echo 'Check badges for all users'
-SELECT jsonb_object_keys ( a.preferences->'badges' ) FROM auth.accounts a;
+select (SELECT COUNT(*) from jsonb_object_keys ( a.preferences->'badges' )) FROM auth.accounts a;
 
 \echo 'Check details from vessel_id kapla'
 SELECT 

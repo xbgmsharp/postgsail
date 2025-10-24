@@ -11,7 +11,7 @@ select current_database();
 -- output display format
 \x on
 
-SELECT count(*) as count_eq_0 FROM api.logbook_ext m;
+SELECT count(*) as count_eq_2 FROM api.logbook_ext m;
 
 SELECT v.vessel_id as "vessel_id" FROM auth.vessels v WHERE v.owner_email = 'demo+kapla@openplotter.cloud' \gset
 --\echo :"vessel_id"
@@ -32,7 +32,7 @@ INSERT INTO api.logbook_ext (vessel_id, ref_id, image_b64)
 
 -- Ensure image_updated_at on metadata_ext table is updated by trigger
 \echo 'api.logbook_ext get image_updated_at'
-SELECT image_b64 IS NULL AS image_b64_is_null,image IS NOT NULL AS image_not_null,image_updated_at IS NOT NULL AS image_updated_at_not_null FROM api.logbook_ext; --WHERE vessel_id = current_setting('vessel.id', false);
+SELECT image_b64 IS NULL AS image_b64_is_null,image IS NOT NULL AS image_not_null,image_updated_at IS NOT NULL AS image_updated_at_not_null FROM api.logbook_ext; -- WHERE ref_id = 1;
 
 -- vessel_role
 SET ROLE vessel_role;

@@ -815,6 +815,15 @@ roles      | {vessel_role}
 cmd        | ALL
 qual       | false
 with_check | false
+-[ RECORD 61 ]-----------------------------------------------------------------------------------------------------------------------------
+schemaname | api
+tablename  | metadata
+policyname | api_anonymous_role
+permissive | PERMISSIVE
+roles      | {api_anonymous}
+cmd        | ALL
+qual       | (vessel_id = current_setting('vessel.id'::text, false))
+with_check | false
 
 Test nominatim reverse_geocode_py_fn
 -[ RECORD 1 ]---------+----------------------------------------

@@ -42,3 +42,36 @@ ispublic_fn | t
 -[ RECORD 1 ]--
 ispublic_fn | f
 
+-[ RECORD 1 ]
+vessel_id | t
+
+-[ RECORD 1 ]
+vessel_id | t
+
+SET
+api_anonymous logs_list
+-[ RECORD 1 ]-
+count_eq_4 | 4
+
+api_anonymous stays_list
+-[ RECORD 1 ]-
+count_eq_2 | 2
+
+api_anonymous moorages_list
+-[ RECORD 1 ]-
+count_eq_3 | 3
+
+api_anonymous log_view id=1
+-[ RECORD 1 ]----+--
+name_is_not_null | t
+
+api_anonymous monitoring_view
+-[ RECORD 1 ]----+--
+time_is_not_null | t
+name_is_not_null | t
+
+api_anonymous monitoring_live
+-[ RECORD 1 ]----+--
+time_is_not_null | t
+name_is_not_null | t
+

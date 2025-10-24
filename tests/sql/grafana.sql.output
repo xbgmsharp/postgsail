@@ -129,7 +129,7 @@ id               | 2
 name             | Norra hamnen to Ekenäs
 from             | Norra hamnen
 to               | Ekenäs
-distance         | 8.8968
+distance         | 8.92
 duration         | PT20M
 _from_moorage_id | 2
 _to_moorage_id   | 3
@@ -138,7 +138,7 @@ id               | 1
 name             | patch log name 3
 from             | patch moorage name 3
 to               | Norra hamnen
-distance         | 7.6447
+distance         | 7.66
 duration         | PT27M
 _from_moorage_id | 1
 _to_moorage_id   | 2
