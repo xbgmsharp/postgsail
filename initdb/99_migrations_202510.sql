@@ -2003,6 +2003,98 @@ $function$
 -- Description
 COMMENT ON FUNCTION api.logbook_update_geojson_trip_fn(int4) IS 'Export a log trip entry to GEOJSON format with custom properties for timelapse replay';
 
+-- DROP FUNCTION public.export_logbook_polar_fn(int4);
+-- Update public.export_logbook_polar_fn, store true_wind_speed (TWS) in knots
+CREATE OR REPLACE FUNCTION public.export_logbook_polar_fn(_id integer)
+RETURNS TABLE (
+    awa_bin integer,
+    tws_bin integer,
+    avg_speed numeric,
+    max_speed numeric,
+    samples integer
+)
+LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_vessel_id text;
+    v_from_time timestamptz;
+    v_to_time timestamptz;
+BEGIN
+    -- Get vessel_id and time range from logbook
+    SELECT vessel_id, _from_time, _to_time
+    INTO v_vessel_id, v_from_time, v_to_time
+    FROM api.logbook
+    WHERE id = _id;
+
+    -- Safety check
+    IF v_vessel_id IS NULL OR v_from_time IS NULL OR v_to_time IS NULL THEN
+        RAISE EXCEPTION 'Logbook id % not found or missing time range', _id;
+    END IF;
+
+    -- Step 1–4: Build and return query
+    RETURN QUERY
+    WITH base AS (
+        SELECT
+            (ROUND(m.anglespeedapparent / 5) * 5)::INT AS awa_bin_c,
+            m.speedoverground,
+            m.windspeedapparent,
+            m.anglespeedapparent,
+            -- Wind Speed True (converted from m/s to knots)
+            COALESCE(
+                m.metrics->'wind'->>'speed',
+                --m.metrics->>(md.configuration->>'windSpeedKey'),
+                m.metrics->>'environment.wind.speedTrue'
+            )::FLOAT * 1.94384 AS true_wind_speed
+        FROM api.metrics m
+        WHERE m.speedoverground IS NOT NULL
+          AND m.windspeedapparent IS NOT NULL
+          AND m.anglespeedapparent IS NOT NULL
+          AND m.vessel_id = v_vessel_id
+          AND m.time >= v_from_time
+          AND m.time <= v_to_time
+          AND ABS(m.anglespeedapparent) >= 25
+    ),
+    grouped AS (
+        SELECT
+            awa_bin_c,
+            (
+                CASE
+                    WHEN true_wind_speed < 7  THEN 6
+                    WHEN true_wind_speed < 9  THEN 8
+                    WHEN true_wind_speed < 11 THEN 10
+                    WHEN true_wind_speed < 13 THEN 12
+                    WHEN true_wind_speed < 15 THEN 14
+                    WHEN true_wind_speed < 17 THEN 16
+                    WHEN true_wind_speed < 22 THEN 20
+                    WHEN true_wind_speed < 27 THEN 25
+                    ELSE 30
+                END
+            )::int AS tws_bin_c,
+            ROUND(AVG(speedoverground)::numeric, 2) AS avg_speed_c,
+            ROUND(MAX(speedoverground)::numeric, 2) AS max_speed_c,
+            COUNT(*)::int AS samples_c
+        FROM base
+        GROUP BY awa_bin_c, tws_bin_c
+    ),
+    tws_bins AS (
+        SELECT DISTINCT tws_bin_c FROM grouped
+    )
+    SELECT g.awa_bin_c AS awa_bin,
+           g.tws_bin_c AS tws_bin,
+           g.avg_speed_c AS avg_speed,
+           g.max_speed_c AS max_speed,
+           g.samples_c AS samples
+    FROM grouped g
+    UNION ALL
+    SELECT 0 AS awa_bin, t.tws_bin_c, 0 AS avg_speed, 0 AS max_speed, 0 AS samples
+    FROM tws_bins t
+    ORDER BY tws_bin, awa_bin;
+
+END;
+$function$;
+-- Description
+COMMENT ON FUNCTION public.export_logbook_polar_fn(int4) IS 'Generate polar for a log';
+
 -- Update Row Level Security policies for api.metadata table
 CREATE POLICY api_anonymous_role ON api.metadata TO api_anonymous
     USING (vessel_id = current_setting('vessel.id', false))
