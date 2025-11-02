@@ -39,7 +39,7 @@ COMMENT ON COLUMN api.stays_ext.vessel_id IS 'Unique identifier for the vessel a
 COMMENT ON COLUMN api.metadata_ext.vessel_id IS 'Unique identifier for the vessel associated with the api.metadata entry';
 COMMENT ON COLUMN api.metadata.mmsi IS 'Maritime Mobile Service Identity (MMSI) number associated with the vessel, link to public.mid';
 COMMENT ON COLUMN api.metadata.ship_type IS 'Type of ship associated with the vessel, link to public.aistypes';
-COMMENT ON TRIGGER ts_insert_blocker ON api.metrics IS 'manage by timescaledb, prevent direct insert on hypertable api.metrics';
+--COMMENT ON TRIGGER ts_insert_blocker ON api.metrics IS 'manage by timescaledb, prevent direct insert on hypertable api.metrics';
 COMMENT ON TRIGGER ensure_vessel_role_exists ON auth.vessels IS 'ensure vessel role exists';
 COMMENT ON TRIGGER encrypt_pass ON auth.accounts IS 'execute function auth.encrypt_pass()';
 
