@@ -23,7 +23,7 @@ Schema      | public
 Description | transform between jsonb and plpython3u
 -[ RECORD 3 ]--------------------------------------------------------------------------------------
 Name        | mobilitydb
-Version     | 1.2.0
+Version     | 1.3.0
 Schema      | public
 Description | MobilityDB geospatial trajectory data management & analysis platform
 -[ RECORD 4 ]--------------------------------------------------------------------------------------
@@ -58,12 +58,12 @@ Schema      | public
 Description | PostGIS geometry and geography spatial types and functions
 -[ RECORD 10 ]-------------------------------------------------------------------------------------
 Name        | timescaledb
-Version     | 2.22.0
+Version     | 2.23.0
 Schema      | public
 Description | Enables scalable inserts and complex queries for time-series data (Community Edition)
 -[ RECORD 11 ]-------------------------------------------------------------------------------------
 Name        | timescaledb_toolkit
-Version     | 1.21.0
+Version     | 1.22.0
 Schema      | public
 Description | Library of analytical hyperfunctions, time-series pipelining, and other SQL utilities
 -[ RECORD 12 ]-------------------------------------------------------------------------------------
@@ -116,14 +116,14 @@ laninline     | 13566
 lanvalidator  | 13567
 lanacl        | 
 -[ RECORD 5 ]-+-----------
-oid           | 18246
+oid           | 18241
 lanname       | plpython3u
 lanowner      | 10
 lanispl       | t
 lanpltrusted  | t
-lanplcallfoid | 18243
-laninline     | 18244
-lanvalidator  | 18245
+lanplcallfoid | 18238
+laninline     | 18239
+lanvalidator  | 18240
 lanacl        | 
 
 -[ RECORD 1 ]+-----------
@@ -840,13 +840,13 @@ overpass_py_fn | {"name": "Port de la Ginesta", "type": "multipolygon", "leisure
 -[ RECORD 1 ]--+---------------------------------------------------------------------------------------------------------------
 overpass_py_fn | {"name": "Norra hamnen", "leisure": "marina", "seamark:type": "harbour", "seamark:harbour:category": "marina"}
 
--[ RECORD 1 ]-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-versions_fn | {"api_version" : "0.9.6", "sys_version" : "PostgreSQL 16.10", "mobilitydb" : "1.2.0", "timescaledb" : "2.22.1", "postgis" : "3.6.0", "postgrest" : "PostgREST 13.0.7"}
+-[ RECORD 1 ]---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+versions_fn | {"api_version" : "0.9.6", "sys_version" : "PostgreSQL 16.10", "mobilitydb" : "1.3.0", "timescaledb" : "2.23.0", "postgis" : "3.6.0", "postgrest" : "PostgREST 14.0"}
 
 -[ RECORD 1 ]-----------------
 api_version | 0.9.6
 sys_version | PostgreSQL 16.10
-timescaledb | 2.22.1
+timescaledb | 2.23.0
 postgis     | 3.6.0
-postgrest   | PostgREST 13.0.7
+postgrest   | PostgREST 14.0
 
