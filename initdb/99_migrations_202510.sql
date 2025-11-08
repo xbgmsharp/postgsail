@@ -550,9 +550,9 @@ BEGIN
                         )::FLOAT) AS intemp,
                     avg(-- Wind Speed True (converted from m/s to knots)
                         COALESCE(
-                            mt.metrics->'wind'->>'speed', mt.time,
-                            mt.metrics->>(md.configuration->>'windSpeedKey'), mt.time,
-                            mt.metrics->>'environment.wind.speedTrue', mt.time
+                            m.metrics->'wind'->>'speed',
+                            m.metrics->>(md.configuration->>'windSpeedKey'),
+                            m.metrics->>'environment.wind.speedTrue'
                         )::FLOAT * 1.94384) AS wind,
                     avg(-- Water Depth
                         COALESCE(
@@ -2095,6 +2095,154 @@ $function$;
 -- Description
 COMMENT ON FUNCTION public.export_logbook_polar_fn(int4) IS 'Generate polar for a log';
 
+-- DROP FUNCTION public.cron_windy_fn();
+-- Update public.cron_windy_fn, silently ignore when there is no valid metrics.
+CREATE OR REPLACE FUNCTION public.cron_windy_fn()
+ RETURNS void
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    windy_rec record;
+    default_last_metric TIMESTAMPTZ := NOW() - interval '1 day';
+    last_metric TIMESTAMPTZ := NOW();
+    metric_rec record;
+    windy_metric jsonb;
+    app_settings jsonb;
+    user_settings jsonb;
+    windy_pws jsonb;
+BEGIN
+    -- Check for new observations pending update
+    RAISE NOTICE 'cron_process_windy_fn';
+    -- Gather url from app settings
+    app_settings := get_app_settings_fn();
+    -- Find users with Windy active and with an active vessel
+    -- Map account id to Windy Station ID
+    FOR windy_rec in
+        SELECT
+            a.id,a.email,v.vessel_id,v.name,
+            COALESCE((a.preferences->'windy_last_metric')::TEXT, default_last_metric::TEXT) as last_metric
+            FROM auth.accounts a
+            LEFT JOIN auth.vessels AS v ON v.owner_email = a.email
+            LEFT JOIN api.metadata AS m ON m.vessel_id = v.vessel_id
+            WHERE (a.preferences->'public_windy')::boolean = True
+                AND m.active = True
+    LOOP
+        RAISE NOTICE '-> cron_process_windy_fn for [%]', windy_rec;
+        PERFORM set_config('vessel.id', windy_rec.vessel_id, false);
+        --RAISE WARNING 'public.cron_process_windy_rec_fn() scheduler vessel.id %, user.id', current_setting('vessel.id', false), current_setting('user.id', false);
+        -- Gather user settings
+        user_settings := get_user_settings_from_vesselid_fn(windy_rec.vessel_id::TEXT);
+        RAISE NOTICE '-> cron_process_windy_fn checking user_settings [%]', user_settings;
+        -- Get all metrics from the last windy_last_metric avg by 5 minutes
+        -- TODO json_agg to send all data in once, but issue with py jsonb transformation decimal.
+        FOR metric_rec in
+            SELECT time_bucket('5 minutes', mt.time) AS time_bucket,
+                    avg(-- Outside Temperature
+                        COALESCE(
+                            mt.metrics->'temperature'->>'outside',
+                            mt.metrics->>(md.configuration->>'outsideTemperatureKey'),
+                            mt.metrics->>'environment.outside.temperature'
+                        )::FLOAT) AS temperature,
+                    avg(-- Outside Pressure
+                        COALESCE(
+                            mt.metrics->'pressure'->>'outside',
+                            mt.metrics->>(md.configuration->>'outsidePressureKey'),
+                            mt.metrics->>'environment.outside.pressure'
+                        )::FLOAT) AS pressure,
+                    avg(-- Outside Humidity
+                        COALESCE(
+                            mt.metrics->'humidity'->>'outside',
+                            mt.metrics->>(md.configuration->>'outsideHumidityKey'),
+                            mt.metrics->>'environment.outside.relativeHumidity',
+                            mt.metrics->>'environment.outside.humidity'
+                        )::FLOAT) AS rh,
+                    avg(-- Wind Direction True
+                        COALESCE(
+                            mt.metrics->'wind'->>'direction',
+                            mt.metrics->>(md.configuration->>'windDirectionKey'),
+                            mt.metrics->>'environment.wind.directionTrue'
+                        )::FLOAT) AS winddir,
+                    avg(-- Wind Speed True
+                        COALESCE(
+                            mt.metrics->'wind'->>'speed',
+                            mt.metrics->>(md.configuration->>'windSpeedKey'),
+                            mt.metrics->>'environment.wind.speedTrue',
+                            mt.metrics->>'environment.wind.speedApparent'
+                        )::FLOAT) AS wind,
+                    max(-- Max Wind Speed True
+                        COALESCE(
+                            mt.metrics->'wind'->>'speed',
+                            mt.metrics->>(md.configuration->>'windSpeedKey'),
+                            mt.metrics->>'environment.wind.speedTrue',
+                            mt.metrics->>'environment.wind.speedApparent'
+                        )::FLOAT) AS gust,
+                    last(latitude, mt.time) AS lat,
+                    last(longitude, mt.time) AS lng
+                FROM api.metrics mt
+                JOIN api.metadata md ON md.vessel_id = mt.vessel_id
+                WHERE md.vessel_id = windy_rec.vessel_id
+                    AND mt.time >= windy_rec.last_metric::TIMESTAMPTZ
+                GROUP BY time_bucket
+                ORDER BY time_bucket ASC LIMIT 100
+        LOOP
+            --RAISE NOTICE '-> cron_process_windy_fn checking metrics [%]', metric_rec;
+	        IF metric_rec.wind IS NULL
+                OR metric_rec.winddir IS NULL
+                OR metric_rec.temperature IS NULL
+                OR metric_rec.pressure IS NULL
+                OR metric_rec.rh IS NULL THEN
+	           -- Silently Ignore when there is no valid metrics.
+               -- Send notification
+               --PERFORM send_notification_fn('windy_error'::TEXT, user_settings::JSONB);
+			   -- Disable windy
+	           --PERFORM api.update_user_preferences_fn('{public_windy}'::TEXT, 'false'::TEXT);
+	           RETURN;
+	        END IF;
+            -- https://community.windy.com/topic/8168/report-your-weather-station-data-to-windy
+			-- wind - real number [m/s]; wind speed
+			-- winddir - integer number [deg]; instantaneous wind direction
+            -- rh - real number [%]; relative humidity ; alternative name: humidity
+            -- pressure - real number [Pa]; atmospheric pressure
+            -- We hav to convert:
+			-- temp from kelvin to celcuis
+            -- winddir from radiant to degres
+            -- rh from ratio to percentage
+            SELECT jsonb_build_object(
+                'dateutc', metric_rec.time_bucket,
+                'station', windy_rec.id,
+                'name', windy_rec.name,
+                'lat', metric_rec.lat,
+                'lon', metric_rec.lng,
+                'wind', metric_rec.wind,
+                'gust', metric_rec.gust,
+                'pressure', metric_rec.pressure,
+                'winddir', radiantToDegrees(metric_rec.winddir::numeric),
+                'temp', kelvinToCel(metric_rec.temperature::numeric),
+                'rh', valToPercent(metric_rec.rh::numeric)
+                ) INTO windy_metric;
+            RAISE NOTICE '-> cron_process_windy_fn checking windy_metrics [%]', windy_metric;
+            SELECT windy_pws_py_fn(windy_metric, user_settings, app_settings) into windy_pws;
+            RAISE NOTICE '-> cron_process_windy_fn Windy PWS [%]', ((windy_pws->'header')::JSONB ? 'id');
+            IF NOT((user_settings->'settings')::JSONB ? 'windy') and ((windy_pws->'header')::JSONB ? 'id') then
+                RAISE NOTICE '-> cron_process_windy_fn new Windy PWS [%]', (windy_pws->'header')::JSONB->>'id';
+                -- Send metrics to Windy
+                PERFORM api.update_user_preferences_fn('{windy}'::TEXT, ((windy_pws->'header')::JSONB->>'id')::TEXT);
+                -- Send notification
+                PERFORM send_notification_fn('windy'::TEXT, user_settings::JSONB);
+                -- Refresh user settings after first success
+                user_settings := get_user_settings_from_vesselid_fn(windy_rec.vessel_id::TEXT);
+            END IF;
+            -- Record last metrics time
+            SELECT metric_rec.time_bucket INTO last_metric;
+        END LOOP;
+        PERFORM api.update_user_preferences_fn('{windy_last_metric}'::TEXT, last_metric::TEXT);
+    END LOOP;
+END;
+$function$
+;
+-- Description
+COMMENT ON FUNCTION public.cron_windy_fn() IS 'init by pg_cron to create (or update) station and uploading observations to Windy Personal Weather Station observations';
+
 -- Update Row Level Security policies for api.metadata table
 CREATE POLICY api_anonymous_role ON api.metadata TO api_anonymous
     USING (vessel_id = current_setting('vessel.id', false))
@@ -2106,6 +2254,9 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA api TO user_role;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO user_role;
 
 GRANT SELECT ON TABLE api.monitoring_live TO api_anonymous;
+
+-- Optimize indexes
+CREATE INDEX process_queue_ref_id_idx ON public.process_queue USING btree (ref_id);
 
 -- Update version
 UPDATE public.app_settings
