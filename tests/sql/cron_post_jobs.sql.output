@@ -26,7 +26,7 @@ track_geom     | 0102000020E61000001A000000B0DEBBE0E68737404DA938FBF0094E4020D26
 distance       | 7.66
 duration       | PT27M
 avg_speed      | 17.03
-max_speed      | 30.78
+max_speed      | 17.03
 max_wind_speed | 19.3
 notes          | 
 extra          | {"metrics": {"propulsion.main.runTime": "PT10S"}, "observations": {"seaState": -1, "visibility": -1, "cloudCoverage": -1}, "avg_wind_speed": 9.15}
@@ -39,7 +39,7 @@ track_geom     | 0102000020E610000013000000029A081B9E6E37404A5658830AFD4D404806A
 distance       | 8.92
 duration       | PT20M
 avg_speed      | 26.76
-max_speed      | 33.03
+max_speed      | 26.76
 max_wind_speed | 37.92
 notes          | 
 extra          | {"metrics": {"propulsion.main.runTime": "PT11S"}, "observations": {"seaState": -1, "visibility": -1, "cloudCoverage": -1}, "avg_wind_speed": 6.27}
@@ -74,7 +74,7 @@ SELECT 1
 -[ RECORD 1 ]--+--------
 name           | "kapla"
 count          | 2
-max_speed      | 33.03
+max_speed      | 26.76
 max_distance   | 8.92
 max_duration   | "PT27M"
 ?column?       | 2

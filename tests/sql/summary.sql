@@ -82,9 +82,9 @@ SELECT public.reverse_geocode_py_fn('nominatim', 1.4440116666666667, 38.82985166
 \echo 'Test geoip reverse_geoip_py_fn'
 --SELECT reverse_geoip_py_fn('62.74.13.231');
 \echo 'Test opverpass API overpass_py_fn'
-SELECT public.overpass_py_fn(2.19917, 41.386873333333334); -- Port Olimpic
-SELECT public.overpass_py_fn(1.92574333333, 41.258915); -- Port de la Ginesta
-SELECT public.overpass_py_fn(23.4321, 59.9768833333333); -- Norra hamnen
+--SELECT public.overpass_py_fn(2.19917, 41.386873333333334); -- Port Olimpic
+--SELECT public.overpass_py_fn(1.92574333333, 41.258915); -- Port de la Ginesta
+--SELECT public.overpass_py_fn(23.4321, 59.9768833333333); -- Norra hamnen
 
 -- List details product versions
 SELECT api.versions_fn();
