@@ -57,6 +57,8 @@ AS $function$
         user_settings jsonb;
         geojson jsonb;
         extra_json jsonb;
+        _max_speed NUMERIC;
+        _avg_speed NUMERIC;
         _max_wind_speed NUMERIC;
         _avg_wind_speed NUMERIC;
     BEGIN
@@ -108,7 +110,7 @@ AS $function$
         --ELSIF avg_rec.count_metric < 2000 THEN -- if less ~33h trip we skip data
         --    t_rec := public.logbook_update_metrics_fn(avg_rec.count_metric, logbook_rec._from_time, logbook_rec._to_time);
         ELSE -- As we have too many data, we time-series aggregate data
-            t_rec := public.logbook_update_metrics_timebucket2_fn(avg_rec.count_metric, logbook_rec._from_time, logbook_rec._to_time);
+            t_rec := public.logbook_update_metrics_timebucket_fn(avg_rec.count_metric, logbook_rec._from_time, logbook_rec._to_time);
         END IF;
         --RAISE NOTICE 'mobilitydb [%]', t_rec;
         IF t_rec.trajectory IS NULL THEN
@@ -125,14 +127,26 @@ AS $function$
         -- Update the avg_wind_speed from mobilitydb data -- TWS in knots
         extra_json := extra_json || jsonb_build_object('avg_wind_speed', _avg_wind_speed);
 
+        -- Calculate speed using distance / duration and truncate the duration to the minute
+        SELECT
+            ROUND(AVG((length(t_rec.trajectory) / 1852.0) /
+                    (EXTRACT(EPOCH FROM (date_trunc('minute', logbook_rec._to_time) - date_trunc('minute', logbook_rec._from_time))) / 3600.0))::NUMERIC, 2),
+            ROUND(MAX((length(t_rec.trajectory) / 1852.0) /
+                    (EXTRACT(EPOCH FROM (date_trunc('minute', logbook_rec._to_time) - date_trunc('minute', logbook_rec._from_time))) / 3600.0))::NUMERIC, 2)
+            INTO _avg_speed, _max_speed;
         RAISE NOTICE 'Updating valid logbook, vessel_id [%], entry logbook id:[%] start:[%] end:[%]', logbook_rec.vessel_id, logbook_rec.id, logbook_rec._from_time, logbook_rec._to_time;
         UPDATE api.logbook
             SET
                 duration = (logbook_rec._to_time::TIMESTAMPTZ - logbook_rec._from_time::TIMESTAMPTZ),
+                -- Problem with invalid SOG metrics
                 --avg_speed = twAvg(t_rec.speedoverground), -- avg speed in knots
                 --max_speed = maxValue(t_rec.speedoverground), -- max speed in knots
-                avg_speed = (twavg(speed(t_rec.trajectory)) * 1.94384)::NUMERIC(6,2), -- avg speed in knots
-                max_speed = (maxValue(speed(t_rec.trajectory)) * 1.94384)::NUMERIC(6,2), -- max speed in knots
+                -- Problem with normalize minutes gaps in time-series
+                --avg_speed = (twavg(speed(t_rec.trajectory)) * 1.94384)::NUMERIC(6,2), -- avg speed in knots
+                --max_speed = (maxValue(speed(t_rec.trajectory)) * 1.94384)::NUMERIC(6,2), -- max speed in knots
+                -- using distance / duration
+                avg_speed = _avg_speed, -- avg speed in knots (NM/hour)
+                max_speed = _max_speed, -- max speed in knots (NM/hour)
                 max_wind_speed = _max_wind_speed, -- TWS in knots
                 _from = from_moorage.moorage_name,
                 _from_moorage_id = from_moorage.moorage_id,
@@ -140,7 +154,7 @@ AS $function$
                 _to = to_moorage.moorage_name,
                 name = log_name,
                 --distance = geo_rec._track_distance, -- in Nautical Miles
-                distance = (length(t_rec.trajectory)/1852)::NUMERIC(6,2), -- in Nautical Miles
+                distance = (length(t_rec.trajectory)/1852)::NUMERIC(10,2), -- in Nautical Miles
                 extra = extra_json,
                 notes = NULL, -- reset pre_log process
                 trip = t_rec.trajectory,
@@ -302,6 +316,8 @@ AS $function$
         geojson jsonb;
         extra_json jsonb;
         t_rec record;
+        _max_speed NUMERIC;
+        _avg_speed NUMERIC;
         _max_wind_speed NUMERIC;
         _avg_wind_speed NUMERIC;
     BEGIN
@@ -367,7 +383,7 @@ AS $function$
         --ELSIF avg_rec.count_metric < 2000 THEN -- if less ~33h trip we skip data
         --    t_rec := public.logbook_update_metrics_fn(avg_rec.count_metric, logbook_rec_start._from_time, logbook_rec_end._to_time);
         ELSE -- As we have too many data, we time-series aggregate data
-            t_rec := public.logbook_update_metrics_timebucket2_fn(avg_rec.count_metric, logbook_rec_start._from_time, logbook_rec_end._to_time);
+            t_rec := public.logbook_update_metrics_timebucket_fn(avg_rec.count_metric, logbook_rec_start._from_time, logbook_rec_end._to_time);
         END IF;
         --RAISE NOTICE 'mobilitydb [%]', t_rec;
         IF t_rec.trajectory IS NULL THEN
@@ -385,14 +401,27 @@ AS $function$
         -- Update the avg_wind_speed from mobilitydb data -- TWS in knots
         extra_json := extra_json || jsonb_build_object('avg_wind_speed', _avg_wind_speed);
 
+        -- Calculate speed using distance / duration and truncate the duration to the minute
+        SELECT
+            ROUND(AVG((length(t_rec.trajectory) / 1852.0) /
+                    (EXTRACT(EPOCH FROM (date_trunc('minute', logbook_rec_end._to_time) - date_trunc('minute', logbook_rec_start._from_time))) / 3600.0))::NUMERIC, 2),
+            ROUND(MAX((length(t_rec.trajectory) / 1852.0) /
+                    (EXTRACT(EPOCH FROM (date_trunc('minute', logbook_rec_end._to_time) - date_trunc('minute', logbook_rec_start._from_time))) / 3600.0))::NUMERIC, 2)
+            INTO _avg_speed, _max_speed;
+
         RAISE NOTICE 'Updating valid logbook entry logbook id:[%] start:[%] end:[%]', logbook_rec_start.id, logbook_rec_start._from_time, logbook_rec_end._to_time;
         UPDATE api.logbook
             SET
                 duration = (logbook_rec_end._to_time::TIMESTAMPTZ - logbook_rec_start._from_time::TIMESTAMPTZ),
+                -- Problem with invalid SOG metrics
                 --avg_speed = twAvg(t_rec.speedoverground), -- avg speed in knots
                 --max_speed = maxValue(t_rec.speedoverground), -- max speed in knots
-                avg_speed = (twavg(speed(t_rec.trajectory)) * 1.94384)::NUMERIC(6,2), -- avg speed in knots
-                max_speed = (maxValue(speed(t_rec.trajectory)) * 1.94384)::NUMERIC(6,2), -- max speed in knots
+                -- Problem with normalize minutes gaps in time-series
+                --avg_speed = (twavg(speed(t_rec.trajectory)) * 1.94384)::NUMERIC(6,2), -- avg speed in knots
+                --max_speed = (maxValue(speed(t_rec.trajectory)) * 1.94384)::NUMERIC(6,2), -- max speed in knots
+                -- Using distance / duration
+                avg_speed = _avg_speed, -- avg speed in knots (NM/hour)
+                max_speed = _max_speed, -- max speed in knots (NM/hour)
                 max_wind_speed = _max_wind_speed, -- TWS in knots
                 -- Set _to metrics from end logbook
                 _to = logbook_rec_end._to,
@@ -402,7 +431,7 @@ AS $function$
                 _to_time = logbook_rec_end._to_time,
                 name = log_name,
                 --distance = geo_rec._track_distance, -- in Nautical Miles
-                distance = (length(t_rec.trajectory)/1852)::NUMERIC(6,2), -- in Nautical Miles
+                distance = (length(t_rec.trajectory)/1852)::NUMERIC(10,2), -- in Nautical Miles
                 extra = extra_json,
                 notes = NULL, -- reset pre_log process
                 trip = t_rec.trajectory,
@@ -1042,7 +1071,6 @@ COMMENT ON FUNCTION public.check_jwt() IS 'PostgREST API db-pre-request check, s
 
 -- Update deprecated function comments
 COMMENT ON FUNCTION public.logbook_update_metrics_fn(int4, timestamptz, timestamptz) IS 'DEPRECATED, Optimize logbook metrics base on the total metrics';
-COMMENT ON FUNCTION public.logbook_update_metrics_timebucket_fn(int4, timestamptz, timestamptz) IS 'DEPRECATED, Optimize logbook metrics base on the aggregate time-series';
 COMMENT ON FUNCTION api.export_logbook_geojson_fn(in int4, out jsonb) IS 'DEPRECATED, Export a log entry to geojson with features LineString and Point';
 
 -- DROP FUNCTION public.logbook_update_metrics_short_fn(int4, timestamptz, timestamptz);
@@ -1057,7 +1085,7 @@ BEGIN
     RETURN QUERY
     WITH metrics AS (
         -- Extract metrics
-        SELECT date_trunc('minute', mt.time) AS time,
+        SELECT mt.time AS time,
             mt.courseovergroundtrue,
             mt.speedoverground,
             mt.windspeedapparent, -- Wind Speed Apparent in knots from plugin
@@ -1182,9 +1210,9 @@ $function$
 -- Description
 COMMENT ON FUNCTION public.logbook_update_metrics_short_fn(int4, timestamptz, timestamptz) IS 'Optimize logbook metrics for short metrics';
 
--- DROP FUNCTION public.logbook_update_metrics_timebucket2_fn(int4, timestamptz, timestamptz);
--- Update public.logbook_update_metrics_timebucket2_fn, Choose bucket interval based on trip duration, Convert data wind speed from m/s to knots and wind direction from radians to degrees and heading from radians to degrees
-CREATE OR REPLACE FUNCTION public.logbook_update_metrics_timebucket2_fn(total_entry integer, start_date timestamp with time zone, end_date timestamp with time zone)
+-- DROP FUNCTION public.logbook_update_metrics_timebucket_fn(int4, timestamptz, timestamptz);
+-- Update public.logbook_update_metrics_timebucket_fn, Choose bucket interval based on trip duration, Convert data wind speed from m/s to knots and wind direction from radians to degrees and heading from radians to degrees
+CREATE OR REPLACE FUNCTION public.logbook_update_metrics_timebucket_fn(total_entry integer, start_date timestamp with time zone, end_date timestamp with time zone)
  RETURNS TABLE(trajectory tgeogpoint, courseovergroundtrue tfloat, speedoverground tfloat, windspeedapparent tfloat, truewindspeed tfloat, truewinddirection tfloat, notes ttext, status ttext, watertemperature tfloat, depth tfloat, outsidehumidity tfloat, outsidepressure tfloat, outsidetemperature tfloat, stateofcharge tfloat, voltage tfloat, solarpower tfloat, solarvoltage tfloat, tanklevel tfloat, heading tfloat)
  LANGUAGE plpgsql
 AS $function$
@@ -1214,8 +1242,7 @@ BEGIN
     RETURN QUERY
     WITH metrics AS (
         -- Extract metrics base the total of entry ignoring first and last 10 minutes metrics
-        -- Normalize to minute boundary, this ensures time_bucket is always at :00 seconds
-        SELECT date_trunc('minute', time_bucket(bucket_interval::INTERVAL, mt.time)) AS time_bucket,  -- Time-bucketed period
+        SELECT time_bucket(bucket_interval::INTERVAL, mt.time) AS time_bucket,  -- Time-bucketed period
             avg(mt.courseovergroundtrue) as courseovergroundtrue,
             avg(mt.speedoverground) as speedoverground,
             avg(mt.windspeedapparent) as windspeedapparent, -- Wind Speed Apparent in knots from plugin
@@ -1313,9 +1340,9 @@ BEGIN
         ORDER BY time_bucket ASC
     ),
     first_metric AS (
-        -- Extract first 10 minutes metrics, Normalize to minute boundary
+        -- Extract first 10 minutes metrics
         SELECT 
-            date_trunc('minute', mt.time) AS time_bucket,
+            mt.time AS time_bucket,
             mt.courseovergroundtrue,
             mt.speedoverground,
             mt.windspeedapparent,
@@ -1413,9 +1440,9 @@ BEGIN
         ORDER BY time_bucket ASC
     ),
     last_metric AS (
-        -- Extract last 10 minutes metrics, Normalize to minute boundary
+        -- Extract last 10 minutes metrics
         SELECT 
-            date_trunc('minute', mt.time) AS time_bucket,
+            mt.time AS time_bucket,
             mt.courseovergroundtrue,
             mt.speedoverground,
             mt.windspeedapparent,
@@ -1547,7 +1574,7 @@ END;
 $function$
 ;
 -- Description
-COMMENT ON FUNCTION public.logbook_update_metrics_timebucket2_fn(int4, timestamptz, timestamptz) IS 'Optimize logbook metrics base on the aggregate time-series';
+COMMENT ON FUNCTION public.logbook_update_metrics_timebucket_fn(int4, timestamptz, timestamptz) IS 'Optimize logbook metrics base on the aggregate time-series';
 
 -- Update api.export_logbook_geojson_point_trip_fn, add more metrics properties
 CREATE OR REPLACE FUNCTION api.export_logbook_geojson_point_trip_fn(_id integer)
