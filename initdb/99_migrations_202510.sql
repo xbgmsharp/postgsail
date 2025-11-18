@@ -582,7 +582,7 @@ BEGIN
                             m.metrics->'wind'->>'speed',
                             m.metrics->>(md.configuration->>'windSpeedKey'),
                             m.metrics->>'environment.wind.speedTrue'
-                        )::FLOAT * 1.94384) AS wind,
+                        )::FLOAT * 1.94384)::NUMERIC AS wind,
                     avg(-- Water Depth
                         COALESCE(
                             m.metrics->'water'->>'depth',
