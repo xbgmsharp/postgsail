@@ -21,21 +21,24 @@ ALTER TABLE api.logbook_ext ALTER COLUMN vessel_id SET NOT NULL;
 ALTER TABLE api.moorages_ext ALTER COLUMN vessel_id SET NOT NULL;
 ALTER TABLE api.moorages_ext ALTER COLUMN vessel_id SET NOT NULL;
 
---ALTER TABLE api.logbook RENAME COLUMN trip_twa TO trip_aws;
+ALTER TABLE api.logbook RENAME COLUMN trip_twa TO trip_aws;
+ALTER TABLE api.logbook ADD COLUMN trip_awa tfloat NULL;
 
+-- Comments
 COMMENT ON COLUMN api.logbook.avg_speed IS 'avg speed in knots';
 COMMENT ON COLUMN api.logbook.max_speed IS 'max speed in knots';
 COMMENT ON COLUMN api.logbook.max_wind_speed IS 'true wind speed converted in knots, m/s from signalk plugin';
 COMMENT ON COLUMN api.logbook.distance IS 'Distance in Nautical Miles converted mobilitydb meters to NM';
 COMMENT ON COLUMN api.logbook.trip_sog IS 'SOG - Speed Over Ground in knots converted by signalk plugin';
 COMMENT ON COLUMN api.logbook.trip_cog IS 'COG - Course Over Ground True in degrees converted from radians by signalk plugin';
-COMMENT ON COLUMN api.logbook.trip_twa IS 'AWS (Apparent Wind Speed), windSpeedApparent in knots converted by signalk plugin';
+COMMENT ON COLUMN api.logbook.trip_aws IS 'AWS (Apparent Wind Speed), windSpeedApparent in knots converted by signalk plugin';
 COMMENT ON COLUMN api.logbook.trip_tws IS 'TWS - True Wind Speed in knots converted from m/s, raw from signalk plugin';
 COMMENT ON COLUMN api.logbook.trip_twd IS 'TWD - True Wind Direction in degrees converted from radians, raw from signalk plugin';
 COMMENT ON COLUMN api.logbook.trip_heading IS 'Heading True in degrees converted from radians, raw from signalk plugin';
 COMMENT ON COLUMN api.logbook.trip_depth IS 'Depth in meters, raw from signalk plugin';
 COMMENT ON COLUMN api.logbook.trip_temp_water IS 'Temperature water in Kelvin, raw from signalk plugin';
 COMMENT ON COLUMN api.logbook.trip_temp_out IS 'Temperature outside in Kelvin, raw from signalk plugin';
+COMMENT ON COLUMN api.logbook.trip_awa IS 'AWA (Apparent Wind Angle) in degrees from signalk plugin';
 
 -- DROP FUNCTION public.process_logbook_queue_fn(int4);
 -- Update public.process_logbook_queue_fn, improve avg speed calculation, improve mobilitydb data handling force time-series
@@ -160,7 +163,8 @@ AS $function$
                 trip = t_rec.trajectory,
                 trip_cog = t_rec.courseovergroundtrue,
                 trip_sog = t_rec.speedoverground,
-                trip_twa = t_rec.windspeedapparent,
+                trip_aws = t_rec.windspeedapparent,
+                trip_awa = t_rec.windangleapparent,
                 trip_tws = t_rec.truewindspeed,
                 trip_twd = t_rec.truewinddirection,
                 trip_notes = t_rec.notes,
@@ -437,7 +441,8 @@ AS $function$
                 trip = t_rec.trajectory,
                 trip_cog = t_rec.courseovergroundtrue,
                 trip_sog = t_rec.speedoverground,
-                trip_twa = t_rec.windspeedapparent,
+                trip_aws = t_rec.windspeedapparent,
+                trip_awa = t_rec.windangleapparent,
                 trip_tws = t_rec.truewindspeed,
                 trip_twd = t_rec.truewinddirection,
                 trip_notes = t_rec.notes,
@@ -1073,10 +1078,10 @@ COMMENT ON FUNCTION public.check_jwt() IS 'PostgREST API db-pre-request check, s
 COMMENT ON FUNCTION public.logbook_update_metrics_fn(int4, timestamptz, timestamptz) IS 'DEPRECATED, Optimize logbook metrics base on the total metrics';
 COMMENT ON FUNCTION api.export_logbook_geojson_fn(in int4, out jsonb) IS 'DEPRECATED, Export a log entry to geojson with features LineString and Point';
 
--- DROP FUNCTION public.logbook_update_metrics_short_fn(int4, timestamptz, timestamptz);
+DROP FUNCTION public.logbook_update_metrics_short_fn;
 -- Update public.logbook_update_metrics_short_fn, Convert data wind speed from m/s to knots and wind direction from radians to degrees and heading from radians to degrees
 CREATE OR REPLACE FUNCTION public.logbook_update_metrics_short_fn(total_entry integer, start_date timestamp with time zone, end_date timestamp with time zone)
- RETURNS TABLE(trajectory tgeogpoint, courseovergroundtrue tfloat, speedoverground tfloat, windspeedapparent tfloat, truewindspeed tfloat, truewinddirection tfloat, notes ttext, status ttext, watertemperature tfloat, depth tfloat, outsidehumidity tfloat, outsidepressure tfloat, outsidetemperature tfloat, stateofcharge tfloat, voltage tfloat, solarpower tfloat, solarvoltage tfloat, tanklevel tfloat, heading tfloat)
+ RETURNS TABLE(trajectory tgeogpoint, courseovergroundtrue tfloat, speedoverground tfloat, windspeedapparent tfloat, windangleapparent tfloat, truewindspeed tfloat, truewinddirection tfloat, notes ttext, status ttext, watertemperature tfloat, depth tfloat, outsidehumidity tfloat, outsidepressure tfloat, outsidetemperature tfloat, stateofcharge tfloat, voltage tfloat, solarpower tfloat, solarvoltage tfloat, tanklevel tfloat, heading tfloat)
  LANGUAGE plpgsql
 AS $function$
 DECLARE
@@ -1088,7 +1093,8 @@ BEGIN
         SELECT mt.time AS time,
             mt.courseovergroundtrue,
             mt.speedoverground,
-            mt.windspeedapparent, -- Wind Speed Apparent in knots from plugin
+            mt.windspeedapparent, -- Wind Speed Apparent AWS in knots from plugin
+            mt.anglespeedapparent, -- Wind Angle Apparent AWA in degrees from plugin
             mt.longitude,
             mt.latitude,
             '' AS notes,
@@ -1188,6 +1194,7 @@ BEGIN
         tfloatseq(array_agg(tfloat(o.courseovergroundtrue, o.time) ORDER BY o.time ASC) FILTER (WHERE o.courseovergroundtrue IS NOT NULL)) AS courseovergroundtrue,
         tfloatseq(array_agg(tfloat(o.speedoverground, o.time) ORDER BY o.time ASC) FILTER (WHERE o.speedoverground IS NOT NULL)) AS speedoverground,
         tfloatseq(array_agg(tfloat(o.windspeedapparent, o.time) ORDER BY o.time ASC) FILTER (WHERE o.windspeedapparent IS NOT NULL)) AS windspeedapparent,
+        tfloatseq(array_agg(tfloat(o.anglespeedapparent, o.time) ORDER BY o.time ASC) FILTER (WHERE o.anglespeedapparent IS NOT NULL)) AS windangleapparent,
         tfloatseq(array_agg(tfloat(o.truewindspeed, o.time) ORDER BY o.time ASC) FILTER (WHERE o.truewindspeed IS NOT NULL)) AS truewindspeed,
         tfloatseq(array_agg(tfloat(o.truewinddirection, o.time) ORDER BY o.time ASC) FILTER (WHERE o.truewinddirection IS NOT NULL)) AS truewinddirection,
         ttextseq(array_agg(ttext(o.notes, o.time) ORDER BY o.time ASC)) AS notes,
@@ -1210,10 +1217,10 @@ $function$
 -- Description
 COMMENT ON FUNCTION public.logbook_update_metrics_short_fn(int4, timestamptz, timestamptz) IS 'Optimize logbook metrics for short metrics';
 
--- DROP FUNCTION public.logbook_update_metrics_timebucket_fn(int4, timestamptz, timestamptz);
--- Update public.logbook_update_metrics_timebucket_fn, Choose bucket interval based on trip duration, Convert data wind speed from m/s to knots and wind direction from radians to degrees and heading from radians to degrees
+DROP FUNCTION public.logbook_update_metrics_timebucket_fn;
+-- Update public.logbook_update_metrics_timebucket_fn, Choose bucket interval based on trip duration, Convert data wind speed from m/s to knots and wind direction from radians to degrees and heading from radians to degrees. - Update api.export_logbook_geojson_point_trip_fn, add more metrics properties, add AWA and rename TWA to AWS
 CREATE OR REPLACE FUNCTION public.logbook_update_metrics_timebucket_fn(total_entry integer, start_date timestamp with time zone, end_date timestamp with time zone)
- RETURNS TABLE(trajectory tgeogpoint, courseovergroundtrue tfloat, speedoverground tfloat, windspeedapparent tfloat, truewindspeed tfloat, truewinddirection tfloat, notes ttext, status ttext, watertemperature tfloat, depth tfloat, outsidehumidity tfloat, outsidepressure tfloat, outsidetemperature tfloat, stateofcharge tfloat, voltage tfloat, solarpower tfloat, solarvoltage tfloat, tanklevel tfloat, heading tfloat)
+ RETURNS TABLE(trajectory tgeogpoint, courseovergroundtrue tfloat, speedoverground tfloat, windspeedapparent tfloat, windangleapparent tfloat, truewindspeed tfloat, truewinddirection tfloat, notes ttext, status ttext, watertemperature tfloat, depth tfloat, outsidehumidity tfloat, outsidepressure tfloat, outsidetemperature tfloat, stateofcharge tfloat, voltage tfloat, solarpower tfloat, solarvoltage tfloat, tanklevel tfloat, heading tfloat)
  LANGUAGE plpgsql
 AS $function$
 DECLARE
@@ -1246,6 +1253,7 @@ BEGIN
             avg(mt.courseovergroundtrue) as courseovergroundtrue,
             avg(mt.speedoverground) as speedoverground,
             avg(mt.windspeedapparent) as windspeedapparent, -- Wind Speed Apparent in knots from plugin
+            avg(mt.anglespeedapparent) as anglespeedapparent, -- Wind Angle Apparent in degrees from plugin
             last(mt.longitude, mt.time) as longitude, last(mt.latitude, mt.time) as latitude,
             '' AS notes,
             last(mt.status, mt.time) as status,
@@ -1346,6 +1354,7 @@ BEGIN
             mt.courseovergroundtrue,
             mt.speedoverground,
             mt.windspeedapparent,
+            mt.anglespeedapparent,
             mt.longitude,
             mt.latitude,
             '' AS notes,
@@ -1446,6 +1455,7 @@ BEGIN
             mt.courseovergroundtrue,
             mt.speedoverground,
             mt.windspeedapparent,
+            mt.anglespeedapparent,
             mt.longitude,
             mt.latitude,
             '' AS notes,
@@ -1554,6 +1564,7 @@ BEGIN
         tfloatseq(array_agg(tfloat(o.courseovergroundtrue, o.time_bucket) ORDER BY o.time_bucket ASC) FILTER (WHERE o.courseovergroundtrue IS NOT NULL)) AS courseovergroundtrue,
         tfloatseq(array_agg(tfloat(o.speedoverground, o.time_bucket) ORDER BY o.time_bucket ASC) FILTER (WHERE o.speedoverground IS NOT NULL)) AS speedoverground,
         tfloatseq(array_agg(tfloat(o.windspeedapparent, o.time_bucket) ORDER BY o.time_bucket ASC) FILTER (WHERE o.windspeedapparent IS NOT NULL)) AS windspeedapparent,
+        tfloatseq(array_agg(tfloat(o.anglespeedapparent, o.time_bucket) ORDER BY o.time_bucket ASC) FILTER (WHERE o.anglespeedapparent IS NOT NULL)) AS windangleapparent,
         tfloatseq(array_agg(tfloat(o.truewindspeed, o.time_bucket) ORDER BY o.time_bucket ASC) FILTER (WHERE o.truewindspeed IS NOT NULL)) AS truewindspeed,
         tfloatseq(array_agg(tfloat(o.truewinddirection, o.time_bucket) ORDER BY o.time_bucket ASC) FILTER (WHERE o.truewinddirection IS NOT NULL)) AS truewinddirection,
         ttextseq(array_agg(ttext(o.notes, o.time_bucket) ORDER BY o.time_bucket ASC)) AS notes,
@@ -1576,7 +1587,7 @@ $function$
 -- Description
 COMMENT ON FUNCTION public.logbook_update_metrics_timebucket_fn(int4, timestamptz, timestamptz) IS 'Optimize logbook metrics base on the aggregate time-series';
 
--- Update api.export_logbook_geojson_point_trip_fn, add more metrics properties
+-- Update api.export_logbook_geojson_point_trip_fn, add more metrics properties, add AWA and rename TWA to AWS
 CREATE OR REPLACE FUNCTION api.export_logbook_geojson_point_trip_fn(_id integer)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1594,7 +1605,8 @@ BEGIN
                 getTimestamp(points.point) AS time,
                 valueAtTimestamp(points.trip_cog, getTimestamp(points.point)) AS courseovergroundtrue,
                 valueAtTimestamp(points.trip_sog, getTimestamp(points.point)) AS speedoverground,
-                valueAtTimestamp(points.trip_twa, getTimestamp(points.point)) AS windspeedapparent,
+                valueAtTimestamp(points.trip_aws, getTimestamp(points.point)) AS windspeedapparent,
+                valueAtTimestamp(points.trip_awa, getTimestamp(points.point)) AS windangleapparent,
                 valueAtTimestamp(points.trip_tws, getTimestamp(points.point)) AS truewindspeed,
                 valueAtTimestamp(points.trip_twd, getTimestamp(points.point)) AS truewinddirection,
                 valueAtTimestamp(points.trip_notes, getTimestamp(points.point)) AS notes,
@@ -1616,7 +1628,8 @@ BEGIN
                     unnest(instants(trip)) AS point,
                     trip_cog,
                     trip_sog,
-                    trip_twa,
+                    trip_aws,
+                    trip_awa,
                     trip_tws,
                     trip_twd,
                     trip_notes,
@@ -1642,7 +1655,7 @@ $function$
 -- Description
 COMMENT ON FUNCTION api.export_logbook_geojson_point_trip_fn(int4) IS 'Generate geojson geometry Point from trip with the corresponding properties';
 
--- Update api.export_logbook_geojson_linestring_trip_fn, ensure the metrics properties are dynamic
+-- Update api.export_logbook_geojson_linestring_trip_fn, ensure the metrics properties are dynamic,add AWA and rename TWA to AWS
 CREATE OR REPLACE FUNCTION api.export_logbook_geojson_linestring_trip_fn(_id integer)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1666,6 +1679,7 @@ BEGIN
             maxValue(trip_sog) as max_sog, -- SOG
             maxValue(trip_tws) as max_tws, -- Wind Speed
             maxValue(trip_twd) as max_twd, -- Wind Direction
+            maxValue(trip_awa) as max_awa, -- Wind Angle Apparent
             maxValue(trip_depth) as max_depth, -- Depth
             maxValue(trip_temp_water) as max_temp_water, -- Temperature water
             maxValue(trip_temp_out) as max_temp_out, -- Temperature outside
@@ -1677,7 +1691,8 @@ BEGIN
             maxValue(trip_solar_power) as max_solar_power, -- solar power
             maxValue(trip_tank_level) as max_tank_level, -- tank level
             twavg(trip_sog) as avg_sog, -- SOG
-            twavg(trip_twa) as avg_twa, -- Wind Speed Apparent
+            twavg(trip_aws) as avg_aws, -- Wind Speed Apparent
+            twavg(trip_awa) as avg_awa, -- Wind Angle Apparent
             twavg(trip_tws) as avg_tws, -- Wind Speed
             twavg(trip_twd) as avg_twd, -- Wind Direction
             twavg(trip_depth) as avg_depth, -- Depth
@@ -1705,7 +1720,7 @@ $function$
 COMMENT ON FUNCTION api.export_logbook_geojson_linestring_trip_fn(int4) IS 'Generate geojson geometry LineString from trip with the corresponding properties';
 
 -- DROP FUNCTION api.export_logbook_metrics_trip_fn(int4);
--- Update api.export_logbook_metrics_trip_fn, add more metrics properties
+-- Update api.export_logbook_metrics_trip_fn, add AWA and rename TWA to AWS
 CREATE OR REPLACE FUNCTION api.export_logbook_metrics_trip_fn(_id integer)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1742,7 +1757,8 @@ BEGIN
             getTimestamp(points.point) AS time,
             valueAtTimestamp(points.trip_cog, getTimestamp(points.point)) AS courseovergroundtrue,
             valueAtTimestamp(points.trip_sog, getTimestamp(points.point)) AS speedoverground,
-            valueAtTimestamp(points.trip_twa, getTimestamp(points.point)) AS windspeedapparent,
+            valueAtTimestamp(points.trip_aws, getTimestamp(points.point)) AS windspeedapparent,
+            valueAtTimestamp(points.trip_awa, getTimestamp(points.point)) AS windangleapparent,
             valueAtTimestamp(points.trip_tws, getTimestamp(points.point)) AS truewindspeed,
             valueAtTimestamp(points.trip_twd, getTimestamp(points.point)) AS truewinddirection,
             valueAtTimestamp(points.trip_notes, getTimestamp(points.point)) AS notes,
@@ -1762,7 +1778,8 @@ BEGIN
             SELECT unnest(instants(trip)) AS point,
                     trip_cog,
                     trip_sog,
-                    trip_twa,
+                    trip_aws,
+                    trip_awa,
                     trip_tws,
                     trip_twd,
                     trip_notes,
@@ -1826,7 +1843,7 @@ $function$
 COMMENT ON FUNCTION api.export_logbook_metrics_trip_fn(int4) IS 'Export a log entry to an array of GeoJSON feature format of geometry point';
 
 -- DROP FUNCTION api.export_logbooks_geojson_linestring_trips_fn(in int4, in int4, in text, in text, out jsonb);
--- Update api.export_logbooks_geojson_linestring_trips_fn, ensure the metrics properties are dynamic
+-- Update api.export_logbooks_geojson_linestring_trips_fn, ensure the metrics properties are dynamic, add AWA and rename TWA to AWS
 CREATE OR REPLACE FUNCTION api.export_logbooks_geojson_linestring_trips_fn(start_log integer DEFAULT NULL::integer, end_log integer DEFAULT NULL::integer, start_date text DEFAULT NULL::text, end_date text DEFAULT NULL::text, OUT geojson jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1849,7 +1866,8 @@ BEGIN
             --length(trip) as length, -- Meters
             (length(trip)/1852)::NUMERIC(6,2) as distance, -- in Nautical Miles
             maxValue(trip_sog) as max_sog, -- SOG
-            maxValue(trip_twa) as max_twa, -- Wind Speed Apparent
+            maxValue(trip_aws) as max_aws, -- Wind Speed Apparent
+            maxValue(trip_awa) as max_awa, -- Wind Angle Apparent
             maxValue(trip_tws) as max_tws, -- Wind Speed
             maxValue(trip_twd) as max_twd, -- Wind Direction
             maxValue(trip_depth) as max_depth, -- Depth
@@ -1863,7 +1881,8 @@ BEGIN
             maxValue(trip_solar_power) as max_solar_power, -- Solar power
             maxValue(trip_tank_level) as max_tank_level, -- tank level
             twavg(trip_sog) as avg_sog, -- SOG
-            twavg(trip_twa) as avg_twa, -- Wind Speed Apparent
+            twavg(trip_aws) as avg_aws, -- Wind Speed Apparent
+            twavg(trip_awa) as avg_awa, -- Wind Angle Apparent
             twavg(trip_tws) as avg_tws, -- Wind Speed
             twavg(trip_twd) as avg_twd, -- Wind Direction
             twavg(trip_depth) as avg_depth, -- Depth
@@ -1904,7 +1923,7 @@ $function$
 COMMENT ON FUNCTION api.export_logbooks_geojson_linestring_trips_fn(in int4, in int4, in text, in text, out jsonb) IS 'Generate geojson geometry LineString from trip with the corresponding properties';
 
 -- DROP FUNCTION api.logbook_update_geojson_trip_fn(int4);
--- Update api.logbook_update_geojson_trip_fn, Add more metrics properties
+-- Update api.logbook_update_geojson_trip_fn, add AWA and rename TWA to AWS.
 CREATE OR REPLACE FUNCTION api.logbook_update_geojson_trip_fn(_id integer)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1948,7 +1967,8 @@ BEGIN
             getTimestamp(points.point) AS time,
             valueAtTimestamp(points.trip_cog, getTimestamp(points.point)) AS cog,
             valueAtTimestamp(points.trip_sog, getTimestamp(points.point)) AS sog,
-            valueAtTimestamp(points.trip_twa, getTimestamp(points.point)) AS twa,
+            valueAtTimestamp(points.trip_aws, getTimestamp(points.point)) AS aws,
+            valueAtTimestamp(points.trip_awa, getTimestamp(points.point)) AS awa,
             valueAtTimestamp(points.trip_tws, getTimestamp(points.point)) AS tws,
             valueAtTimestamp(points.trip_twd, getTimestamp(points.point)) AS twd,
             valueAtTimestamp(points.trip_notes, getTimestamp(points.point)) AS notes,
@@ -1967,7 +1987,8 @@ BEGIN
             SELECT unnest(instants(trip)) AS point,
                     trip_cog,
                     trip_sog,
-                    trip_twa,
+                    trip_aws,
+                    trip_awa,
                     trip_tws,
                     trip_twd,
                     trip_notes,
@@ -2269,6 +2290,169 @@ $function$
 ;
 -- Description
 COMMENT ON FUNCTION public.cron_windy_fn() IS 'init by pg_cron to create (or update) station and uploading observations to Windy Personal Weather Station observations';
+
+-- DROP FUNCTION api.export_logbook_geojson_trip_fn(int4);
+-- Update api.export_logbook_geojson_trip_fn, add AWA and rename TWA to AWS.
+CREATE OR REPLACE FUNCTION api.export_logbook_geojson_trip_fn(_id integer)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    logbook_rec RECORD;
+    log_geojson JSONB;
+    metrics_geojson JSONB;
+    first_feature_obj JSONB;
+    second_feature_note JSONB;
+    last_feature_note JSONB;
+BEGIN
+    -- Validate input
+    IF _id IS NULL OR _id < 1 THEN
+        RAISE WARNING '-> export_logbook_geojson_trip_fn invalid input %', _id;
+        RETURN NULL;
+    END IF;
+
+    -- Fetch the processed logbook data.
+    SELECT id, name, distance, duration, avg_speed, max_speed, max_wind_speed, extra->>'avg_wind_speed' AS avg_wind_speed,
+           _from, _to, _from_time, _to_time, _from_moorage_id, _to_moorage_id, notes,
+           trajectory(trip) AS trajectory,
+           timestamps(trip) AS times
+    INTO logbook_rec
+    FROM api.logbook
+    WHERE id = _id;
+
+    -- Create JSON notes for feature properties
+    first_feature_obj := jsonb_build_object('trip', jsonb_build_object('name', logbook_rec.name, 'duration', logbook_rec.duration, 'distance', logbook_rec.distance));
+    second_feature_note := jsonb_build_object('notes', COALESCE(logbook_rec._from, ''));
+    last_feature_note := jsonb_build_object('notes', COALESCE(logbook_rec._to, ''));
+
+    -- GeoJSON Feature for Logbook linestring
+    SELECT ST_AsGeoJSON(logbook_rec.*)::jsonb INTO log_geojson;
+
+    -- GeoJSON Features for Metrics Points
+    SELECT jsonb_agg(ST_AsGeoJSON(t.*)::jsonb) INTO metrics_geojson
+    FROM ( -- Extract points from trip and their corresponding metrics
+        SELECT
+            geometry(getvalue(points.point)) AS point_geometry,
+            getTimestamp(points.point) AS time,
+            valueAtTimestamp(points.trip_cog, getTimestamp(points.point)) AS courseovergroundtrue,
+            valueAtTimestamp(points.trip_sog, getTimestamp(points.point)) AS speedoverground,
+            valueAtTimestamp(points.trip_aws, getTimestamp(points.point)) AS windspeedapparent,
+            valueAtTimestamp(points.trip_awa, getTimestamp(points.point)) AS windangleapparent,
+            valueAtTimestamp(points.trip_tws, getTimestamp(points.point)) AS truewindspeed,
+            valueAtTimestamp(points.trip_twd, getTimestamp(points.point)) AS truewinddirection,
+            valueAtTimestamp(points.trip_notes, getTimestamp(points.point)) AS notes,
+            valueAtTimestamp(points.trip_status, getTimestamp(points.point)) AS status,
+            valueAtTimestamp(points.trip_depth, getTimestamp(points.point)) AS depth,
+            valueAtTimestamp(points.trip_batt_charge, getTimestamp(points.point)) AS stateofcharge,
+            valueAtTimestamp(points.trip_batt_voltage, getTimestamp(points.point)) AS voltage,
+            valueAtTimestamp(points.trip_temp_water, getTimestamp(points.point)) AS watertemperature,
+            valueAtTimestamp(points.trip_temp_out, getTimestamp(points.point)) AS outsidetemperature,
+            valueAtTimestamp(points.trip_pres_out, getTimestamp(points.point)) AS outsidepressure,
+            valueAtTimestamp(points.trip_hum_out, getTimestamp(points.point)) AS outsidehumidity,
+            valueAtTimestamp(points.trip_solar_voltage, getTimestamp(points.point)) AS solarvoltage,
+            valueAtTimestamp(points.trip_solar_power, getTimestamp(points.point)) AS solarpower,
+            valueAtTimestamp(points.trip_tank_level, getTimestamp(points.point)) AS tanklevel,
+            valueAtTimestamp(points.trip_heading, getTimestamp(points.point)) AS heading
+        FROM (
+            SELECT unnest(instants(trip)) AS point,
+                    trip_cog,
+                    trip_sog,
+                    trip_aws,
+                    trip_awa,
+                    trip_tws,
+                    trip_twd,
+                    trip_notes,
+                    trip_status,
+                    trip_depth,
+                    trip_batt_charge,
+                    trip_batt_voltage,
+                    trip_temp_water,
+                    trip_temp_out,
+                    trip_pres_out,
+                    trip_hum_out,
+                    trip_solar_voltage,
+                    trip_solar_power,
+                    trip_tank_level,
+                    trip_heading
+            FROM api.logbook
+            WHERE id = _id
+                AND trip IS NOT NULL
+        ) AS points
+    ) AS t;
+
+    -- Update the properties of the first feature
+    metrics_geojson := jsonb_set(
+        metrics_geojson,
+        '{0, properties}',
+        (metrics_geojson->0->'properties' || first_feature_obj)::jsonb,
+        true
+    );
+    -- Update the properties of the third feature
+    metrics_geojson := jsonb_set(
+        metrics_geojson,
+        '{1, properties}',
+        CASE
+            WHEN (metrics_geojson->1->'properties'->>'notes') = '' THEN
+                (metrics_geojson->1->'properties' || second_feature_note)::jsonb
+            ELSE
+                metrics_geojson->1->'properties'
+        END,
+        true
+    );
+    -- Update the properties of the last feature
+    metrics_geojson := jsonb_set(
+        metrics_geojson,
+        '{-1, properties}',
+        CASE
+            WHEN (metrics_geojson->-1->'properties'->>'notes') = '' THEN
+                (metrics_geojson->-1->'properties' || last_feature_note)::jsonb
+            ELSE
+                metrics_geojson->-1->'properties'
+        END,
+        true
+    );
+
+    -- Combine Logbook and Metrics GeoJSON
+    RETURN jsonb_build_object('type', 'FeatureCollection', 'features', log_geojson || metrics_geojson);
+
+END;
+$function$
+;
+-- Description
+COMMENT ON FUNCTION api.export_logbook_geojson_trip_fn(int4) IS 'Export a log trip entry to GEOJSON format with custom properties for timelapse replay';
+
+
+-- DROP FUNCTION api.delete_trip_entry_fn(int4, tstzspan);
+-- Update api.delete_trip_entry_fn, add AWA and rename TWA to AWS.
+CREATE OR REPLACE FUNCTION api.delete_trip_entry_fn(_id integer, update_string tstzspan)
+ RETURNS void
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    UPDATE api.logbook l
+        SET
+            trip = deleteTime(l.trip, update_string),
+            trip_cog = deleteTime(l.trip_cog, update_string),
+            trip_sog = deleteTime(l.trip_sog, update_string),
+            trip_aws = deleteTime(l.trip_aws, update_string),
+            trip_awa = deleteTime(l.trip_awa, update_string),
+            trip_tws = deleteTime(l.trip_tws, update_string),
+            trip_twd = deleteTime(l.trip_twd, update_string),
+            trip_notes = deleteTime(l.trip_notes, update_string),
+            trip_status = deleteTime(l.trip_status, update_string),
+            trip_depth = deleteTime(l.trip_depth, update_string),
+            trip_batt_charge = deleteTime(l.trip_batt_charge, update_string),
+            trip_batt_voltage = deleteTime(l.trip_batt_voltage, update_string),
+            trip_temp_water = deleteTime(l.trip_temp_water, update_string),
+            trip_temp_out = deleteTime(l.trip_temp_out, update_string),
+            trip_pres_out = deleteTime(l.trip_pres_out, update_string),
+            trip_hum_out = deleteTime(l.trip_hum_out, update_string)
+        WHERE id = _id;
+END;
+$function$
+;
+-- Description
+COMMENT ON FUNCTION api.delete_trip_entry_fn(int4, tstzspan) IS 'Delete at a specific time a temporal sequence for all trip_* column from a logbook';
 
 -- Update Row Level Security policies for api.metadata table
 CREATE POLICY api_anonymous_role ON api.metadata TO api_anonymous
