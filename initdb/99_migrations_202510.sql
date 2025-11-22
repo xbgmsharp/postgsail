@@ -2421,9 +2421,8 @@ $function$
 -- Description
 COMMENT ON FUNCTION api.export_logbook_geojson_trip_fn(int4) IS 'Export a log trip entry to GEOJSON format with custom properties for timelapse replay';
 
-
 -- DROP FUNCTION api.delete_trip_entry_fn(int4, tstzspan);
--- Update api.delete_trip_entry_fn, add AWA and rename TWA to AWS.
+-- Update api.delete_trip_entry_fn, add metrics and rename TWA to AWS.
 CREATE OR REPLACE FUNCTION api.delete_trip_entry_fn(_id integer, update_string tstzspan)
  RETURNS void
  LANGUAGE plpgsql
@@ -2446,7 +2445,11 @@ BEGIN
             trip_temp_water = deleteTime(l.trip_temp_water, update_string),
             trip_temp_out = deleteTime(l.trip_temp_out, update_string),
             trip_pres_out = deleteTime(l.trip_pres_out, update_string),
-            trip_hum_out = deleteTime(l.trip_hum_out, update_string)
+            trip_hum_out = deleteTime(l.trip_hum_out, update_string),
+            trip_solar_voltage = deleteTime(l.trip_solar_voltage, update_string),
+            trip_solar_power = deleteTime(l.trip_solar_power, update_string),
+            trip_tank_level = deleteTime(l.trip_tank_level, update_string),
+            trip_heading = deleteTime(l.trip_heading, update_string)
         WHERE id = _id;
 END;
 $function$
