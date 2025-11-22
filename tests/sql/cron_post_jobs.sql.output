@@ -147,42 +147,44 @@ jsonb_object_keys | _from_moorage_id
 
 Check logbook geojson Point properties
 -[ RECORD 1 ]-----+-------------------
-jsonb_object_keys | cog
+jsonb_object_keys | awa
 -[ RECORD 2 ]-----+-------------------
-jsonb_object_keys | sog
+jsonb_object_keys | aws
 -[ RECORD 3 ]-----+-------------------
-jsonb_object_keys | twa
+jsonb_object_keys | cog
 -[ RECORD 4 ]-----+-------------------
-jsonb_object_keys | twd
+jsonb_object_keys | sog
 -[ RECORD 5 ]-----+-------------------
-jsonb_object_keys | tws
+jsonb_object_keys | twd
 -[ RECORD 6 ]-----+-------------------
-jsonb_object_keys | time
+jsonb_object_keys | tws
 -[ RECORD 7 ]-----+-------------------
-jsonb_object_keys | trip
+jsonb_object_keys | time
 -[ RECORD 8 ]-----+-------------------
-jsonb_object_keys | notes
+jsonb_object_keys | trip
 -[ RECORD 9 ]-----+-------------------
-jsonb_object_keys | status
+jsonb_object_keys | notes
 -[ RECORD 10 ]----+-------------------
-jsonb_object_keys | heading
+jsonb_object_keys | status
 -[ RECORD 11 ]----+-------------------
-jsonb_object_keys | voltage
+jsonb_object_keys | heading
 -[ RECORD 12 ]----+-------------------
-jsonb_object_keys | tanklevel
+jsonb_object_keys | voltage
 -[ RECORD 13 ]----+-------------------
-jsonb_object_keys | solarpower
+jsonb_object_keys | tanklevel
 -[ RECORD 14 ]----+-------------------
-jsonb_object_keys | solarvoltage
+jsonb_object_keys | solarpower
 -[ RECORD 15 ]----+-------------------
-jsonb_object_keys | stateofcharge
+jsonb_object_keys | solarvoltage
 -[ RECORD 16 ]----+-------------------
-jsonb_object_keys | outsidehumidity
+jsonb_object_keys | stateofcharge
 -[ RECORD 17 ]----+-------------------
-jsonb_object_keys | outsidepressure
+jsonb_object_keys | outsidehumidity
 -[ RECORD 18 ]----+-------------------
-jsonb_object_keys | watertemperature
+jsonb_object_keys | outsidepressure
 -[ RECORD 19 ]----+-------------------
+jsonb_object_keys | watertemperature
+-[ RECORD 20 ]----+-------------------
 jsonb_object_keys | outsidetemperature
 
 Check logbook export fn

@@ -54,7 +54,7 @@ vessel_id | t
 Export timelapse as Geometry LineString from a trip
 -[ RECORD 1 ]--+-----------
 geometry_type  | LineString
-num_properties | 39
+num_properties | 41
 
 Export timelapse as Geometry Point from a trip
 -[ RECORD 1 ]
