@@ -15,9 +15,9 @@ Stats logbook and moorages for user kapla
 -[ RECORD 1 ]----------+--
 boat_name              | t
 logs_count             | t
-max_speed              | t
 max_distance           | t
 max_duration           | t
+max_wind_speed         | t
 home_ports             | t
 unique_moorages        | t
 moorages_top_countries | t
