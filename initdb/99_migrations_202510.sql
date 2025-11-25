@@ -38,7 +38,7 @@ COMMENT ON COLUMN api.logbook.trip_heading IS 'Heading True in degrees converted
 COMMENT ON COLUMN api.logbook.trip_depth IS 'Depth in meters, raw from signalk plugin';
 COMMENT ON COLUMN api.logbook.trip_temp_water IS 'Temperature water in Kelvin, raw from signalk plugin';
 COMMENT ON COLUMN api.logbook.trip_temp_out IS 'Temperature outside in Kelvin, raw from signalk plugin';
-COMMENT ON COLUMN api.logbook.trip_awa IS 'AWA (Apparent Wind Angle) in degrees from signalk plugin';
+COMMENT ON COLUMN api.logbook.trip_awa IS 'AWA (Apparent Wind Angle) in degrees converted from radians by signalk plugin';
 
 -- DROP FUNCTION public.process_logbook_queue_fn(int4);
 -- Update public.process_logbook_queue_fn, improve avg speed calculation, improve mobilitydb data handling force time-series
@@ -60,8 +60,6 @@ AS $function$
         user_settings jsonb;
         geojson jsonb;
         extra_json jsonb;
-        _max_speed NUMERIC;
-        _avg_speed NUMERIC;
         _max_wind_speed NUMERIC;
         _avg_wind_speed NUMERIC;
     BEGIN
@@ -130,13 +128,6 @@ AS $function$
         -- Update the avg_wind_speed from mobilitydb data -- TWS in knots
         extra_json := extra_json || jsonb_build_object('avg_wind_speed', _avg_wind_speed);
 
-        -- Calculate speed using distance / duration and truncate the duration to the minute
-        SELECT
-            ROUND(AVG((length(t_rec.trajectory) / 1852.0) /
-                    (EXTRACT(EPOCH FROM (date_trunc('minute', logbook_rec._to_time) - date_trunc('minute', logbook_rec._from_time))) / 3600.0))::NUMERIC, 2),
-            ROUND(MAX((length(t_rec.trajectory) / 1852.0) /
-                    (EXTRACT(EPOCH FROM (date_trunc('minute', logbook_rec._to_time) - date_trunc('minute', logbook_rec._from_time))) / 3600.0))::NUMERIC, 2)
-            INTO _avg_speed, _max_speed;
         RAISE NOTICE 'Updating valid logbook, vessel_id [%], entry logbook id:[%] start:[%] end:[%]', logbook_rec.vessel_id, logbook_rec.id, logbook_rec._from_time, logbook_rec._to_time;
         UPDATE api.logbook
             SET
@@ -144,12 +135,9 @@ AS $function$
                 -- Problem with invalid SOG metrics
                 --avg_speed = twAvg(t_rec.speedoverground), -- avg speed in knots
                 --max_speed = maxValue(t_rec.speedoverground), -- max speed in knots
-                -- Problem with normalize minutes gaps in time-series
-                --avg_speed = (twavg(speed(t_rec.trajectory)) * 1.94384)::NUMERIC(6,2), -- avg speed in knots
-                --max_speed = (maxValue(speed(t_rec.trajectory)) * 1.94384)::NUMERIC(6,2), -- max speed in knots
-                -- using distance / duration
-                avg_speed = _avg_speed, -- avg speed in knots (NM/hour)
-                max_speed = _max_speed, -- max speed in knots (NM/hour)
+                -- Calculate speed using mobility from m/s to knots
+                avg_speed = (twavg(speed(t_rec.trajectory)) * 1.94384)::NUMERIC(6,2), -- avg speed in knots
+                max_speed = (maxValue(speed(t_rec.trajectory)) * 1.94384)::NUMERIC(6,2), -- max speed in knots
                 max_wind_speed = _max_wind_speed, -- TWS in knots
                 _from = from_moorage.moorage_name,
                 _from_moorage_id = from_moorage.moorage_id,
@@ -320,8 +308,6 @@ AS $function$
         geojson jsonb;
         extra_json jsonb;
         t_rec record;
-        _max_speed NUMERIC;
-        _avg_speed NUMERIC;
         _max_wind_speed NUMERIC;
         _avg_wind_speed NUMERIC;
     BEGIN
@@ -405,14 +391,6 @@ AS $function$
         -- Update the avg_wind_speed from mobilitydb data -- TWS in knots
         extra_json := extra_json || jsonb_build_object('avg_wind_speed', _avg_wind_speed);
 
-        -- Calculate speed using distance / duration and truncate the duration to the minute
-        SELECT
-            ROUND(AVG((length(t_rec.trajectory) / 1852.0) /
-                    (EXTRACT(EPOCH FROM (date_trunc('minute', logbook_rec_end._to_time) - date_trunc('minute', logbook_rec_start._from_time))) / 3600.0))::NUMERIC, 2),
-            ROUND(MAX((length(t_rec.trajectory) / 1852.0) /
-                    (EXTRACT(EPOCH FROM (date_trunc('minute', logbook_rec_end._to_time) - date_trunc('minute', logbook_rec_start._from_time))) / 3600.0))::NUMERIC, 2)
-            INTO _avg_speed, _max_speed;
-
         RAISE NOTICE 'Updating valid logbook entry logbook id:[%] start:[%] end:[%]', logbook_rec_start.id, logbook_rec_start._from_time, logbook_rec_end._to_time;
         UPDATE api.logbook
             SET
@@ -420,12 +398,9 @@ AS $function$
                 -- Problem with invalid SOG metrics
                 --avg_speed = twAvg(t_rec.speedoverground), -- avg speed in knots
                 --max_speed = maxValue(t_rec.speedoverground), -- max speed in knots
-                -- Problem with normalize minutes gaps in time-series
-                --avg_speed = (twavg(speed(t_rec.trajectory)) * 1.94384)::NUMERIC(6,2), -- avg speed in knots
-                --max_speed = (maxValue(speed(t_rec.trajectory)) * 1.94384)::NUMERIC(6,2), -- max speed in knots
-                -- Using distance / duration
-                avg_speed = _avg_speed, -- avg speed in knots (NM/hour)
-                max_speed = _max_speed, -- max speed in knots (NM/hour)
+                -- Calculate speed using mobility from m/s to knots
+                avg_speed = (twavg(speed(t_rec.trajectory)) * 1.94384)::NUMERIC(6,2), -- avg speed in knots
+                max_speed = (maxValue(speed(t_rec.trajectory)) * 1.94384)::NUMERIC(6,2), -- max speed in knots
                 max_wind_speed = _max_wind_speed, -- TWS in knots
                 -- Set _to metrics from end logbook
                 _to = logbook_rec_end._to,
@@ -1734,7 +1709,7 @@ DECLARE
 BEGIN
     -- Validate input
     IF _id IS NULL OR _id < 1 THEN
-        RAISE WARNING '-> export_logbook_geojson_trip_fn invalid input %', _id;
+        RAISE WARNING '-> export_logbook_metrics_trip_fn invalid input %', _id;
         RETURN NULL;
     END IF;
 
@@ -2300,6 +2275,7 @@ AS $function$
 DECLARE
     logbook_rec RECORD;
     log_geojson JSONB;
+    log_legs_geojson JSONB := '{}'::JSONB;
     metrics_geojson JSONB;
     first_feature_obj JSONB;
     second_feature_note JSONB;
@@ -2327,6 +2303,10 @@ BEGIN
 
     -- GeoJSON Feature for Logbook linestring
     SELECT ST_AsGeoJSON(logbook_rec.*)::jsonb INTO log_geojson;
+    -- Split log into 24h legs if larger than 24h
+    IF logbook_rec.duration > interval '24 hours' THEN
+        log_legs_geojson := public.split_logbook_by24h_geojson_fn(logbook_rec.id);
+    END IF;
 
     -- GeoJSON Features for Metrics Points
     SELECT jsonb_agg(ST_AsGeoJSON(t.*)::jsonb) INTO metrics_geojson
@@ -2412,8 +2392,8 @@ BEGIN
         true
     );
 
-    -- Combine Logbook and Metrics GeoJSON
-    RETURN jsonb_build_object('type', 'FeatureCollection', 'features', log_geojson || metrics_geojson);
+    -- Combine Logbook and Metrics GeoJSON and the log legs FeatureCollection
+    RETURN jsonb_build_object('type', 'FeatureCollection', 'features', log_geojson || metrics_geojson) || log_legs_geojson;
 
 END;
 $function$
@@ -2451,11 +2431,196 @@ BEGIN
             trip_tank_level = deleteTime(l.trip_tank_level, update_string),
             trip_heading = deleteTime(l.trip_heading, update_string)
         WHERE id = _id;
+        -- Update metadata
+        UPDATE api.logbook l
+            SET
+                -- Calculate speed using mobility from m/s to knots
+                avg_speed = (twavg(speed(trip)) * 1.94384)::NUMERIC(6,2), -- avg speed in knots
+                max_speed = (maxValue(speed(trip)) * 1.94384)::NUMERIC(6,2), -- max speed in knots
+                distance = (length(trip)/1852)::NUMERIC(10,2) -- in Nautical Miles
+            WHERE id = _id;
 END;
 $function$
 ;
 -- Description
-COMMENT ON FUNCTION api.delete_trip_entry_fn(int4, tstzspan) IS 'Delete at a specific time a temporal sequence for all trip_* column from a logbook';
+COMMENT ON FUNCTION api.delete_trip_entry_fn(int4, tstzspan) IS 'Delete at a specific time a temporal sequence for all trip_* column from a logbook, recalculate the trip accordingly';
+
+-- Add public.split_logbook_by24h_fn, Split a logbook trip into multiple segments of maximum 24 hours each
+CREATE OR REPLACE FUNCTION public.split_logbook_by24h_fn(_id integer)
+ RETURNS void
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    WITH RECURSIVE time_splits AS (
+        SELECT
+            id,
+            trip,
+            trip_tws,
+            trip_twd,
+            trip_twa,
+            startTimestamp(trip) AS period_start,
+            LEAST(startTimestamp(trip) + interval '24 hours', endTimestamp(trip)) AS period_end,
+            0 AS segment_num
+        FROM api.logbook
+        WHERE id = _id
+
+        UNION ALL
+
+        SELECT
+            id,
+            trip,
+            trip_tws,
+            trip_twd,
+            trip_twa,
+            period_end,
+            LEAST(period_end + interval '24 hours', endTimestamp(trip)),
+            segment_num + 1
+        FROM time_splits
+        WHERE period_end < endTimestamp(trip)
+    ),
+    segmented_trajectories AS (
+        SELECT
+            l.id,
+            l.name,
+            ts.segment_num,
+            ts.period_start,
+            ts.period_end,
+            atTime(l.trip, span(ts.period_start, ts.period_end, true, true)) AS segment_trip,
+            atTime(l.trip_tws, span(ts.period_start, ts.period_end, true, true)) AS segment_tws,
+            atTime(l.trip_twd, span(ts.period_start, ts.period_end, true, true)) AS segment_twd,
+            atTime(l.trip_twa, span(ts.period_start, ts.period_end, true, true)) AS segment_twa
+        FROM time_splits ts
+        JOIN api.logbook l ON l.id = ts.id
+    )
+    SELECT
+        id,
+        name,
+        segment_num,
+        period_start,
+        period_end,
+        -- Duration
+        (period_end - period_start) AS duration,
+        -- Distance in Nautical Miles
+        (length(segment_trip)/1852)::NUMERIC(10,2) AS distance,
+        -- Average speed in knots
+        (twavg(speed(segment_trip)) * 1.94384)::NUMERIC(6,2) AS avg_speed,
+        -- Max speed in knots
+        (maxValue(speed(segment_trip)) * 1.94384)::NUMERIC(6,2) AS max_speed,
+        -- True Wind Speed stats (already in knots)
+        twavg(segment_tws)::NUMERIC(6,2) AS avg_tws,
+        maxValue(segment_tws)::NUMERIC(6,2) AS max_tws,
+        -- True Wind Direction stats (in degrees)
+        --twavg(segment_twd)::NUMERIC(6,2) AS avg_twd,
+        -- Apparent Wind Speed stats (already in knots)
+        twavg(segment_twa)::NUMERIC(6,2) AS avg_twa,
+        maxValue(segment_twa)::NUMERIC(6,2) AS max_twa,
+        -- Trajectory and GeoJSON
+        trajectory(segment_trip) AS trajectory,
+        ST_AsGeoJSON(trajectory(segment_trip))::jsonb AS geojson
+    FROM segmented_trajectories
+    WHERE segment_trip IS NOT NULL;
+END;
+$function$
+;
+-- Description
+COMMENT ON FUNCTION public.split_logbook_by24h_fn(int4) IS 'Split a logbook trip into multiple segments of maximum 24 hours each';
+
+-- Add public.split_logbook_by24h_geojson_fn, Split a logbook trip into multiple segments of maximum 24 hours each
+CREATE OR REPLACE FUNCTION public.split_logbook_by24h_geojson_fn(_id integer)
+ RETURNS void
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    WITH RECURSIVE time_splits AS (
+        SELECT
+            id,
+            trip,
+            trip_tws,
+            trip_aws,
+            startTimestamp(trip) AS period_start,
+            LEAST(startTimestamp(trip) + interval '24 hours', endTimestamp(trip)) AS period_end,
+            0 AS segment_num
+        FROM api.logbook
+        WHERE id = _id
+
+        UNION ALL
+
+        SELECT
+            id,
+            trip,
+            trip_tws,
+            trip_aws,
+            period_end,
+            LEAST(period_end + interval '24 hours', endTimestamp(trip)),
+            segment_num + 1
+        FROM time_splits
+        WHERE period_end < endTimestamp(trip)
+    ),
+    segmented_trajectories AS (
+        SELECT
+            l.id,
+            l.name,
+            ts.segment_num,
+            ts.period_start,
+            ts.period_end,
+            atTime(l.trip, span(ts.period_start, ts.period_end, true, true)) AS segment_trip,
+            atTime(l.trip_tws, span(ts.period_start, ts.period_end, true, true)) AS segment_tws,
+            atTime(l.trip_aws, span(ts.period_start, ts.period_end, true, true)) AS segment_aws
+        FROM time_splits ts
+        JOIN api.logbook l ON l.id = ts.id
+    ),
+    segment_stats AS (
+        SELECT
+            id,
+            name,
+            segment_num,
+            period_start,
+            period_end,
+            (period_end - period_start) AS duration,
+            (length(segment_trip)/1852)::NUMERIC(10,2) AS distance,
+            (twavg(speed(segment_trip)) * 1.94384)::NUMERIC(6,2) AS avg_speed,
+            (maxValue(speed(segment_trip)) * 1.94384)::NUMERIC(6,2) AS max_speed,
+            -- True Wind Speed stats (already in knots)
+            twavg(segment_tws)::NUMERIC(6,2) AS avg_tws,
+            maxValue(segment_tws)::NUMERIC(6,2) AS max_tws,
+            -- Apparent Wind Speed stats (already in knots)
+            twavg(segment_aws)::NUMERIC(6,2) AS avg_aws,
+            maxValue(segment_aws)::NUMERIC(6,2) AS max_aws,
+            ST_AsGeoJSON(trajectory(segment_trip))::jsonb AS geojson
+        FROM segmented_trajectories
+        WHERE segment_trip IS NOT NULL
+    )
+    SELECT
+        jsonb_build_object(
+            'type', 'FeatureCollection',
+            'features', jsonb_agg(
+                jsonb_build_object(
+                    'type', 'Feature',
+                    'properties', jsonb_build_object(
+                        'id', id,
+                        'name', name,
+                        'segment_num', segment_num,
+                        'period_start', period_start,
+                        'period_end', period_end,
+                        'duration', EXTRACT(EPOCH FROM duration)::INTEGER,
+                        'distance', distance,
+                        'avg_speed', avg_speed,
+                        'max_speed', max_speed,
+                        'avg_tws', avg_tws,
+                        'max_tws', max_tws,
+                        'avg_aws', avg_aws,
+                        'max_aws', max_aws
+                    ),
+                    'geometry', geojson
+                ) ORDER BY segment_num
+            )
+        ) AS geojson_output
+    FROM segment_stats;
+END;
+$function$
+;
+-- Description
+COMMENT ON FUNCTION public.split_logbook_by24h_geojson_fn(int4) IS 'Split a logbook trip into multiple segments of maximum 24 hours each, return a GeoJSON FeatureCollection';
 
 -- Update Row Level Security policies for api.metadata table
 CREATE POLICY api_anonymous_role ON api.metadata TO api_anonymous
