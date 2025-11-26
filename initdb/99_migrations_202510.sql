@@ -25,6 +25,7 @@ ALTER TABLE api.logbook RENAME COLUMN trip_twa TO trip_aws;
 ALTER TABLE api.logbook ADD COLUMN trip_awa tfloat NULL;
 
 -- Comments
+COMMENT ON COLUMN api.logbook.trip IS 'MobilityDB trajectory, speed in m/s, distance in meters';
 COMMENT ON COLUMN api.logbook.avg_speed IS 'avg speed in knots';
 COMMENT ON COLUMN api.logbook.max_speed IS 'max speed in knots';
 COMMENT ON COLUMN api.logbook.max_wind_speed IS 'true wind speed converted in knots, m/s from signalk plugin';
@@ -133,11 +134,11 @@ AS $function$
             SET
                 duration = (logbook_rec._to_time::TIMESTAMPTZ - logbook_rec._from_time::TIMESTAMPTZ),
                 -- Problem with invalid SOG metrics
-                --avg_speed = twAvg(t_rec.speedoverground), -- avg speed in knots
-                --max_speed = maxValue(t_rec.speedoverground), -- max speed in knots
-                -- Calculate speed using mobility from m/s to knots
+                --avg_speed = twAvg(t_rec.speedoverground)::NUMERIC(6,2), -- avg speed in knots
+                max_speed = maxValue(t_rec.speedoverground)::NUMERIC(6,2), -- max speed in knots
+                -- Calculate speed using mobility from m/s to knots - MobilityDB calculates instantaneous speed between consecutive GPS points
                 avg_speed = (twavg(speed(t_rec.trajectory)) * 1.94384)::NUMERIC(6,2), -- avg speed in knots
-                max_speed = (maxValue(speed(t_rec.trajectory)) * 1.94384)::NUMERIC(6,2), -- max speed in knots
+                --max_speed = (maxValue(speed(t_rec.trajectory)) * 1.94384)::NUMERIC(6,2), -- max speed in knots
                 max_wind_speed = _max_wind_speed, -- TWS in knots
                 _from = from_moorage.moorage_name,
                 _from_moorage_id = from_moorage.moorage_id,
@@ -396,11 +397,11 @@ AS $function$
             SET
                 duration = (logbook_rec_end._to_time::TIMESTAMPTZ - logbook_rec_start._from_time::TIMESTAMPTZ),
                 -- Problem with invalid SOG metrics
-                --avg_speed = twAvg(t_rec.speedoverground), -- avg speed in knots
-                --max_speed = maxValue(t_rec.speedoverground), -- max speed in knots
-                -- Calculate speed using mobility from m/s to knots
+                --avg_speed = twAvg(t_rec.speedoverground)::NUMERIC(6,2), -- avg speed in knots
+                max_speed = maxValue(t_rec.speedoverground)::NUMERIC(6,2), -- max speed in knots
+                -- Calculate speed using mobility from m/s to knots - MobilityDB calculates instantaneous speed between consecutive GPS points
                 avg_speed = (twavg(speed(t_rec.trajectory)) * 1.94384)::NUMERIC(6,2), -- avg speed in knots
-                max_speed = (maxValue(speed(t_rec.trajectory)) * 1.94384)::NUMERIC(6,2), -- max speed in knots
+                --max_speed = (maxValue(speed(t_rec.trajectory)) * 1.94384)::NUMERIC(6,2), -- max speed in knots
                 max_wind_speed = _max_wind_speed, -- TWS in knots
                 -- Set _to metrics from end logbook
                 _to = logbook_rec_end._to,
@@ -1646,8 +1647,8 @@ BEGIN
         ( SELECT id, name,
             starttimestamp(trip),
             endtimestamp(trip),
-            (twavg(speed(trip)) * 1.94384)::NUMERIC(6,2) as avg_speed, -- avg speed in knots
-            (maxValue(speed(trip)) * 1.94384)::NUMERIC(6,2) as max_speed, -- max speed in knots
+            avg_speed, -- avg speed in knots
+            max_speed, -- max speed in knots
             duration(trip),
             --length(trip) as length, -- Meters
             (length(trip)/1852)::NUMERIC(6,2) as distance, -- in Nautical Miles
@@ -1835,8 +1836,8 @@ BEGIN
         SELECT id, name,
             starttimestamp(trip),
             endtimestamp(trip),
-            (twavg(speed(trip)) * 1.94384)::NUMERIC(6,2) as avg_speed, -- avg speed in knots
-            (maxValue(speed(trip)) * 1.94384)::NUMERIC(6,2) as max_speed, -- max speed in knots
+            avg_speed, -- avg speed in knots
+            max_speed, -- max speed in knots
             duration(trip),
             --length(trip) as length, -- Meters
             (length(trip)/1852)::NUMERIC(6,2) as distance, -- in Nautical Miles
@@ -2435,8 +2436,12 @@ BEGIN
         UPDATE api.logbook l
             SET
                 -- Calculate speed using mobility from m/s to knots
+                -- Problem with invalid SOG metrics
+                --avg_speed = twAvg(trip_sog)::NUMERIC(6,2), -- avg speed in knots
+                max_speed = maxValue(trip_sog)::NUMERIC(6,2), -- max speed in knots
+                -- Calculate speed using mobility from m/s to knots - MobilityDB calculates instantaneous speed between consecutive GPS points
                 avg_speed = (twavg(speed(trip)) * 1.94384)::NUMERIC(6,2), -- avg speed in knots
-                max_speed = (maxValue(speed(trip)) * 1.94384)::NUMERIC(6,2), -- max speed in knots
+                --max_speed = (maxValue(speed(trip)) * 1.94384)::NUMERIC(6,2), -- max speed in knots
                 distance = (length(trip)/1852)::NUMERIC(10,2) -- in Nautical Miles
             WHERE id = _id;
 END;
