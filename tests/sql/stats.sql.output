@@ -12,26 +12,27 @@ ROLE user_role current_setting
 vessel_id | t
 
 Stats logbook and moorages for user kapla
--[ RECORD 1 ]----------+--
-boat_name              | t
-logs_count             | t
-max_distance           | t
-max_duration           | t
-max_wind_speed         | t
-home_ports             | t
-unique_moorages        | t
-moorages_top_countries | t
+-[ RECORD 1 ]----------+-------
+boat_name              | kapla
+logs_count             | 1
+max_speed              | 6.5
+max_distance           | 16.58
+max_duration           | PT49M
+max_wind_speed         | 37.92
+home_ports             | 1
+unique_moorages        | 5
+moorages_top_countries | ["fi"]
 
 -[ RECORD 1 ]
 vessel_id | t
 
 Stats logbook and moorages for user aava
--[ RECORD 1 ]----------+--
-boat_name              | t
-logs_count             | t
-max_speed              | t
-max_distance           | t
-home_ports             | t
-unique_moorages        | t
-moorages_top_countries | t
+-[ RECORD 1 ]----------+-------
+boat_name              | aava
+logs_count             | 2
+max_speed              | 9.5
+max_distance           | 69.10
+home_ports             | 1
+unique_moorages        | 4
+moorages_top_countries | ["ee"]
 
