@@ -17,11 +17,11 @@ on:
 
 jobs:
   schemalint:
-    name: schemalint
+    name: lint database schema
     runs-on: ubuntu-latest
     steps:
       - name: Check out the source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set env
         run: cp .env.example .env
@@ -38,17 +38,18 @@ jobs:
           PGDATABASE: signalk
           PGUSER: username
           PGPASSWORD: password
+          PGSAIL_DB_URI: postgres://username:password@172.30.0.1:5432/signalk
         run: |
           set -eu
           source .env
           docker compose stop || true
           docker compose rm || true
-          docker compose up -d db && sleep 30 && docker compose up -d api && sleep 5
+          docker compose up -d db && sleep 30
           docker compose ps -a
-          echo ${PGSAIL_API_URL}
-          curl ${PGSAIL_API_URL}
-          npm i -D schemalint
-          npx schemalint
+          npm install schemalint
+          npx schemalint -c schemalintConfig.js
+          source <(curl -sL https://raw.githubusercontent.com/k1LoW/tbls/main/use)
+          tbls lint -c tblsConfig.yml
       - name: Show the logs
         if: always()
         run: |
