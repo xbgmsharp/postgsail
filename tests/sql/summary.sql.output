@@ -58,7 +58,7 @@ Schema      | public
 Description | PostGIS geometry and geography spatial types and functions
 -[ RECORD 10 ]-------------------------------------------------------------------------------------
 Name        | timescaledb
-Version     | 2.23.1
+Version     | 2.24.0
 Schema      | public
 Description | Enables scalable inserts and complex queries for time-series data (Community Edition)
 -[ RECORD 11 ]-------------------------------------------------------------------------------------
@@ -116,14 +116,14 @@ laninline     | 13645
 lanvalidator  | 13646
 lanacl        | 
 -[ RECORD 5 ]-+-----------
-oid           | 18361
+oid           | 18375
 lanname       | plpython3u
 lanowner      | 10
 lanispl       | t
 lanpltrusted  | t
-lanplcallfoid | 18358
-laninline     | 18359
-lanvalidator  | 18360
+lanplcallfoid | 18372
+laninline     | 18373
+lanvalidator  | 18374
 lanacl        | 
 
 -[ RECORD 1 ]+-----------
@@ -832,12 +832,12 @@ reverse_geocode_py_fn | {"name": "Spain", "country_code": "es"}
 Test geoip reverse_geoip_py_fn
 Test opverpass API overpass_py_fn
 -[ RECORD 1 ]--------------------------------------------------------------------------------------------------------------------------------------------------------------------
-versions_fn | {"api_version" : "0.9.6", "sys_version" : "PostgreSQL 18.1", "mobilitydb" : "1.3.0", "timescaledb" : "2.23.1", "postgis" : "3.6.1", "postgrest" : "PostgREST 14.1"}
+versions_fn | {"api_version" : "0.9.6", "sys_version" : "PostgreSQL 18.1", "mobilitydb" : "1.3.0", "timescaledb" : "2.24.0", "postgis" : "3.6.1", "postgrest" : "PostgREST 14.1"}
 
 -[ RECORD 1 ]----------------
 api_version | 0.9.6
 sys_version | PostgreSQL 18.1
-timescaledb | 2.23.1
+timescaledb | 2.24.0
 postgis     | 3.6.1
 postgrest   | PostgREST 14.1
 
