@@ -1,0 +1,276 @@
+# DSN (Database Source Name) to connect database
+dsn: ${PGSAIL_DB_URI}?sslmode=disable
+
+# Project metadata
+name: PostgSail
+desc: PostgSail database documentation
+docPath: src/db   # mdBook folder
+
+include:
+  - api.*             # Include all from api schema
+  - auth.*            # Include all from auth schema
+  - public.*_fn       # Include all function matching pattern from public schema
+  - public.geocoders  # Include specific tables
+  - public.email_templates
+  - public.process_queue
+  - public.app_settings
+  - public.badges
+  - public.aistypes
+  - public.mid
+  - public.iso3166
+
+exclude:
+
+format:
+  # Adjust the column width of Markdown format table
+  # Default is false
+  adjust: true
+  # Sort the order of table list and columns
+  # Default is false
+  sort: true
+  # Display sequential numbers in table rows
+  # Default is false
+  number: false
+  # The comments for each table in the Tables section of the index page will display the text up to the first double newline (first paragraph).
+  # Default is false
+  showOnlyFirstParagraph: true
+  # Hide table columns without values
+  # Default is false
+  hideColumnsWithoutValues: true
+  # It can be boolean or array
+  # hideColumnsWithoutValues: ["Parents", "Children"]
+
+# ER diagram configuration
+er:
+  format: mermaid
+  comment: true
+  relationship: true
+  distance: 2
+
+# Markdown table appearance
+markdown:
+  table:
+    columnAlignment: left
+
+# Linting (correct mapping syntax)
+lint:
+  # require table comment
+  requireTableComment:
+    enabled: true
+    # all commented, or all uncommented.
+    allOrNothing: true
+  # require column comment
+  requireColumnComment:
+    enabled: true
+    # all commented, or all uncommented.
+    allOrNothing: true
+    # exclude columns from warnings
+    exclude:
+      - id
+      - created_at
+      - updated_at
+      - name
+      - description
+      - notes
+      - active
+      - arrived
+      - departed
+      - latitude
+      - longitude
+      - country
+      - image_updated_at
+      - image_url
+      - stay_id
+      - time
+      - status
+      - height
+      - length
+      - stay_code
+      - image_b64
+      - polar_updated_at
+      - anglespeedapparent
+      - courseovergroundtrue
+      - speedoverground
+      - windspeedapparent
+      - home_flag
+      - metrics
+    # exclude tables from warnings
+    excludeTables:
+      - public.process_queue
+      - public.mid
+      - public.iso3166
+      - public.geocoders
+      - public.email_templates
+      - public.badges
+      - public.app_settings
+      - public.aistypes
+      - auth.accounts
+      - auth.otp
+      - auth.users
+      - auth.vessels
+      - api.logbook
+      - api.metadata
+      - api.stay_explore_view
+  # require index comment
+  requireIndexComment:
+    enabled: false
+    # all commented, or all uncommented.
+    allOrNothing: false
+    # exclude indexes from warnings
+    exclude:
+      - user_id_idx
+    # exclude tables from warnings
+    excludeTables:
+      - logs
+      - comment_stars
+  # require constraint comment
+  requireConstraintComment:
+    enabled: false
+    # all commented, or all uncommented.
+    allOrNothing: false
+    # exclude constrains from warnings
+    exclude:
+      - unique_user_name
+    # exclude tables from warnings
+    excludeTables:
+      - logs
+      - connected_at
+  # require trigger comment
+  requireTriggerComment:
+    enabled: true
+    # all commented, or all uncommented.
+    allOrNothing: false
+    # exclude triggers from warnings
+    exclude:
+      - update_count
+    # exclude tables from warnings
+    excludeTables:
+      - logs
+      - comment_stars
+  # require table labels
+  requireTableLabels:
+    enabled: false
+    # all commented, or all uncommented.
+    allOrNothing: false
+    # exclude tables from warnings
+    exclude:
+      - logs
+  # find a table that has no relation
+  unrelatedTable:
+    enabled: false
+    # all related, or all unrelated.
+    allOrNothing: true
+    # exclude tables from warnings
+    exclude:
+      - public.process_queue
+      - public.mid
+      - public.iso3166
+      - public.geocoders
+      - public.email_templates
+      - public.badges
+      - public.app_settings
+      - public.aistypes
+  # check max column count
+  columnCount:
+    enabled: false
+    max: 10
+    # exclude tables from warnings
+    exclude:
+      - api.logbook
+  # require columns
+  requireColumns:
+    enabled: true
+    columns:
+      - name: created_at
+        exclude:
+          - api.moorages
+          - api.stays
+          - api.logbook
+          - api.metrics
+          - api.stays_at
+          - api.metadata_ext
+          - api.stays_ext
+          - auth.otp
+          - public.process_queue
+          - public.mid
+          - public.iso3166
+          - public.geocoders
+          - public.email_templates
+          - public.badges
+          - public.app_settings
+          - public.aistypes
+      - name: updated_at
+        exclude:
+          - api.moorages
+          - api.stays
+          - api.logbook
+          - api.metrics
+          - api.stays_at
+          - api.metadata_ext
+          - api.stays_ext
+          - api.moorages_ext
+          - api.logbook_ext
+          - auth.otp
+          - public.process_queue
+          - public.mid
+          - public.iso3166
+          - public.geocoders
+          - public.email_templates
+          - public.badges
+          - public.app_settings
+          - public.aistypes
+
+  # check duplicate relations
+  duplicateRelations:
+    enabled: false
+    excludeTables:
+      - api.logbook
+    exclude:
+      - api.logbook # has two foreign keys to moorages _from and _to
+      - api.logbook._from_moorage_id
+      - api.logbook._to_moorage_id
+  # check if the foreign key columns have an index
+  requireForeignKeyIndex:
+    enabled: true
+  # checks if labels are in BigQuery style (https://cloud.google.com/resource-manager/docs/creating-managing-labels#requirements)
+  labelStyleBigQuery:
+    enabled: false
+    exclude:
+      - schema_migrations
+  # checks if tables are included in at least one viewpoint
+  requireViewpoints: 
+    enabled: false
+    exclude:
+      - schema_migrations
+
+lintExclude:
+  - api.explore_view
+  - api.eventlogs_view
+  - api.logbook_view
+  - api.logs_view
+  - api.log_view
+  - api.moorages_view
+  - api.moorage_view
+  - api.stays_view
+  - api.stay_view
+  - api.stats_moorages_view
+  - api.noteshistory_view
+  - api.stay_explore_view
+  - api.logs_geojson_view
+  - api.logs_mat_view
+  - api.monitoring_view
+  - api.monitoring_view2
+  - api.monitoring_view3
+  - api.monitoring_voltage
+  - api.moorages_geojson_view
+  - api.moorages_stays_view
+  - api.stats_logs_view
+  - api.stats_moorages_away_view
+  - api.stays_geojson_view
+  - api.versions_view
+  - api.vessels_view
+  - api.total_info_view
+  - public.aistypes
+  - api.monitoring_humidity
+  - api.monitoring_live
+  - api.monitoring_temperatures
