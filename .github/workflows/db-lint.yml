@@ -37,8 +37,8 @@ jobs:
           PGPORT: 5432
           PGDATABASE: signalk
           PGUSER: username
-          PGPASSWORD: test1234
-          PGSAIL_DB_URI: postgres://username:test1234@localhost:5432/signalk
+          PGPASSWORD: password
+          PGSAIL_DB_URI: postgres://username:password@localhost:5432/signalk
         run: |
           set -eu
           source .env
