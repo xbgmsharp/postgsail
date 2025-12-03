@@ -46,7 +46,7 @@ jobs:
           docker compose rm || true
           docker compose up -d db && sleep 30
           docker compose ps -a
-          npm install schemalint
+          npm install -g schemalint || exit 1
           npx schemalint -c schemalintConfig.js
           source <(curl -sL https://raw.githubusercontent.com/k1LoW/tbls/main/use)
           tbls lint -c tblsConfig.yml
