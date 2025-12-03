@@ -5,15 +5,15 @@
 
 You are now connected to database "signalk" as user "username".
 Expanded display is on.
--[ RECORD 1 ]--+--------------------------------
-server_version | 16.11 (Debian 16.11-1.pgdg12+1)
+-[ RECORD 1 ]--+------------------------------
+server_version | 18.1 (Debian 18.1-1.pgdg13+2)
 
 -[ RECORD 1 ]--------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-postgis_full_version | POSTGIS="3.6.1 f533623" [EXTENSION] PGSQL="160" GEOS="3.11.1-CAPI-1.17.1" PROJ="9.1.1 NETWORK_ENABLED=OFF URL_ENDPOINT=https://cdn.proj.org USER_WRITABLE_DIRECTORY=/var/lib/postgresql/.local/share/proj DATABASE_PATH=/usr/share/proj/proj.db" (compiled against PROJ 9.1.1) LIBXML="2.9.14" LIBJSON="0.16" LIBPROTOBUF="1.4.1" WAGYU="0.5.0 (Internal)"
+postgis_full_version | POSTGIS="3.6.1 f533623" [EXTENSION] PGSQL="180" GEOS="3.13.1-CAPI-1.19.2" PROJ="9.6.0 NETWORK_ENABLED=OFF URL_ENDPOINT=https://cdn.proj.org USER_WRITABLE_DIRECTORY=/var/lib/postgresql/.local/share/proj DATABASE_PATH=/usr/share/proj/proj.db" (compiled against PROJ 9.6.0) LIBXML="2.9.14" LIBJSON="0.18" LIBPROTOBUF="1.5.1" WAGYU="0.5.0 (Internal)"
 
 -[ RECORD 1 ]--------------------------------------------------------------------------------------
 Name        | citext
-Version     | 1.6
+Version     | 1.8
 Schema      | public
 Description | data type for case-insensitive character strings
 -[ RECORD 2 ]--------------------------------------------------------------------------------------
@@ -33,12 +33,12 @@ Schema      | public
 Description | functions for tracking last modification time
 -[ RECORD 5 ]--------------------------------------------------------------------------------------
 Name        | pg_stat_statements
-Version     | 1.10
+Version     | 1.12
 Schema      | public
 Description | track planning and execution statistics of all SQL statements executed
 -[ RECORD 6 ]--------------------------------------------------------------------------------------
 Name        | pgcrypto
-Version     | 1.3
+Version     | 1.4
 Schema      | public
 Description | cryptographic functions
 -[ RECORD 7 ]--------------------------------------------------------------------------------------
@@ -106,24 +106,24 @@ laninline     | 0
 lanvalidator  | 2248
 lanacl        | 
 -[ RECORD 4 ]-+-----------
-oid           | 13568
+oid           | 13647
 lanname       | plpgsql
 lanowner      | 10
 lanispl       | t
 lanpltrusted  | t
-lanplcallfoid | 13565
-laninline     | 13566
-lanvalidator  | 13567
+lanplcallfoid | 13644
+laninline     | 13645
+lanvalidator  | 13646
 lanacl        | 
 -[ RECORD 5 ]-+-----------
-oid           | 18241
+oid           | 18361
 lanname       | plpython3u
 lanowner      | 10
 lanispl       | t
 lanpltrusted  | t
-lanplcallfoid | 18238
-laninline     | 18239
-lanvalidator  | 18240
+lanplcallfoid | 18358
+laninline     | 18359
+lanvalidator  | 18360
 lanacl        | 
 
 -[ RECORD 1 ]+-----------
@@ -321,15 +321,6 @@ cmd        | ALL
 qual       | true
 with_check | true
 -[ RECORD 6 ]------------------------------------------------------------------------------------------------------------------------------
-schemaname | auth
-tablename  | vessels
-policyname | grafana_proxy_role
-permissive | PERMISSIVE
-roles      | {grafana_auth}
-cmd        | ALL
-qual       | true
-with_check | false
--[ RECORD 7 ]------------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | metrics
 policyname | api_scheduler_role
@@ -338,7 +329,7 @@ roles      | {scheduler}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
--[ RECORD 8 ]------------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 7 ]------------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | metrics
 policyname | grafana_role
@@ -347,7 +338,7 @@ roles      | {grafana}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
--[ RECORD 9 ]------------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 8 ]------------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | metrics
 policyname | api_anonymous_role
@@ -356,7 +347,7 @@ roles      | {api_anonymous}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
--[ RECORD 10 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 9 ]------------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | logbook
 policyname | admin_all
@@ -365,7 +356,7 @@ roles      | {username}
 cmd        | ALL
 qual       | true
 with_check | true
--[ RECORD 11 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 10 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | logbook
 policyname | api_vessel_role
@@ -374,6 +365,15 @@ roles      | {vessel_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | true
+-[ RECORD 11 ]-----------------------------------------------------------------------------------------------------------------------------
+schemaname | auth
+tablename  | vessels
+policyname | grafana_proxy_role
+permissive | PERMISSIVE
+roles      | {grafana_auth}
+cmd        | ALL
+qual       | true
+with_check | false
 -[ RECORD 12 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | auth
 tablename  | accounts
@@ -385,33 +385,6 @@ qual       | true
 with_check | true
 -[ RECORD 13 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
-tablename  | moorages_ext
-policyname | admin_all
-permissive | PERMISSIVE
-roles      | {username}
-cmd        | ALL
-qual       | true
-with_check | true
--[ RECORD 14 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
-tablename  | moorages_ext
-policyname | api_user_role
-permissive | PERMISSIVE
-roles      | {user_role}
-cmd        | ALL
-qual       | (vessel_id = current_setting('vessel.id'::text, false))
-with_check | (vessel_id = current_setting('vessel.id'::text, false))
--[ RECORD 15 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
-tablename  | moorages_ext
-policyname | api_anonymous_role
-permissive | PERMISSIVE
-roles      | {api_anonymous}
-cmd        | ALL
-qual       | true
-with_check | false
--[ RECORD 16 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | logbook
 policyname | api_user_role
 permissive | PERMISSIVE
@@ -419,7 +392,7 @@ roles      | {user_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, true))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
--[ RECORD 17 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 14 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | logbook
 policyname | api_scheduler_role
@@ -428,7 +401,7 @@ roles      | {scheduler}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
--[ RECORD 18 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 15 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | logbook
 policyname | grafana_role
@@ -437,7 +410,7 @@ roles      | {grafana}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
--[ RECORD 19 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 16 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | logbook
 policyname | api_anonymous_role
@@ -446,7 +419,7 @@ roles      | {api_anonymous}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
--[ RECORD 20 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 17 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | stays
 policyname | admin_all
@@ -455,7 +428,7 @@ roles      | {username}
 cmd        | ALL
 qual       | true
 with_check | true
--[ RECORD 21 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 18 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | stays
 policyname | api_vessel_role
@@ -464,7 +437,7 @@ roles      | {vessel_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | true
--[ RECORD 22 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 19 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | logbook
 policyname | logbook_qgis_role
@@ -473,7 +446,7 @@ roles      | {qgis_role}
 cmd        | ALL
 qual       | true
 with_check | false
--[ RECORD 23 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 20 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | public
 tablename  | process_queue
 policyname | public_maplapse_role
@@ -482,16 +455,7 @@ roles      | {maplapse_role}
 cmd        | ALL
 qual       | true
 with_check | true
--[ RECORD 24 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
-tablename  | moorages_ext
-policyname | api_vessel_role
-permissive | PERMISSIVE
-roles      | {vessel_role}
-cmd        | ALL
-qual       | false
-with_check | false
--[ RECORD 25 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 21 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | stays
 policyname | api_user_role
@@ -500,7 +464,7 @@ roles      | {user_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, true))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
--[ RECORD 26 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 22 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | stays
 policyname | api_scheduler_role
@@ -509,7 +473,7 @@ roles      | {scheduler}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
--[ RECORD 27 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 23 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | stays
 policyname | grafana_role
@@ -518,7 +482,7 @@ roles      | {grafana}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
--[ RECORD 28 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 24 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | stays
 policyname | api_anonymous_role
@@ -527,7 +491,7 @@ roles      | {api_anonymous}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
--[ RECORD 29 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 25 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | moorages
 policyname | admin_all
@@ -536,7 +500,7 @@ roles      | {username}
 cmd        | ALL
 qual       | true
 with_check | true
--[ RECORD 30 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 26 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | moorages
 policyname | api_vessel_role
@@ -545,7 +509,7 @@ roles      | {vessel_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | true
--[ RECORD 31 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 27 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | stays_ext
 policyname | admin_all
@@ -554,7 +518,7 @@ roles      | {username}
 cmd        | ALL
 qual       | true
 with_check | true
--[ RECORD 32 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 28 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | moorages
 policyname | api_user_role
@@ -563,7 +527,7 @@ roles      | {user_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, true))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
--[ RECORD 33 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 29 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | moorages
 policyname | api_scheduler_role
@@ -572,7 +536,7 @@ roles      | {scheduler}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
--[ RECORD 34 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 30 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | moorages
 policyname | grafana_role
@@ -581,7 +545,7 @@ roles      | {grafana}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
--[ RECORD 35 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 31 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | moorages
 policyname | api_anonymous_role
@@ -590,7 +554,7 @@ roles      | {api_anonymous}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
--[ RECORD 36 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 32 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | auth
 tablename  | vessels
 policyname | admin_all
@@ -599,7 +563,7 @@ roles      | {username}
 cmd        | ALL
 qual       | true
 with_check | true
--[ RECORD 37 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 33 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | auth
 tablename  | vessels
 policyname | api_user_role
@@ -608,7 +572,7 @@ roles      | {user_role}
 cmd        | ALL
 qual       | ((vessel_id = current_setting('vessel.id'::text, true)) AND ((owner_email)::text = current_setting('user.email'::text, true)))
 with_check | ((vessel_id = current_setting('vessel.id'::text, true)) AND ((owner_email)::text = current_setting('user.email'::text, true)))
--[ RECORD 38 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 34 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | auth
 tablename  | vessels
 policyname | grafana_role
@@ -617,7 +581,7 @@ roles      | {grafana}
 cmd        | ALL
 qual       | ((owner_email)::text = current_setting('user.email'::text, true))
 with_check | false
--[ RECORD 39 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 35 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | auth
 tablename  | accounts
 policyname | api_user_role
@@ -626,7 +590,7 @@ roles      | {user_role}
 cmd        | ALL
 qual       | ((email)::text = current_setting('user.email'::text, true))
 with_check | ((email)::text = current_setting('user.email'::text, true))
--[ RECORD 40 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 36 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | auth
 tablename  | accounts
 policyname | api_scheduler_role
@@ -635,7 +599,7 @@ roles      | {scheduler}
 cmd        | ALL
 qual       | ((email)::text = current_setting('user.email'::text, true))
 with_check | ((email)::text = current_setting('user.email'::text, true))
--[ RECORD 41 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 37 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | auth
 tablename  | accounts
 policyname | grafana_proxy_role
@@ -644,7 +608,7 @@ roles      | {grafana_auth}
 cmd        | ALL
 qual       | true
 with_check | false
--[ RECORD 42 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 38 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | public
 tablename  | process_queue
 policyname | admin_all
@@ -653,7 +617,7 @@ roles      | {username}
 cmd        | ALL
 qual       | true
 with_check | true
--[ RECORD 43 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 39 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | public
 tablename  | process_queue
 policyname | api_vessel_role
@@ -662,7 +626,7 @@ roles      | {vessel_role}
 cmd        | ALL
 qual       | ((ref_id = current_setting('user.id'::text, true)) OR (ref_id = current_setting('vessel.id'::text, true)))
 with_check | true
--[ RECORD 44 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 40 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | public
 tablename  | process_queue
 policyname | api_user_role
@@ -671,7 +635,7 @@ roles      | {user_role}
 cmd        | ALL
 qual       | ((ref_id = current_setting('user.id'::text, true)) OR (ref_id = current_setting('vessel.id'::text, true)))
 with_check | ((ref_id = current_setting('user.id'::text, true)) OR (ref_id = current_setting('vessel.id'::text, true)))
--[ RECORD 45 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 41 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | public
 tablename  | process_queue
 policyname | api_scheduler_role
@@ -680,9 +644,45 @@ roles      | {scheduler}
 cmd        | ALL
 qual       | true
 with_check | false
--[ RECORD 46 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 42 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
 tablename  | stays_ext
+policyname | api_user_role
+permissive | PERMISSIVE
+roles      | {user_role}
+cmd        | ALL
+qual       | (vessel_id = current_setting('vessel.id'::text, false))
+with_check | (vessel_id = current_setting('vessel.id'::text, false))
+-[ RECORD 43 ]-----------------------------------------------------------------------------------------------------------------------------
+schemaname | api
+tablename  | stays_ext
+policyname | api_anonymous_role
+permissive | PERMISSIVE
+roles      | {api_anonymous}
+cmd        | ALL
+qual       | true
+with_check | false
+-[ RECORD 44 ]-----------------------------------------------------------------------------------------------------------------------------
+schemaname | api
+tablename  | stays_ext
+policyname | api_vessel_role
+permissive | PERMISSIVE
+roles      | {vessel_role}
+cmd        | ALL
+qual       | false
+with_check | false
+-[ RECORD 45 ]-----------------------------------------------------------------------------------------------------------------------------
+schemaname | api
+tablename  | metadata_ext
+policyname | admin_all
+permissive | PERMISSIVE
+roles      | {username}
+cmd        | ALL
+qual       | true
+with_check | true
+-[ RECORD 46 ]-----------------------------------------------------------------------------------------------------------------------------
+schemaname | api
+tablename  | metadata_ext
 policyname | api_user_role
 permissive | PERMISSIVE
 roles      | {user_role}
@@ -691,7 +691,7 @@ qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
 -[ RECORD 47 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
-tablename  | stays_ext
+tablename  | metadata_ext
 policyname | api_anonymous_role
 permissive | PERMISSIVE
 roles      | {api_anonymous}
@@ -700,7 +700,7 @@ qual       | true
 with_check | false
 -[ RECORD 48 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
-tablename  | stays_ext
+tablename  | metadata_ext
 policyname | api_vessel_role
 permissive | PERMISSIVE
 roles      | {vessel_role}
@@ -709,79 +709,79 @@ qual       | false
 with_check | false
 -[ RECORD 49 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
-tablename  | metadata_ext
+tablename  | metrics
+policyname | api_vessel_role
+permissive | PERMISSIVE
+roles      | {vessel_role}
+cmd        | ALL
+qual       | (vessel_id = current_setting('vessel.id'::text, false))
+with_check | (vessel_id = current_setting('vessel.id'::text, false))
+-[ RECORD 50 ]-----------------------------------------------------------------------------------------------------------------------------
+schemaname | api
+tablename  | metadata
+policyname | api_vessel_role
+permissive | PERMISSIVE
+roles      | {vessel_role}
+cmd        | ALL
+qual       | (vessel_id = current_setting('vessel.id'::text, false))
+with_check | (vessel_id = current_setting('vessel.id'::text, false))
+-[ RECORD 51 ]-----------------------------------------------------------------------------------------------------------------------------
+schemaname | api
+tablename  | metadata
+policyname | api_user_role
+permissive | PERMISSIVE
+roles      | {user_role}
+cmd        | ALL
+qual       | (vessel_id = current_setting('vessel.id'::text, false))
+with_check | (vessel_id = current_setting('vessel.id'::text, false))
+-[ RECORD 52 ]-----------------------------------------------------------------------------------------------------------------------------
+schemaname | api
+tablename  | metrics
+policyname | api_user_role
+permissive | PERMISSIVE
+roles      | {user_role}
+cmd        | ALL
+qual       | (vessel_id = current_setting('vessel.id'::text, false))
+with_check | (vessel_id = current_setting('vessel.id'::text, false))
+-[ RECORD 53 ]-----------------------------------------------------------------------------------------------------------------------------
+schemaname | api
+tablename  | logbook_ext
 policyname | admin_all
 permissive | PERMISSIVE
 roles      | {username}
 cmd        | ALL
 qual       | true
 with_check | true
--[ RECORD 50 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 54 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
-tablename  | metadata_ext
+tablename  | logbook_ext
 policyname | api_user_role
 permissive | PERMISSIVE
 roles      | {user_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
--[ RECORD 51 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 55 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
-tablename  | metadata_ext
+tablename  | logbook_ext
 policyname | api_anonymous_role
 permissive | PERMISSIVE
 roles      | {api_anonymous}
 cmd        | ALL
 qual       | true
 with_check | false
--[ RECORD 52 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 56 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
-tablename  | metadata_ext
+tablename  | logbook_ext
 policyname | api_vessel_role
 permissive | PERMISSIVE
 roles      | {vessel_role}
 cmd        | ALL
 qual       | false
 with_check | false
--[ RECORD 53 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
-tablename  | metrics
-policyname | api_vessel_role
-permissive | PERMISSIVE
-roles      | {vessel_role}
-cmd        | ALL
-qual       | (vessel_id = current_setting('vessel.id'::text, false))
-with_check | (vessel_id = current_setting('vessel.id'::text, false))
--[ RECORD 54 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
-tablename  | metadata
-policyname | api_vessel_role
-permissive | PERMISSIVE
-roles      | {vessel_role}
-cmd        | ALL
-qual       | (vessel_id = current_setting('vessel.id'::text, false))
-with_check | (vessel_id = current_setting('vessel.id'::text, false))
--[ RECORD 55 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
-tablename  | metadata
-policyname | api_user_role
-permissive | PERMISSIVE
-roles      | {user_role}
-cmd        | ALL
-qual       | (vessel_id = current_setting('vessel.id'::text, false))
-with_check | (vessel_id = current_setting('vessel.id'::text, false))
--[ RECORD 56 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
-tablename  | metrics
-policyname | api_user_role
-permissive | PERMISSIVE
-roles      | {user_role}
-cmd        | ALL
-qual       | (vessel_id = current_setting('vessel.id'::text, false))
-with_check | (vessel_id = current_setting('vessel.id'::text, false))
 -[ RECORD 57 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
-tablename  | logbook_ext
+tablename  | moorages_ext
 policyname | admin_all
 permissive | PERMISSIVE
 roles      | {username}
@@ -790,7 +790,7 @@ qual       | true
 with_check | true
 -[ RECORD 58 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
-tablename  | logbook_ext
+tablename  | moorages_ext
 policyname | api_user_role
 permissive | PERMISSIVE
 roles      | {user_role}
@@ -799,7 +799,7 @@ qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
 -[ RECORD 59 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
-tablename  | logbook_ext
+tablename  | moorages_ext
 policyname | api_anonymous_role
 permissive | PERMISSIVE
 roles      | {api_anonymous}
@@ -808,7 +808,7 @@ qual       | true
 with_check | false
 -[ RECORD 60 ]-----------------------------------------------------------------------------------------------------------------------------
 schemaname | api
-tablename  | logbook_ext
+tablename  | moorages_ext
 policyname | api_vessel_role
 permissive | PERMISSIVE
 roles      | {vessel_role}
@@ -831,12 +831,12 @@ reverse_geocode_py_fn | {"name": "Spain", "country_code": "es"}
 
 Test geoip reverse_geoip_py_fn
 Test opverpass API overpass_py_fn
--[ RECORD 1 ]---------------------------------------------------------------------------------------------------------------------------------------------------------------------
-versions_fn | {"api_version" : "0.9.6", "sys_version" : "PostgreSQL 16.11", "mobilitydb" : "1.3.0", "timescaledb" : "2.23.1", "postgis" : "3.6.1", "postgrest" : "PostgREST 14.1"}
+-[ RECORD 1 ]--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+versions_fn | {"api_version" : "0.9.6", "sys_version" : "PostgreSQL 18.1", "mobilitydb" : "1.3.0", "timescaledb" : "2.23.1", "postgis" : "3.6.1", "postgrest" : "PostgREST 14.1"}
 
--[ RECORD 1 ]-----------------
+-[ RECORD 1 ]----------------
 api_version | 0.9.6
-sys_version | PostgreSQL 16.11
+sys_version | PostgreSQL 18.1
 timescaledb | 2.23.1
 postgis     | 3.6.1
 postgrest   | PostgREST 14.1
