@@ -55,6 +55,9 @@ postgsail-frontend:
 postgsail-telegram-bot:
 [![GitHub Release](https://img.shields.io/github/release/xbgmsharp/postgsail-telegram-bot.svg?color=blue)](https://github.com/xbgmsharp/postgsail-telegram-bot/releases/latest)
 
+postgsail-mcp-server:
+[![GitHub Release](https://img.shields.io/github/release/xbgmsharp/postgsail-mcp-server.svg?color=blue)](https://github.com/xbgmsharp/postgsail-mcp-server/releases/latest)
+
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8124/badge)](https://www.bestpractices.dev/projects/8124)
 
 
@@ -108,6 +111,7 @@ To understand the why and how, you might want to read [Why.md](https://github.co
 - Windy PWS (Personal Weather Station).
 - Engine Hours Logger.
 - Polar performance.
+- AI agent.
 - Anything missing? just ask!
 
 ## Cloud-hosted PostgSail
@@ -164,6 +168,14 @@ An out of the box IoT platform using Docker (could be extend to K3 or K8) with t
 
 ## Sponsors
 
-These are our really cool sponsors!
+Thanks to our really cool sponsors!
 
-<!-- sponsors --><!-- sponsors -->
+PostgSail is free to use, but is not free to make or host. The stability and accuracy of PostgSail depends on its volunteers and donations from its users. Please consider us.
+
+Help us maintain and improve this project! Your support makes a huge difference and keeps our project
+growing.
+
+Support us directly through [GitHub Sponsors](https://github.com/sponsors/xbgmsharp) with monthly or one-time donations.
+Every Contribution Matters
+
+Join our growing community of supporters and help us make this project even better!
