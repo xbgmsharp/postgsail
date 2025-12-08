@@ -36,6 +36,8 @@
 ![Contributors](https://img.shields.io/github/contributors/xbgmsharp/postgsail?color=dark-green) 
 [![GitHub Repo stars](https://img.shields.io/github/stars/xbgmsharp/postgsail?style=social)](https://github.com/xbgmsharp/postgsail/stargazers)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/xbgmsharp/postgsail)
+[![Sponsors](https://img.shields.io/github/sponsors/xbgmsharp?logo=github&color=blue)](https://github/sponsors/xbgmsharp)
+
 
 [![Test services db, api](https://github.com/xbgmsharp/postgsail/actions/workflows/db-test.yml/badge.svg)](https://github.com/xbgmsharp/postgsail/actions/workflows/db-test.yml)
 [![Test services db, api, web](https://github.com/xbgmsharp/postgsail/actions/workflows/frontend-test.yml/badge.svg)](https://github.com/xbgmsharp/postgsail/actions/workflows/frontend-test.yml)
@@ -68,6 +70,7 @@ postgsail-telegram-bot:
   - [Creating A Pull Request](#creating-a-pull-request)
 - [License](#license)
 - [Acknowledgements](#acknowledgements)
+- [Sponsors](#sponsors)
 
 ## About The Project
 
@@ -158,3 +161,9 @@ An out of the box IoT platform using Docker (could be extend to K3 or K8) with t
 - [MobilityDB, An open source geospatial trajectory data management & analysis platform.](https://mobilitydb.com/)
 - [Grafana, open observability platform | Grafana Labs](https://grafana.com)
 - And many more
+
+## Sponsors
+
+These are our really cool sponsors!
+
+<!-- sponsors --><!-- sponsors -->
