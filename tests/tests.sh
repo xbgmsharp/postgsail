@@ -22,7 +22,7 @@ pnpm install || exit 1
 
 # settings
 export mymocha="./node_modules/mocha/bin/_mocha"
-mkdir -p output/ && rm -rf output/*
+mkdir -p output/ || rm -rf output/*
 
 $mymocha index.js --reporter ./node_modules/mochawesome --reporter-options reportDir=output/,reportFilename=report1.html
 if [ $? -eq 0 ]; then
