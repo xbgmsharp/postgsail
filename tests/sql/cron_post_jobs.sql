@@ -30,7 +30,7 @@ SELECT count(*) FROM api.logbook WHERE vessel_id = current_setting('vessel.id', 
 \echo 'logbook'
 --SELECT name,_from_time IS NOT NULL AS _from_time,_to_time IS NOT NULL AS _to_time, track_geojson IS NOT NULL AS track_geojson, trajectory(trip)::geometry as track_geom, distance,duration,round(avg_speed::NUMERIC,6),max_speed,max_wind_speed,notes,extra FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
 --SELECT name,_from_time IS NOT NULL AS _from_time,_to_time IS NOT NULL AS _to_time, api.export_logbook_geojson_trip_fn(id) IS NOT NULL AS track_geojson, trajectory(trip)::geometry as track_geom, distance,duration,round(avg_speed::NUMERIC,6),max_speed,max_wind_speed,notes,extra FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
-SELECT name,_from_time IS NOT NULL AS _from_time,_to_time IS NOT NULL AS _to_time, api.export_logbook_geojson_trip_fn(id) IS NOT NULL AS track_geojson, trajectory(trip)::geometry as track_geom, distance,duration,avg_speed,max_speed,max_wind_speed,notes,extra FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
+SELECT name,_from_time IS NOT NULL AS _from_time,_to_time IS NOT NULL AS _to_time, api.export_logbook_geojson_trip_fn(id) IS NOT NULL AS track_geojson, trajectory(trip)::geometry as track_geom, distance,duration,avg_speed,max_speed,max_wind_speed,notes,extra->>'polar' IS NOT NULL as polar_is_not_null,extra->>'avg_wind_speed' as avg_wind_speed,user_data FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
 
 -- Test stays for user
 \echo 'stays'
@@ -65,14 +65,14 @@ SELECT api.stats_logs_fn('2022-01-01'::text,'2022-06-12'::text);
 
 -- Update logbook observations
 \echo 'update_logbook_observations_fn'
-SELECT extra FROM api.logbook l WHERE id = 1 AND vessel_id = current_setting('vessel.id', false);
+SELECT user_data FROM api.logbook l WHERE id = 1 AND vessel_id = current_setting('vessel.id', false);
 SELECT api.update_logbook_observations_fn(1, '{"observations":{"cloudCoverage":1}}'::TEXT);
-SELECT extra FROM api.logbook l WHERE id = 1 AND vessel_id = current_setting('vessel.id', false);
+SELECT user_data FROM api.logbook l WHERE id = 1 AND vessel_id = current_setting('vessel.id', false);
 
 \echo 'add tags to logbook'
-SELECT extra FROM api.logbook l WHERE id = 1 AND vessel_id = current_setting('vessel.id', false);
+SELECT user_data FROM api.logbook l WHERE id = 1 AND vessel_id = current_setting('vessel.id', false);
 SELECT api.update_logbook_observations_fn(1, '{"tags": ["tag_name"]}'::TEXT);
-SELECT extra FROM api.logbook l WHERE id = 1 AND vessel_id = current_setting('vessel.id', false);
+SELECT user_data FROM api.logbook l WHERE id = 1 AND vessel_id = current_setting('vessel.id', false);
 
 \echo 'Check logbook geojson LineString properties'
 WITH logbook_tbl AS (

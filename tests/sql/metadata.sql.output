@@ -13,20 +13,20 @@ vessel_id | t
 
 SET
 api.metadata details
--[ RECORD 1 ]------+----------------
-vessel_id_not_null | t
-name               | kapla
-mmsi               | 123456789
-length             | 12
-beam               | 10
-height             | 24
-ship_type          | 36
-plugin_version     | 0.0.1
-signalk_version    | signalk_version
-time               | t
-active             | t
-configuration      | 
-available_keys     | 
+-[ RECORD 1 ]----------+----------------
+vessel_id_not_null     | t
+name                   | kapla
+mmsi                   | 123456789
+length                 | 12
+beam                   | 10
+height                 | 24
+ship_type              | 36
+plugin_version         | 0.0.1
+signalk_version        | signalk_version
+time                   | t
+active                 | t
+configuration_is_null  | t
+available_keys_is_null | t
 
 api.metadata get configuration
 -[ RECORD 1 ]-+-
@@ -44,26 +44,24 @@ api.metadata get configuration base on update_at value
 depthkey           | "environment.depth.belowTransducer"
 update_at_not_null | t
 
-api.metadata_ext set make_model
-INSERT 0 1
-api.metadata_ext set polar
-INSERT 0 1
-api.metadata_ext set image/image_b64
-INSERT 0 1
-api.metadata_ext get make_model
--[ RECORD 1 ]--------------
-make_model | my super yacht
+api.metadata set make_model
+-[ RECORD 1 ]----------------
+make_model | "my super yacht"
 
-api.metadata_ext get polar_updated_at
--[ RECORD 1 ]-------------+-----------------------------------------------------
-polar                     | twa/tws;4;6;8;10;12;14;16;20;24\n0;0;0;0;0;0;0;0;0;0
+UPDATE 1
+api.metadata set polar
+-[ RECORD 1 ]-------------------------------------------------
+polar | "twa/tws;4;6;8;10;12;14;16;20;24\n0;0;0;0;0;0;0;0;0;0"
+
+UPDATE 1
+api.metadata get make_model
+-[ RECORD 1 ]----------------
+make_model | "my super yacht"
+
+api.metadata get polar_updated_at
+-[ RECORD 1 ]-------------+-------------------------------------------------------
+polar                     | "twa/tws;4;6;8;10;12;14;16;20;24\n0;0;0;0;0;0;0;0;0;0"
 polar_updated_at_not_null | t
-
-api.metadata_ext get image_updated_at
--[ RECORD 1 ]-------------+--
-image_b64_is_null         | f
-image_not_null            | t
-image_updated_at_not_null | t
 
 SET
 api.metadata get configuration with new value as vessel
@@ -75,9 +73,4 @@ api.metadata get configuration base on update_at value as vessel
 -[ RECORD 1 ]------+------------------------------------
 depthkey           | "environment.depth.belowTransducer"
 update_at_not_null | t
-
-SET
-api_anonymous get vessel image
--[ RECORD 1 ]---------+--
-vessel_image_not_null | t
 

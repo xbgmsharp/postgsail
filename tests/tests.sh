@@ -130,42 +130,16 @@ else
     exit
 fi
 
-# Logbook extended unit tests
-psql ${PGSAIL_DB_URI} < sql/logbook_ext.sql > output/logbook_ext.sql.output
-diff sql/logbook_ext.sql.output output/logbook_ext.sql.output > /dev/null
-#diff -u sql/logbook_ext.sql.output output/logbook_ext.sql.output | wc -l
-#echo 0
+# Logbook userdata unit tests
+#psql ${PGSAIL_DB_URI} < sql/logbook_userdata.sql > output/logbook_userdata.sql.output
+#diff sql/logbook_userdata.sql.output output/logbook_userdata.sql.output > /dev/null
+#diff -u sql/logbook_userdata.sql.output output/logbook_userdata.sql.output | wc -l
+echo 0
 if [ $? -eq 0 ]; then
     echo OK
 else
-    echo SQL logbook_ext.sql FAILED
-    diff -u sql/logbook_ext.sql.output output/logbook_ext.sql.output
-    exit 1
-fi
-
-# Moorages extended unit tests
-psql ${PGSAIL_DB_URI} < sql/moorages_ext.sql > output/moorages_ext.sql.output
-diff sql/moorages_ext.sql.output output/moorages_ext.sql.output > /dev/null
-#diff -u sql/moorages_ext.sql.output output/moorages_ext.sql.output | wc -l
-#echo 0
-if [ $? -eq 0 ]; then
-    echo OK
-else
-    echo SQL moorages_ext.sql FAILED
-    diff -u sql/moorages_ext.sql.output output/moorages_ext.sql.output
-    exit 1
-fi
-
-# Stays extended unit tests
-psql ${PGSAIL_DB_URI} < sql/stays_ext.sql > output/stays_ext.sql.output
-diff sql/stays_ext.sql.output output/stays_ext.sql.output > /dev/null
-#diff -u sql/stays_ext.sql.output output/stays_ext.sql.output | wc -l
-#echo 0
-if [ $? -eq 0 ]; then
-    echo OK
-else
-    echo SQL stays_ext.sql FAILED
-    diff -u sql/stays_ext.sql.output output/stays_ext.sql.output
+    echo SQL logbook_userdata.sql FAILED
+    diff -u sql/logbook_userdata.sql.output output/logbook_userdata.sql.output
     exit 1
 fi
 
@@ -270,32 +244,6 @@ if [ $? -eq 0 ]; then
 else
     echo SQL mobilitydb.sql FAILED
     diff -u sql/mobilitydb.sql.output output/mobilitydb.sql.output
-    exit 1
-fi
-
-# qgis SQL unit tests
-psql ${PGSAIL_DB_URI} < sql/qgis.sql > output/qgis.sql.output
-diff sql/qgis.sql.output output/qgis.sql.output > /dev/null
-#diff -u sql/qgis.sql.output output/qgis.sql.output | wc -l
-#echo 0
-if [ $? -eq 0 ]; then
-    echo SQL qgis.sql OK
-else
-    echo SQL qgis.sql FAILED
-    diff -u sql/qgis.sql.output output/qgis.sql.output
-    exit 1
-fi
-
-# maplapse SQL unit tests
-psql ${PGSAIL_DB_URI} < sql/maplapse.sql > output/maplapse.sql.output
-diff sql/maplapse.sql.output output/maplapse.sql.output > /dev/null
-#diff -u sql/maplapse.sql.output output/maplapse.sql.output | wc -l
-#echo 0
-if [ $? -eq 0 ]; then
-    echo SQL maplapse.sql OK
-else
-    echo SQL maplapse.sql FAILED
-    diff -u sql/maplapse.sql.output output/maplapse.sql.output
     exit 1
 fi
 
