@@ -188,8 +188,6 @@ lint:
           - api.logbook
           - api.metrics
           - api.stays_at
-          - api.metadata_ext
-          - api.stays_ext
           - auth.otp
           - public.process_queue
           - public.mid
@@ -206,10 +204,6 @@ lint:
           - api.logbook
           - api.metrics
           - api.stays_at
-          - api.metadata_ext
-          - api.stays_ext
-          - api.moorages_ext
-          - api.logbook_ext
           - auth.otp
           - public.process_queue
           - public.mid
