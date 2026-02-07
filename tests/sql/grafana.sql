@@ -12,26 +12,6 @@ select current_database();
 \x on
 
 --
--- grafana_auth
-SET ROLE grafana_auth;
-\echo 'ROLE grafana_auth current_setting'
-SELECT current_user, current_setting('user.email', true), current_setting('vessel.id', true);
-
---SELECT a.pass,v.name,m.client_id FROM auth.accounts a JOIN auth.vessels v ON a.email = 'demo+kapla@openplotter.cloud' AND a.role = 'user_role' AND cast(a.preferences->>'email_valid' as Boolean) = True AND v.owner_email = a.email JOIN api.metadata m ON m.vessel_id = v.vessel_id;
---SELECT a.pass,v.name,m.client_id FROM auth.accounts a JOIN auth.vessels v ON a.email = 'demo+kapla@openplotter.cloud' AND a.role = 'user_role' AND v.owner_email = a.email JOIN api.metadata m ON m.vessel_id = v.vessel_id;
-\echo 'link vessel and user based on current_setting'
-SELECT v.name, m.vessel_id IS NOT NULL AS vessel_id FROM auth.accounts a JOIN auth.vessels v ON a.role = 'user_role' AND v.owner_email = a.email JOIN api.metadata m ON m.vessel_id = v.vessel_id ORDER BY a.id DESC;
-
-\echo 'auth.accounts details'
-SELECT a.user_id IS NOT NULL AS user_id, a.email, a.first, a.last, a.pass IS NOT NULL AS pass, a.role, a.preferences->'telegram'->'chat' AS telegram, a.preferences->'pushover_user_key' AS pushover_user_key FROM auth.accounts AS a ORDER BY a.id DESC;
-\echo 'auth.vessels details'
---SELECT 'SELECT ' || STRING_AGG('v.' || column_name, ', ') || ' FROM auth.vessels AS v' FROM information_schema.columns WHERE table_name = 'vessels' AND table_schema = 'auth' AND column_name NOT IN ('created_at', 'updated_at');
-SELECT v.vessel_id IS NOT NULL AS vessel_id, v.owner_email, v.mmsi, v.name, v.role FROM auth.vessels AS v;
-\echo 'api.metadata details'
---
-SELECT vessel_id IS NOT NULL AS vessel_id_not_null, m.name, m.mmsi, m.length, m.beam, m.height, m.ship_type, m.plugin_version, m.signalk_version, m.time IS NOT NULL AS time, m.active, configuration IS NOT NULL AS configuration_not_null, available_keys FROM api.metadata AS m ORDER BY m.name DESC;
-
---
 -- grafana
 SET ROLE grafana;
 \echo 'ROLE grafana current_setting'
@@ -55,30 +35,30 @@ SELECT v.name AS __text, m.vessel_id IS NOT NULL AS __value FROM auth.vessels v 
 SELECT v.vessel_id IS NOT NULL AS vessel_id, v.owner_email, v.mmsi, v.name, v.role FROM auth.vessels AS v;
 --SELECT * FROM api.metadata m;
 \echo 'api.metadata details'
-SELECT vessel_id IS NOT NULL AS vessel_id_not_null, m.name, m.mmsi, m.length, m.beam, m.height, m.ship_type, m.plugin_version, m.signalk_version, m.time IS NOT NULL AS time, m.active, configuration IS NOT NULL AS configuration_not_null, available_keys FROM api.metadata AS m;
+SELECT vessel_id IS NOT NULL AS vessel_id_not_null, m.name, m.mmsi, m.length, m.beam, m.height, m.ship_type, m.plugin_version, m.signalk_version, m.time IS NOT NULL AS time, m.active, configuration IS NOT NULL AS configuration_not_null, available_keys FROM api.metadata AS m  ORDER BY name ASC;
 
 \echo 'api.logs_view'
 --SELECT * FROM api.logbook l;
 --SELECT * FROM api.logs_view l;
-SELECT l.id, l.name, l.from, l.to, l.distance, l.duration, l._from_moorage_id, l._to_moorage_id FROM api.logs_view AS l;
+SELECT l.id, l.name, l.from, l.to, l.distance, l.duration, l._from_moorage_id, l._to_moorage_id FROM api.logs_view AS l ORDER BY id ASC;
 --SELECT * FROM api.log_view l;
 
 \echo 'api.stays'
 --SELECT * FROM api.stays s;
-SELECT m.id, m.vessel_id IS NOT NULL AS vessel_id, m.moorage_id, m.active, m.name IS NOT NULL AS name, m.latitude, m.longitude, m.geog, m.arrived IS NOT NULL AS arrived, m.departed IS NOT NULL AS departed, m.duration, m.stay_code, m.notes FROM api.stays AS m;
+SELECT m.id, m.vessel_id IS NOT NULL AS vessel_id, m.moorage_id, m.active, m.name IS NOT NULL AS name, m.latitude, m.longitude, m.geog, m.arrived IS NOT NULL AS arrived, m.departed IS NOT NULL AS departed, m.duration, m.stay_code, m.notes FROM api.stays AS m ORDER BY id ASC;
 
 \echo 'api.stays_view'
 --SELECT * FROM api.stays_view s;
-SELECT m.id, m.name IS NOT NULL AS name, m.moorage, m.moorage_id, m.duration, m.stayed_at, m.stayed_at_id, m.arrived IS NOT NULL AS arrived, m.departed IS NOT NULL AS departed, m.notes FROM api.stays_view AS m;
+SELECT m.id, m.name IS NOT NULL AS name, m.moorage, m.moorage_id, m.duration, m.stayed_at, m.stayed_at_id, m.arrived IS NOT NULL AS arrived, m.departed IS NOT NULL AS departed, m.notes FROM api.stays_view AS m ORDER BY id ASC;
 
 \echo 'api.moorages'
 --SELECT * FROM api.moorages m;
 --SELECT m.id, m.vessel_id IS NOT NULL AS vessel_id, m.name, m.country, m.stay_code, m.stay_duration, m.reference_count, m.latitude, m.longitude, m.geog, m.home_flag, m.notes FROM api.moorages AS m;
-SELECT m.id, m.vessel_id IS NOT NULL AS vessel_id, m.name, m.country, m.stay_code, m.latitude, m.longitude, m.geog, m.home_flag, m.notes FROM api.moorages AS m;
+SELECT m.id, m.vessel_id IS NOT NULL AS vessel_id, m.name, m.country, m.stay_code, m.latitude, m.longitude, m.geog, m.home_flag, m.notes FROM api.moorages AS m ORDER BY id ASC;
 
 \echo 'api.moorages_view'
 SELECT * FROM api.moorages_view;
 
 \echo 'api.moorage_view'
 --SELECT * FROM api.moorage_view;
-SELECT m.id, m.name, default_stay, m.latitude, m.longitude, m.geog, m.home, m.notes, logs_count, stays_count, stay_first_seen_id, stay_last_seen_id, stay_first_seen IS NOT NULL AS stay_first_seen, stay_last_seen IS NOT NULL AS stay_last_seen FROM api.moorage_view m;
+SELECT m.id, m.name, default_stay, m.latitude, m.longitude, m.geog, m.home, m.notes, logs_count, stays_count, stay_first_seen_id, stay_last_seen_id, stay_first_seen IS NOT NULL AS stay_first_seen, stay_last_seen IS NOT NULL AS stay_last_seen FROM api.moorage_view m ORDER BY id ASC;

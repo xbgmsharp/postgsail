@@ -130,19 +130,6 @@ else
     exit
 fi
 
-# Logbook userdata unit tests
-#psql ${PGSAIL_DB_URI} < sql/logbook_userdata.sql > output/logbook_userdata.sql.output
-#diff sql/logbook_userdata.sql.output output/logbook_userdata.sql.output > /dev/null
-#diff -u sql/logbook_userdata.sql.output output/logbook_userdata.sql.output | wc -l
-echo 0
-if [ $? -eq 0 ]; then
-    echo OK
-else
-    echo SQL logbook_userdata.sql FAILED
-    diff -u sql/logbook_userdata.sql.output output/logbook_userdata.sql.output
-    exit 1
-fi
-
 # Summary unit tests
 psql ${PGSAIL_DB_URI} < sql/summary.sql > output/summary.sql.output
 diff sql/summary.sql.output output/summary.sql.output > /dev/null
@@ -244,6 +231,19 @@ if [ $? -eq 0 ]; then
 else
     echo SQL mobilitydb.sql FAILED
     diff -u sql/mobilitydb.sql.output output/mobilitydb.sql.output
+    exit 1
+fi
+
+# Views SQL unit tests
+psql ${PGSAIL_DB_URI} < sql/views.sql > output/views.sql.output
+diff sql/views.sql.output output/views.sql.output > /dev/null
+#diff -u sql/views.sql.output output/views.sql.output | wc -l
+#echo 0
+if [ $? -eq 0 ]; then
+    echo SQL views.sql OK
+else
+    echo SQL views.sql FAILED
+    diff -u sql/views.sql.output output/views.sql.output
     exit 1
 fi
 

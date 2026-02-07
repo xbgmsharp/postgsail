@@ -44,6 +44,12 @@ var moment = require("moment");
       payload: null,
       res: {},
     },
+    monitoring_live: {
+      url: "/monitoring_live",
+      header: { name: "x-is-public", value: btoa("kapla,public_monitoring,0") },
+      payload: null,
+      res: {},
+    },
     timelapse: {
       //url: "/rpc/timelapse_fn",
       url: '/rpc/export_logbooks_geojson_linestring_trips_fn',
@@ -83,6 +89,12 @@ var moment = require("moment");
       payload: null,
       res: {},
     },
+    export_kml: {
+      url: "/rpc/export_logbook_kml_trip_fn",
+      header: { name: "x-is-public", value: btoa("kapla,public_logs,0") },
+      payload: null,
+      res: {},
+    },
   },
   {
     cname: process.env.PGSAIL_API_URI,
@@ -101,6 +113,12 @@ var moment = require("moment");
     },
     monitoring: {
       url: "/monitoring_view",
+      header: { name: "x-is-public", value: btoa("aava,public_monitoring,0") },
+      payload: null,
+      res: {},
+    },
+    monitoring_live: {
+      url: "/monitoring_live",
       header: { name: "x-is-public", value: btoa("aava,public_monitoring,0") },
       payload: null,
       res: {},
@@ -139,6 +157,12 @@ var moment = require("moment");
     },
     export_gpx: {
       url: "/rpc/export_logbook_gpx_trip_fn",
+      header: { name: "x-is-public", value: btoa("aava,public_logs,0") },
+      payload: null,
+      res: {},
+    },
+    export_kml: {
+      url: "/rpc/export_logbook_kml_trip_fn",
       header: { name: "x-is-public", value: btoa("aava,public_logs,0") },
       payload: null,
       res: {},
@@ -200,6 +224,23 @@ var moment = require("moment");
             done(err);
           });
       });
+      it("/monitoring_live, api_anonymous no jwt token, x-is-public header", function (done) {
+        // Reset agent so we do not save cookies
+        request = supertest.agent(test.cname);
+        request
+          .get(test.monitoring_live.url)
+          .set(test.monitoring_live.header.name, test.monitoring_live.header.value)
+          .set("Accept", "application/json")
+          .end(function (err, res) {
+            console.log(res.text);
+            res.status.should.equal(200);
+            should.exist(res.header["content-type"]);
+            should.exist(res.header["server"]);
+            res.header["content-type"].should.match(new RegExp("json", "g"));
+            res.header["server"].should.match(new RegExp("postgrest", "g"));
+            done(err);
+          });
+      });
       it("/rpc/export_logbooks_geojson_linestring_trips_fn, api_anonymous no jwt token, x-is-public header", function (done) {
         // Reset agent so we do not save cookies
         request = supertest.agent(test.cname);
@@ -250,16 +291,34 @@ var moment = require("moment");
             done(err);
           });
       });
-      it("/rpc/export_logbook_gpx_fn, api_anonymous no jwt token", function (done) {
+      it("/rpc/export_logbook_gpx_trip_fn, api_anonymous no jwt token, x-is-public header", function (done) {
         // Reset agent so we do not save cookies
         request = supertest.agent(test.cname);
         request
           .post(test.export_gpx.url)
           .send({_id: 1})
           .set(test.export_gpx.header.name, test.export_gpx.header.value)
-          .set("Accept", "application/json")
+          .set("Accept", "text/xml")
           .end(function (err, res) {
-            console.log(res.text)
+            //console.log(res.text)
+            res.status.should.equal(401);
+            should.exist(res.header["content-type"]);
+            should.exist(res.header["server"]);
+            res.header["content-type"].should.match(new RegExp("json", "g"));
+            res.header["server"].should.match(new RegExp("postgrest", "g"));
+            done(err);
+          });
+      });
+      it("/rpc/export_logbook_kml_trip_fn, api_anonymous no jwt token, x-is-public header", function (done) {
+        // Reset agent so we do not save cookies
+        request = supertest.agent(test.cname);
+        request
+          .post(test.export_kml.url)
+          .send({_id: 1})
+          .set(test.export_kml.header.name, test.export_kml.header.value)
+          .set("Accept", "text/xml")
+          .end(function (err, res) {
+            //console.log(res.text)
             res.status.should.equal(401);
             should.exist(res.header["content-type"]);
             should.exist(res.header["server"]);

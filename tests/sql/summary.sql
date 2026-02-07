@@ -22,6 +22,7 @@ SELECT postgis_full_version();
 -- List of installed extensions
 -- \dx
 --SELECT extname,extversion FROM pg_extension;
+\echo 'List of installed extensions'
 SELECT e.extname AS "Name", e.extversion AS "Version", n.nspname AS "Schema", c.description AS "Description" 
     FROM pg_catalog.pg_extension e 
     LEFT JOIN pg_catalog.pg_namespace n ON n.oid = e.extnamespace 
@@ -29,22 +30,26 @@ SELECT e.extname AS "Name", e.extversion AS "Version", n.nspname AS "Schema", c.
     ORDER BY 1;
 
 -- List of installed extensions available for upgrade
+\echo 'List of installed extensions available for upgrade'
 SELECT name, default_version, installed_version FROM pg_available_extensions where default_version <> installed_version;
 
 -- List Language
 \echo 'List Language'
-SELECT * FROM pg_language;
+--SELECT * FROM pg_language;
+SELECT lanname,lanispl,lanpltrusted,lanacl FROM pg_language order by lanname;
 
 -- List of databases
 -- ICU Missing entry in some system?
 --\l
-SELECT datname,datconnlimit,datcollate,datctype,datallowconn FROM pg_database;
+\echo 'List of databases'
+SELECT datname,datconnlimit,datcollate,datctype,datallowconn FROM pg_database order by datname;
 
 -- List of relations
 \echo 'List of relations'
-\dtables
+--\dtables
 
 -- List tables from schema api
+\echo 'List of relations from schema api'
 select t.table_name as schema_api
     from information_schema.tables t
     where t.table_schema = 'api'
@@ -52,13 +57,16 @@ select t.table_name as schema_api
     order by t.table_name;
 
 -- List tables from schema public
+\echo 'List of relations from schema public'
 select t.table_name as schema_public
     from information_schema.tables t
     where t.table_schema = 'public'
         and t.table_type = 'BASE TABLE'
+        and t.table_name NOT LIKE 'goose_db_version%'
     order by t.table_name;
 
 -- List tables from schema auth
+\echo 'List of relations from schema auth'
 select t.table_name as schema_auth
     from information_schema.tables t
     where t.table_schema = 'auth'
@@ -66,6 +74,7 @@ select t.table_name as schema_auth
     order by t.table_name;
 
 -- List tables from schema jwt
+\echo 'List of relations from schema jwt'
 select t.table_name as schema_jwt
     from information_schema.tables t
     where t.table_schema = 'jwt'
@@ -74,7 +83,7 @@ select t.table_name as schema_jwt
 
 -- List Row Security Policies - todo reduce and improve output
 \echo 'List Row Security Policies'
-select * from pg_policies;
+select * from pg_policies order by schemaname, tablename, policyname;
 
 -- Test functions
 \echo 'Test nominatim reverse_geocode_py_fn'

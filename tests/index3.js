@@ -49,11 +49,17 @@ var moment = require('moment');
     ],
     user_views: [
         { url: '/stays_view', res_body_length: 2},
+        { url: '/stay_view', res_body_length: 2},
         { url: '/moorages_view', res_body_length: 3},
+        { url: '/moorage_view', res_body_length: 3},
         { url: '/logs_view', res_body_length: 2},
         { url: '/log_view', res_body_length: 2},
         //{ url: '/stats_view', res_body_length: 1},
         { url: '/vessels_view', res_body_length: 1},
+    ],
+    user_geojson_views: [
+        { url: '/stays_geojson_view', res_body_length: 3}, // Include active stay
+        { url: '/logs_geojson_view', res_body_length: 2}
     ],
     user_patchs: [
       { url: '/logbook?id=eq.1',
@@ -191,6 +197,12 @@ var moment = require('moment');
           obj_name: null
         }
       },
+      { url: '/rpc/update_logbook_observations_fn',
+        payload: { _id: 2, observations: { tags: 'new_tag' } },
+        res: {
+          obj_name: null
+        }
+      },
     ],
     email_otp_fn: [
       { url: '/rpc/generate_otp_fn',
@@ -266,11 +278,17 @@ var moment = require('moment');
     ],
     user_views: [
         { url: '/stays_view', res_body_length: 2},
+        { url: '/stay_view', res_body_length: 2},
         { url: '/moorages_view', res_body_length: 4},
+        { url: '/moorage_view', res_body_length: 4},
         { url: '/logs_view', res_body_length: 2},
         { url: '/log_view', res_body_length: 2},
         //{ url: '/stats_view', res_body_length: 1},
         { url: '/vessels_view', res_body_length: 1},
+    ],
+    user_geojson_views: [
+        { url: '/stays_geojson_view', res_body_length: 3}, // Include active stay
+        { url: '/logs_geojson_view', res_body_length: 2}
     ],
     user_patchs: [
       { url: '/logbook?id=eq.4',
@@ -446,6 +464,12 @@ var moment = require('moment');
             },
         res: { stats: null }
       },
+      { url: '/rpc/update_logbook_observations_fn',
+        payload: { _id: 3, observations: { tags: 'new_tag' } },
+        res: {
+          obj_name: null
+        }
+      },
     ],
     others_fn: [
       { url: '/rpc/generate_otp_fn',
@@ -581,6 +605,9 @@ request.set('User-Agent', 'PostgSail unit tests');
           should.exist(res.body.paths['/logs_view']);
           should.exist(res.body.paths['/moorages_view']);
           should.exist(res.body.paths['/stays_view']);
+          should.exist(res.body.paths['/log_view']);
+          should.exist(res.body.paths['/moorage_view']);
+          should.exist(res.body.paths['/stay_view']);
           should.exist(res.body.paths['/vessels_view']);
           //should.exist(res.body.paths['/stats_view']);
           should.exist(res.body.paths['/monitoring_view']);
@@ -763,7 +790,38 @@ request.set('User-Agent', 'PostgSail unit tests');
               res.header['server'].should.match(new RegExp('postgrest','g'));
               should.exist(res.body);
               res.body.length.should.match(subtest.res_body_length);
+              Array.isArray(res.body).should.equal(true);
               console.log(res.body);
+              done(err);
+            });
+        }
+        catch (error) {
+          done();
+        }
+      });
+    });
+
+    test.user_geojson_views.forEach(function (subtest) {
+      it(`${subtest.url}`, function(done) {
+        try {
+          //console.log(`${subtest.url} ${subtest.res_body_length}`);
+          // Reset agent so we do not save cookies
+          request = supertest.agent(test.cname);
+          request
+            .get(`${subtest.url}`)
+            .set('Authorization', `Bearer ${user_jwt}`)
+            .set('Accept', 'application/json')
+            .end(function(err,res){
+              //console.log(res.body);
+              res.status.should.equal(200);
+              should.exist(res.header['content-type']);
+              should.exist(res.header['server']);
+              res.header['content-type'].should.match(new RegExp('json','g'));
+              res.header['server'].should.match(new RegExp('postgrest','g'));
+              should.exist(res.body);
+              res.body.length.should.match(subtest.res_body_length);
+              console.log(res.body);
+              Array.isArray(res.body).should.equal(true);
               done(err);
             });
         }

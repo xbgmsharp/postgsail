@@ -30,13 +30,13 @@ SELECT count(*) FROM api.logbook WHERE vessel_id = current_setting('vessel.id', 
 \echo 'logbook'
 --SELECT name,_from_time IS NOT NULL AS _from_time,_to_time IS NOT NULL AS _to_time, track_geojson IS NOT NULL AS track_geojson, trajectory(trip)::geometry as track_geom, distance,duration,round(avg_speed::NUMERIC,6),max_speed,max_wind_speed,notes,extra FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
 --SELECT name,_from_time IS NOT NULL AS _from_time,_to_time IS NOT NULL AS _to_time, api.export_logbook_geojson_trip_fn(id) IS NOT NULL AS track_geojson, trajectory(trip)::geometry as track_geom, distance,duration,round(avg_speed::NUMERIC,6),max_speed,max_wind_speed,notes,extra FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
-SELECT name,_from_time IS NOT NULL AS _from_time,_to_time IS NOT NULL AS _to_time, api.export_logbook_geojson_trip_fn(id) IS NOT NULL AS track_geojson, trajectory(trip)::geometry as track_geom, distance,duration,avg_speed,max_speed,max_wind_speed,notes,extra->>'polar' IS NOT NULL as polar_is_not_null,extra->>'avg_wind_speed' as avg_wind_speed,user_data FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false);
+SELECT name,_from_time IS NOT NULL AS _from_time,_to_time IS NOT NULL AS _to_time, api.export_logbook_geojson_trip_fn(id) IS NOT NULL AS track_geojson, trajectory(trip)::geometry as track_geom, distance,duration,avg_speed,max_speed,max_wind_speed,notes,extra->>'polar' IS NOT NULL as polar_is_not_null,extra->>'avg_wind_speed' as avg_wind_speed,user_data FROM api.logbook WHERE vessel_id = current_setting('vessel.id', false) ORDER BY id ASC;
 
 -- Test stays for user
 \echo 'stays'
 SELECT count(*) FROM api.stays WHERE vessel_id = current_setting('vessel.id', false);
 \echo 'stays'
-SELECT active,name IS NOT NULL AS name,geog,stay_code FROM api.stays WHERE vessel_id = current_setting('vessel.id', false);
+SELECT active,name IS NOT NULL AS name,geog,stay_code FROM api.stays WHERE vessel_id = current_setting('vessel.id', false) ORDER BY id ASC;
 
 -- Test event logs view for user
 \echo 'eventlogs_view'

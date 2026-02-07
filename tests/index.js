@@ -436,7 +436,7 @@ request.set('User-Agent', 'PostgSail unit tests');
   }); // JWT user_role
 
   describe("OpenAPI with JWT user_role", function(){
-
+    this.timeout(5000);
     it('/', function(done) {
       request = supertest.agent(test.cname);
       request

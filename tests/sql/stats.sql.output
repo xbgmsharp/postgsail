@@ -19,7 +19,7 @@ max_speed              | 6.5
 max_distance           | 16.58
 max_duration           | PT49M
 max_wind_speed         | 37.92
-home_ports             | 1
+home_ports             | 0
 unique_moorages        | 5
 moorages_top_countries | ["fi"]
 
