@@ -1,0 +1,35 @@
+# Connection properties
+connectionString: ${PGSAIL_DB_URI}
+
+# Define what schemas should be used
+#useAllSchemas: true
+# or
+schema:
+  - "public"
+  - "api"
+  - "auth"
+
+# Define what tables should be used
+useAllTables: true
+# or
+#selectedTables:
+#  - city
+#  - customer
+
+# Additional flags
+showAllConstraints: true
+encloseWithMermaidBackticks: true
+outputFileName: "postgsail.md"
+debug: true
+omitConstraintLabels: true
+omitAttributeKeys: true
+showDescriptions:
+  - enumValues
+  - columnComments
+  - notNull
+showSchemaPrefix: true
+schemaPrefixSeparator: "_"
+
+# Names must match the pattern <schema><schema_prefix><table>
+#relationshipLabels:
+#  - "public_table public_another-table : label"

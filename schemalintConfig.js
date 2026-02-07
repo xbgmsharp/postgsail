@@ -29,10 +29,11 @@ module.exports = {
     // the `rulePattern` (regex).
     ignores: [
       //{ identifier: "public.sessions", rule: "name-inflection" },
-      { identifierPattern: "public\\.(aistype|app_settings|badges|geocoders|email_templates|mid|iso3166|ne_10m_geography_marine_polys)", rule: "row-level-security" },
+      { identifierPattern: "public\\.(aistype|app_settings|badges|geocoders|email_templates|mid|iso3166|ne_10m_geography_marine_polys|goose_db_version*)", rule: "row-level-security" },
       { identifierPattern: "public\\..*", rule: "require-primary-key" },
-      { identifierPattern: "public\\.knex_migrations.*", rulePattern: ".*" },
+      //{ identifierPattern: "public\\.knex_migrations.*", rulePattern: ".*" },
       { identifier: "api.stays_at", rule: "row-level-security" },
       { identifier: "auth.otp", rule: "row-level-security" },
+      { identifierPattern: "public\\.goose_db_version*", rule: "prefer-timestamptz-to-timestamp" },
     ],
   };
