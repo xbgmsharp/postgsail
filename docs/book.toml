@@ -1,0 +1,24 @@
+[book]
+authors = ["xbgmsharp"]
+language = "en"
+src = "src"
+title = "Postgsail Documentation"
+description = "PostgreSQL-based vessel data management system that automatically logs sailing voyages and monitors vessel telemetry from SignalK servers."
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"
+smart-punctuation = true
+mathjax-support = false
+git-repository-url = "https://github.com/xbgmsharp/postgsail"
+edit-url-template = "https://github.com/xbgmsharp/postgsail/edit/main/docs/{path}"
+additional-js = ["mermaid.min.js", "mermaid-init.js", "theme/excalidraw.js"]
+additional-css = ["theme/excalidraw.css"]
+
+[preprocessor.mermaid]
+command = "/root/.cargo/bin/mdbook-mermaid"
+
+#[preprocessor.excalidraw]
+#command = "/root/.cargo/bin/mdbook-excalidraw"
+
+#[preprocessor.external-links]
