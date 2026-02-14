@@ -1,35 +1,7 @@
 ---------------------------------------------------------------------------
--- PostgSail => Postgres + TimescaleDB + PostGIS + PostgREST
---
--- Inspired from:
--- https://groups.google.com/g/signalk/c/W2H15ODCic4
---
--- Description:
--- Insert data into table api.metadata from API using PostgREST
--- Insert data into table api.metrics from API using PostgREST
--- TimescaleDB Hypertable to store signalk metrics on table api.metrics
--- pgsql functions to generate logbook, stays, moorages from table api.metrics
--- CRON functions to process logbook, stays, moorages
--- python functions for geo reverse and send notification via email, pushover, telegram
--- Views statistics, timelapse, monitoring, logs
--- Always store time in UTC
+-- PostgSail => PostgreSQL + TimescaleDB + PostGIS + MobilityDB + PostgREST
+-- This file is part of PostgSail which is released under Apache License, Version 2.0 (the "License").
 ---------------------------------------------------------------------------
-
--- vessels signalk -(POST)-> metadata -> metadata_upsert_trigger -(BEFORE INSERT)-> metadata_upsert_trigger_fn (INSERT or UPDATE)
--- vessels signalk -(POST)-> metrics -> metrics_trigger -(BEFORE INSERT)-> metrics_trigger_fn (INSERT or UPDATE new log,stay)
-
----------------------------------------------------------------------------
-
--- Drop database
--- % docker exec -i timescaledb-postgis psql -Uusername -W postgres -c "drop database signalk;"
-
--- Import Schema
--- % cat signalk.sql | docker exec -i timescaledb-postgis psql -Uusername postgres
-
--- Export hypertable
--- % docker exec -i timescaledb-postgis psql -Uusername -W signalk -c "\COPY (SELECT * FROM api.metrics ORDER BY time ASC) TO '/var/lib/postgresql/data/metrics.csv' DELIMITER ',' CSV"
--- Export hypertable to gzip
--- # docker exec -i timescaledb-postgis psql -Uusername -W signalk -c "\COPY (SELECT * FROM api.metrics ORDER BY time ASC) TO PROGRAM 'gzip > /var/lib/postgresql/data/metrics.csv.gz' CSV HEADER;"
 
 DO $$
 BEGIN
@@ -55,29 +27,42 @@ ALTER DATABASE signalk SET TIMEZONE='UTC';
 ALTER DATABASE signalk SET datestyle TO "ISO, DMY";
 -- Set intervalstyle output
 ALTER DATABASE signalk SET intervalstyle TO 'iso_8601';
+-- Set statement timeout to 5 minutes
+ALTER DATABASE signalk SET statement_timeout = '5min';
 
 -- connect to the DB
 \c signalk
-
--- Schema
-CREATE SCHEMA IF NOT EXISTS api;
-COMMENT ON SCHEMA api IS
-$$PostgSail API
-
-A RESTful API that serves PostgSail data using postgrest.$$;
 
 -- Revoke default privileges to all public functions
 ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
 
 -- Extensions
 CREATE EXTENSION IF NOT EXISTS timescaledb; -- provides time series functions for PostgreSQL
--- CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit; -- provides time series functions for PostgreSQL
+CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit; -- provides more hyperfunctions, fully compatible with TimescaleDB for PostgreSQL
 CREATE EXTENSION IF NOT EXISTS postgis; -- adds support for geographic objects to the PostgreSQL object-relational database
+CREATE EXTENSION IF NOT EXISTS mobilitydb; -- provides job scheduling for PostgreSQL
 CREATE EXTENSION IF NOT EXISTS plpgsql; -- PL/pgSQL procedural language
 CREATE EXTENSION IF NOT EXISTS plpython3u; -- implements PL/Python based on the Python 3 language variant.
-CREATE EXTENSION IF NOT EXISTS jsonb_plpython3u CASCADE; -- tranform jsonb to python json type.
+CREATE EXTENSION IF NOT EXISTS jsonb_plpython3u CASCADE; -- transform jsonb to python json type.
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements; -- provides a means for tracking planning and execution statistics of all SQL statements executed
-CREATE EXTENSION IF NOT EXISTS "moddatetime"; -- provides functions for tracking last modification time
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp"; -- provides functions to generate universally unique identifiers (UUIDs)
+CREATE EXTENSION IF NOT EXISTS moddatetime; -- provides functions for tracking last modification time
+CREATE EXTENSION IF NOT EXISTS citext; -- provides data type for case-insensitive character strings
+CREATE EXTENSION IF NOT EXISTS pgcrypto; -- provides cryptographic functions
 
 -- Trust plpython3u language by default
 UPDATE pg_language SET lanpltrusted = true WHERE lanname = 'plpython3u';
+
+DO $$
+BEGIN
+RAISE WARNING '
+  _____          _         _____       _ _ 
+ |  __ \        | |       / ____|     (_) |
+ | |__) |__  ___| |_ __ _| (___   __ _ _| |
+ |  ___/ _ \/ __| __/ _` |\___ \ / _` | | |
+ | |  | (_) \__ \ || (_| |____) | (_| | | |
+ |_|   \___/|___/\__\__, |_____/ \__,_|_|_|
+                     __/ |                 
+                    |___/                  
+ %', now();
+END $$;
