@@ -1,0 +1,265 @@
+ current_database 
+------------------
+ signalk
+(1 row)
+
+You are now connected to database "signalk" as user "username".
+Expanded display is on.
+Validate views operation
+-[ RECORD 1 ]
+user_id | t
+
+-[ RECORD 1 ]
+vessel_id | t
+
+SET
+ROLE user_role current_setting
+-[ RECORD 1 ]
+vessel_id | t
+
+logs view
+-[ RECORD 1 ]----+-----------------------------------------
+name             | patch log name 4
+from             | Spain
+to               | Monsolís
+started_not_null | t
+ended_not_null   | t
+distance         | 5.19
+date_trunc       | PT1H11M
+_from_moorage_id | 1
+_to_moorage_id   | 2
+tags             | 
+-[ RECORD 2 ]----+-----------------------------------------
+name             | Harju County to Tallinnamadal lighthouse
+from             | Harju County
+to               | patch moorage name
+started_not_null | t
+ended_not_null   | t
+distance         | 8.40
+date_trunc       | PT46M
+_from_moorage_id | 3
+_to_moorage_id   | 4
+tags             | "new_tag"
+
+log view
+-[ RECORD 1 ]-------------+--------------------------------------------------------
+name                      | patch log name 4
+from                      | Spain
+to                        | Monsolís
+started_not_null          | t
+ended_not_null            | t
+geojson_features_not_null | t
+distance                  | 5.19
+date_trunc                | PT1H11M
+avg_speed                 | 4.38
+max_speed                 | 5.6
+max_wind_speed            | 44.18
+avg_wind_speed_not_null   | t
+notes                     | new log note 4
+polar_is_not_null         | f
+tags                      | 
+observations              | {"seaState": -1, "visibility": -1, "cloudCoverage": -1}
+-[ RECORD 2 ]-------------+--------------------------------------------------------
+name                      | Harju County to Tallinnamadal lighthouse
+from                      | Harju County
+to                        | patch moorage name
+started_not_null          | t
+ended_not_null            | t
+geojson_features_not_null | t
+distance                  | 8.40
+date_trunc                | PT46M
+avg_speed                 | 10.95
+max_speed                 | 7.1
+max_wind_speed            | 18
+avg_wind_speed_not_null   | t
+notes                     | 
+polar_is_not_null         | f
+tags                      | "new_tag"
+observations              | {"seaState": -1, "visibility": -1, "cloudCoverage": -1}
+
+stays view
+-[ RECORD 1 ]-------------+---------------------------------------------------------
+name                      | 1 days stay at Tallinnamadal lighthouse in February 2026
+moorage                   | patch moorage name
+moorage_id                | 4
+duration                  | PT21H14M
+stayed_at                 | Anchor
+stayed_at_id              | 2
+arrived_not_null          | t
+arrived_log_id            | 4
+arrived_from_moorage_id   | 2
+arrived_from_moorage_name | Monsolís
+departed_not_null         | t
+departed_log_id           | 3
+departed_to_moorage_id    | 3
+departed_to_moorage_name  | Harju County
+notes                     | new stay note 2
+-[ RECORD 2 ]-------------+---------------------------------------------------------
+name                      | patch stay name 4
+moorage                   | Harju County
+moorage_id                | 3
+duration                  | PT1M
+stayed_at                 | Anchor
+stayed_at_id              | 2
+arrived_not_null          | t
+arrived_log_id            | 3
+arrived_from_moorage_id   | 4
+arrived_from_moorage_name | patch moorage name
+departed_not_null         | t
+departed_log_id           | 
+departed_to_moorage_id    | 
+departed_to_moorage_name  | 
+notes                     | new stay note 4
+
+stay view
+-[ RECORD 1 ]-------------+---------------------------------------------------------
+name                      | 1 days stay at Tallinnamadal lighthouse in February 2026
+moorage                   | patch moorage name
+moorage_id                | 4
+duration                  | PT21H14M
+stayed_at                 | Anchor
+stayed_at_id              | 2
+arrived_not_null          | t
+arrived_log_id            | 4
+arrived_from_moorage_id   | 2
+arrived_from_moorage_name | Monsolís
+departed_not_null         | t
+departed_log_id           | 3
+departed_to_moorage_id    | 3
+departed_to_moorage_name  | Harju County
+notes                     | new stay note 2
+-[ RECORD 2 ]-------------+---------------------------------------------------------
+name                      | patch stay name 4
+moorage                   | Harju County
+moorage_id                | 3
+duration                  | PT1M
+stayed_at                 | Anchor
+stayed_at_id              | 2
+arrived_not_null          | t
+arrived_log_id            | 3
+arrived_from_moorage_id   | 4
+arrived_from_moorage_name | patch moorage name
+departed_not_null         | t
+departed_log_id           | 
+departed_to_moorage_id    | 
+departed_to_moorage_name  | 
+notes                     | new stay note 4
+
+moorages view
+-[ RECORD 1 ]-------+-------------------
+moorage             | patch moorage name
+default_stay        | Anchor
+default_stay_id     | 2
+arrivals_departures | 1
+total_duration      | PT21H14M
+-[ RECORD 2 ]-------+-------------------
+moorage             | Harju County
+default_stay        | Unknown
+default_stay_id     | 1
+arrivals_departures | 1
+total_duration      | PT1M
+-[ RECORD 3 ]-------+-------------------
+moorage             | Spain
+default_stay        | Unknown
+default_stay_id     | 1
+arrivals_departures | 1
+total_duration      | PT0S
+-[ RECORD 4 ]-------+-------------------
+moorage             | Monsolís
+default_stay        | Unknown
+default_stay_id     | 1
+arrivals_departures | 1
+total_duration      | PT0S
+
+moorage view
+-[ RECORD 1 ]------------+---------------------------------------------------
+name                     | Spain
+default_stay             | Unknown
+default_stay_id          | 1
+stays_sum_duration       | PT0S
+notes                    | 
+logs_count               | 1
+stays_count              | 0
+home                     | f
+geog                     | 0101000020E6100000FB5F05C1AC390240F3A7A2549EB04440
+stay_first_seen_not_null | f
+stay_last_seen_not_null  | f
+stay_first_seen_id       | 
+stay_last_seen_id        | 
+-[ RECORD 2 ]------------+---------------------------------------------------
+name                     | Monsolís
+default_stay             | Unknown
+default_stay_id          | 1
+stays_sum_duration       | PT0S
+notes                    | 
+logs_count               | 1
+stays_count              | 0
+home                     | f
+geog                     | 0101000020E6100000E27904920B59024013D4800A90BB4440
+stay_first_seen_not_null | f
+stay_last_seen_not_null  | f
+stay_first_seen_id       | 
+stay_last_seen_id        | 
+-[ RECORD 3 ]------------+---------------------------------------------------
+name                     | patch moorage name
+default_stay             | Anchor
+default_stay_id          | 2
+stays_sum_duration       | PT21H14M
+notes                    | new moorage note
+logs_count               | 1
+stays_count              | 1
+home                     | t
+geog                     | 0101000020E61000001256BEC2DDBA3840EB22E06B63DB4D40
+stay_first_seen_not_null | t
+stay_last_seen_not_null  | t
+stay_first_seen_id       | 5
+stay_last_seen_id        | 5
+-[ RECORD 4 ]------------+---------------------------------------------------
+name                     | Harju County
+default_stay             | Unknown
+default_stay_id          | 1
+stays_sum_duration       | PT1M
+notes                    | 
+logs_count               | 1
+stays_count              | 1
+home                     | f
+geog                     | 0101000020E61000001CACA4BA25BC3840217B18B556DC4D40
+stay_first_seen_not_null | t
+stay_last_seen_not_null  | t
+stay_first_seen_id       | 4
+stay_last_seen_id        | 4
+
+logs geojson view
+-[ RECORD 1 ]---------------+-----------------------------------------
+id                          | 4
+name                        | patch log name 4
+geojson_geometry_not_null   | t
+geojson_properties_not_null | t
+-[ RECORD 2 ]---------------+-----------------------------------------
+id                          | 3
+name                        | Harju County to Tallinnamadal lighthouse
+geojson_geometry_not_null   | t
+geojson_properties_not_null | t
+
+moorages geojson view
+-[ RECORD 1 ]---------------+-------------------
+id                          | 1
+name                        | Spain
+geojson_geometry_not_null   | t
+geojson_properties_not_null | t
+-[ RECORD 2 ]---------------+-------------------
+id                          | 2
+name                        | Monsolís
+geojson_geometry_not_null   | t
+geojson_properties_not_null | t
+-[ RECORD 3 ]---------------+-------------------
+id                          | 4
+name                        | patch moorage name
+geojson_geometry_not_null   | t
+geojson_properties_not_null | t
+-[ RECORD 4 ]---------------+-------------------
+id                          | 3
+name                        | Harju County
+geojson_geometry_not_null   | t
+geojson_properties_not_null | t
+
