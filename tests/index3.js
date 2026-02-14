@@ -290,7 +290,7 @@ var moment = require('moment');
     user_geojson_views: [
         { url: '/stays_geojson_view', res_body_length: 3}, // Include active stay
         { url: '/logs_geojson_view', res_body_length: 2},
-        { url: '/moorages_geojson_view', res_body_length: 3} // Include active stay
+        { url: '/moorages_geojson_view', res_body_length: 4} // Include active stay
     ],
     user_patchs: [
       { url: '/logbook?id=eq.4',
