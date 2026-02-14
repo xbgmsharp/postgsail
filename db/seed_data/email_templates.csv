@@ -1,0 +1,184 @@
+"name","email_subject","email_content","pushover_title","pushover_message"
+new_vessel,New boat,"Hi!
+How are you?
+__BOAT__ is now linked to your account.
+",New boat,"Hi!
+How are you?
+__BOAT__ is now linked to your account.
+"
+monitor_offline,Boat went Offline,"__BOAT__ has been offline for more than an hour
+Find more details at __APP_URL__/boats
+",Boat went Offline,"__BOAT__ has been offline for more than an hour
+Find more details at __APP_URL__/boats
+"
+monitor_online,Boat went Online,"__BOAT__ just came online
+Find more details at __APP_URL__/boats
+",Boat went Online,"__BOAT__ just came online
+Find more details at __APP_URL__/boats
+"
+new_badge,New Badge!,"Hello __RECIPIENT__,
+Congratulations! You have just unlocked a new badge: __BADGE_NAME__
+See more details at __APP_URL__/badges
+Happy sailing!
+The PostgSail Team",New Badge!,"Congratulations!
+You have just unlocked a new badge: __BADGE_NAME__
+See more details at __APP_URL__/badges
+"
+pushover_valid,Pushover integration,"Hello __RECIPIENT__,
+Congratulations! You have just connect your account to Pushover.
+
+The PostgSail Team",Pushover integration!,"Congratulations!
+You have just connect your account to Pushover.
+"
+email_otp,Email verification,"Hello,
+Please active your account using the following code: __OTP_CODE__.
+The code is valid 15 minutes.
+The PostgSail Team",Email verification,"Congratulations!
+Please validate your account. Check your email!"
+email_valid,Email verified,"Hello,
+Congratulations!
+You successfully validate your account.
+The PostgSail Team",Email verified,"Hi!
+You successfully validate your account.
+"
+email_reset,Password reset,"Hello,
+You requested a password reset. To reset your password __APP_URL__/reset-password?__RESET_QS__.
+The PostgSail Team",Password reset,"You requested a password recovery. Check your email!
+"
+telegram_otp,Telegram bot,"Hello,
+To connect your account to a @postgsail_bot. Please type this verification code __OTP_CODE__ back to the bot.
+The code is valid 15 minutes.
+The PostgSail Team",Telegram bot,"Hello,
+To connect your account to a @postgsail_bot. Check your email!
+"
+telegram_valid,Telegram bot,"Hello __RECIPIENT__,
+Congratulations! You have just connect your account to your vessel, @postgsail_bot.
+
+The PostgSail Team",Telegram bot!,"Congratulations!
+You have just connect your account to your vessel, @postgsail_bot.
+"
+windy_error,PostgSail Windy Weather station Error,"Hello __RECIPIENT__,
+Sorry!We could not convert your boat into a Windy Personal Weather Station due to missing data (temperature, wind or pressure).
+Windy Personal Weather Station is now disable.",PostgSail Windy error!,"Sorry!
+We could not convert your boat into a Windy Personal Weather Station."
+grafana,PostgSail Grafana integration,"Hello __RECIPIENT__,
+Congratulations! You unlocked Grafana dashboard.
+See more details at https://app.openplotter.cloud
+Happy sailing!
+Francois",PostgSail Grafana!,"Congratulations!
+You unlocked Grafana dashboard.
+See more details at https://app.openplotter.cloud
+"
+windy,PostgSail Windy Weather station,"Hello __RECIPIENT__,
+Congratulations! Your boat is now a Windy Weather station.
+See more details at __APP_URL__/windy
+Happy sailing!
+Francois",PostgSail Windy!,"Congratulations!
+Your boat is now a Windy Weather station.
+See more details at __APP_URL__/windy
+"
+alert,PostgSail Alert,"Hello __RECIPIENT__,
+We detected an alert __ALERT__.
+See more details at __APP_URL__
+Stay safe.
+Francois",PostgSail Alert!,"We detected an alert __ALERT__.
+"
+account_disable,PostgSail Account disable,"Hello __RECIPIENT__,
+Sorry!Your account is disable. please contact us to solve the issue.",PostgSail Account disable!,"Sorry!
+Your account is disable. please contact us to solve the issue."
+skplugin_upgrade,PostgSail Signalk plugin upgrade,"Hello __RECIPIENT__,
+Please upgrade your postgsail signalk plugin. Make sure you restart your Signalk instance after upgrading. Be sure to contact me if you encounter any issue.",PostgSail Signalk plugin upgrade!,Please upgrade your postgsail signalk plugin.
+video_ready,PostgSail Video ready,"Hello,
+Your video is available at __VIDEO_LINK__.
+Please make sure you download your video as it will delete in 7 days.",PostgSail Video ready!,Your video is ready __VIDEO_LINK__
+video_error,PostgSail Video Error,"Hey,
+Sorry we could not generate your video.
+Please reach out to debug and solve the issue.",PostgSail Video Error!,There has been an error with your video.
+new_account,Welcome aboard!,"Welcome aboard __RECIPIENT__,
+Congratulations!
+You successfully created an account.
+Keep in mind to register your vessel.
+Happy sailing!",Welcome,"Hi!
+You successfully created an account
+Keep in mind to register your vessel.
+"
+deactivated,We hate to see you go,"Hello __RECIPIENT__,
+
+Your account has been deactivated and all your data has been removed from PostgSail system.
+
+Thank you for being a valued user of PostgSail!
+
+Find more details at __APP_URL__
+",PostgSail deactivated!,"We removed your account. Check your email!
+"
+logbook,New Logbook Entry,"Hello __RECIPIENT__,
+
+Here is a recap of your latest trip __LOGBOOK_NAME__ on PostgSail.
+__LOGBOOK_STATS__
+
+Check out your timelapse at __APP_URL__/timelapse/__LOGBOOK_LINK__
+
+See more details at __APP_URL__/log/__LOGBOOK_LINK__
+
+Happy sailing!
+The PostgSail Team",New Logbook Entry,"New entry on openplotter.cloud: ""__LOGBOOK_NAME__""
+See more details at __APP_URL__/log/__LOGBOOK_LINK__
+"
+no_activity,PostgSail boat inactivity," 
+Hello __RECIPIENT__,
+We noticed you haven't logged any sailing activity yet, and wanted to check if everything is working smoothly for you.
+Sometimes getting started with a new platform can be a bit overwhelming. Whether you need help connecting your boat, understanding the features, or just have questions about how PostgSail works, we're here to support you.
+Don't hesitate to reach out - we love helping fellow sailors make the most of our free, open-source platform.
+Best regards,
+The PostgSail Team
+",PostgSail inactivity!,"We detected inactivity. Check your email!
+"
+inactivity,We Haven't Seen You in a While!,"Hi __RECIPIENT__,
+
+You’re busy. We understand.
+
+You haven't logged into PostgSail for a considerable period. Since we last saw you, we have continued to add new and exciting features to help you explorer your navigation journey.
+
+Meanwhile, we have cleanup your data. If you wish to maintain an up-to-date overview of your sail journey in PostgSail''s dashboard, kindly log in to your account within the next seven days.
+
+Please note that your account will be permanently deleted if it remains inactive for seven more days.
+
+If you have any questions or concerns or if you believe this to be an error, please do not hesitate to reach out at info@openplotter.cloud.
+
+Sincerely,
+Francois",We Haven't Seen You in a While!,You haven't logged into PostgSail for a considerable period. Login to check what's new!.
+autodiscovery,PostgSail Personalize Your Boat Profile,"Hello __RECIPIENT__,
+Good news — your boat is now connected! ⚓
+We’ve updated your SignalK path mapping, so you might want to take a quick look and make sure everything’s set up just right. You can check it out here: __APP_URL__/boat/mapping.
+While you're at it, why not add a personal touch to your Postgsail profile and let the world see your amazing boat?
+📸 Add a great photo – whether it’s out on the water or chilling at the dock.
+🛠️ Enter the make and model – so everything’s accurate.
+🧭 Upload your polar - it’s super easy.
+Happy sailing! 🌊
+",PostgSail autodiscovery,"Hey!
+We updated your signalk path mapping."
+no_metadata,PostgSail connect your boat,"
+Welcome to PostgSail! We're excited to have you on board.
+We noticed you haven't connected your boat to the platform yet. Once connected, you'll be able to start logging your voyages, monitoring your vessel's systems, and exploring all the features PostgSail has to offer.
+Need help getting connected? We're here to assist you every step of the way. Just reply to this email or check out our documentation to get started.
+Remember, PostgSail is completely free and open-source - built by sailors, for sailors.
+Fair winds,
+The PostgSail Team
+",PostgSail next step,"Hello,
+You should connect your vessel. Check your email!
+"
+no_vessel,PostgSail add your boat,"
+Hello __RECIPIENT__,
+Thank you for creating your PostgSail account! We noticed you haven't added your boat details yet, which is the next step to unlock all of PostgSail's features.
+Adding your vessel information will allow you to:
+* Track your sailing adventures and log entries
+* Monitor your boat's systems and sensors
+* Access detailed voyage analytics and mapping tools
+
+Getting started is quick and easy. If you need any assistance setting up your vessel or have questions about the platform, please don't hesitate to reach out - we're here to help.
+As always, PostgSail remains completely free and open-source for the sailing community.
+Happy sailing,
+The PostgSail Team
+",PostgSail next step,"Hello,
+You should create your vessel. Check your email!
+"
