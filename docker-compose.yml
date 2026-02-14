@@ -1,23 +1,29 @@
 services:
   db:
-    image: xbgmsharp/timescaledb-postgis
+    image: xbgmsharp/postgsail-db:latest
     container_name: db
     hostname: db
     restart: unless-stopped
     env_file: .env
     environment:
+      # POSTGRES_* variables are used by the postgres image
+      # PG_* variables are used by psql
       - TIMESCALEDB_TELEMETRY=off
       - PGDATA=/var/lib/postgresql/data/pgdata
       - TZ=UTC
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - PGSAIL_AUTHENTICATOR_PASSWORD=${PGSAIL_AUTHENTICATOR_PASSWORD}
+      - POSTGRES_DB=postgres
+      - PGUSER=${POSTGRES_USER}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+      - PGDATABASE=postgres
     ports:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./initdb:/docker-entrypoint-initdb.d
+      - ./db/seed_data:/db/seed_data:ro
+    shm_size: 1g
     logging:
       options:
         max-size: 10m
@@ -27,6 +33,34 @@ services:
       timeout: 10s
       retries: 5
       start_period: 100s
+
+  migrate:
+    image: xbgmsharp/postgsail-migrate
+    build:
+      context: ./db
+      dockerfile: Dockerfile
+    container_name: postgsail-migrate
+    hostname: migrate
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=postgres
+      - PGUSER=${POSTGRES_USER}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+      - PGDATABASE=postgres
+      - PGSAIL_API_URI=http://api:3000
+      - PGSAIL_DB_URI=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/signalk?sslmode=disable
+      - PGSAIL_CRONDB_URI=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/postgres?sslmode=disable
+      - PGSAIL_GRAFANA_ADMIN_URI=http://admin:${PGSAIL_GRAFANA_PASSWORD}@host.docker.internal:3001
+    volumes:
+      - ./db:/db:ro
+      - ./initdb:/initdb:ro
+    entrypoint: ["/bin/sh", "/db/goose-entrypoint.sh"]
+    restart: no
 
   api:
     image: postgrest/postgrest
@@ -47,13 +81,16 @@ services:
       PGRST_DB_POOL: 20
       PGRST_DB_POOL_MAX_IDLETIME: 60
       PGRST_DB_POOL_ACQUISITION_TIMEOUT: 20
-      PGRST_DB_URI: ${PGRST_DB_URI}
+      PGRST_DB_URI: postgres://authenticator:${PGSAIL_AUTHENTICATOR_PASSWORD}@db:5432/signalk
       PGRST_JWT_SECRET: ${PGRST_JWT_SECRET}
       PGRST_SERVER_TIMING_ENABLED: 1
       PGRST_DB_MAX_ROWS: 500
       PGRST_JWT_CACHE_MAX_LIFETIME: 3600
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     logging:
       options:
         max-size: 10m
@@ -67,6 +104,7 @@ services:
   app:
     image: grafana/grafana:latest
     container_name: app
+    hostname: app
     restart: unless-stopped
     links:
       - "db:database"
@@ -113,7 +151,7 @@ services:
         max-size: 10m
 
   web:
-    image: vuestic-postgsail
+    image: xbgmsharp/postgsail-vuestic
     build:
       context: https://github.com/xbgmsharp/vuestic-postgsail.git#live
       dockerfile: Dockerfile
