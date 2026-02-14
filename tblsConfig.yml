@@ -106,7 +106,7 @@ lint:
       - auth.vessels
       - api.logbook
       - api.metadata
-      - api.stay_explore_view
+      - api.stays_explore_view
   # require index comment
   requireIndexComment:
     enabled: false
@@ -234,21 +234,20 @@ lint:
       - schema_migrations
 
 lintExclude:
-  - api.explore_view
   - api.eventlogs_view
   - api.logbook_view
   - api.logs_view
   - api.log_view
   - api.log_mat_view
-  - api.log_view3
   - api.moorages_view
   - api.moorage_view
   - api.stays_view
   - api.stay_view
   - api.stats_moorages_view
   - api.noteshistory_view
-  - api.stay_explore_view
+  - api.stays_explore_view
   - api.logs_geojson_view
+  - api.metrics_explore_view
   - api.monitoring_view
   - api.monitoring_view2
   - api.monitoring_view3
