@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out the source
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set env
         run: cp .env.example .env
@@ -51,11 +51,15 @@ jobs:
           source .env
           docker compose stop || true
           docker compose rm || true
-          docker compose up -d db && sleep 30 && docker compose up -d api && sleep 5
+          docker compose up -d db && sleep 15
+          docker compose up migrate
+          docker compose up -d api && sleep 5
           docker compose ps -a
           echo ${PGSAIL_API_URL}
           curl ${PGSAIL_API_URL}
           psql -c "select 1"
+          echo "Disable cron job"
+          docker compose exec -i db psql postgres -c "UPDATE cron.job SET active = False;"
           echo "Test PostgreSQL version"
           psql -c "SELECT version();"
           echo "Test PostgSail version"

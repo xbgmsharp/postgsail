@@ -44,12 +44,15 @@ jobs:
           source .env
           docker compose stop || true
           docker compose rm || true
-          docker compose up -d db && sleep 30
+          docker compose up -d db && sleep 15
+          docker compose up migrate
           docker compose ps -a
           npm install -g schemalint || exit 1
           npx schemalint -c schemalintConfig.js
           source <(curl -sL https://raw.githubusercontent.com/k1LoW/tbls/main/use)
           tbls lint -c tblsConfig.yml
+          echo "Test PostgSail lint"
+          docker compose -f docker-compose.dev.yml -f docker-compose.yml up docs
       - name: Show the logs
         if: always()
         run: |

@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           submodules: 'true'
 
@@ -51,7 +51,8 @@ jobs:
           source .env
           docker compose stop || true
           docker compose rm || true
-          docker compose up -d db && sleep 30 && docker compose up -d api && sleep 5
+          docker compose up -d db && sleep 15
+          docker compose up migrate
           docker compose ps -a
           echo "Test PostgSail Web Unit Test"
           docker compose -f docker-compose.dev.yml -f docker-compose.yml up -d web_dev && sleep 100
