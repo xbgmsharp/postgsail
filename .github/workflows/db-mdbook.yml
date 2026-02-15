@@ -50,11 +50,12 @@ jobs:
           source <(curl -sL https://raw.githubusercontent.com/k1LoW/tbls/main/use)
           tbls doc --rm-dist -c tblsConfig.yml --sort
 
-      - uses: taiki-e/install-action@v2
+      - name: Install mdbook & plugins 
+        uses: taiki-e/install-action@v2
         with: { tool: 'mdbook,mdbook-toc,mdbook-tabs,mdbook-mermaid,mdbook-katex,mdbook-alerts,mdbook-linkcheck' }
 
       - name: Build documentation
-      - run: |
+        run: |
          cd docs
          mdbook build docs
 
