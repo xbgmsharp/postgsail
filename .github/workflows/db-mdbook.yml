@@ -55,9 +55,7 @@ jobs:
         with: { tool: 'mdbook,mdbook-toc,mdbook-tabs,mdbook-mermaid,mdbook-katex,mdbook-alerts,mdbook-linkcheck' }
 
       - name: Build documentation
-        run: |
-         cd docs
-         mdbook build docs
+        run: mdbook build docs
 
       - name: Show the logs
         if: always()
