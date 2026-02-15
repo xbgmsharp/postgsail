@@ -29,7 +29,7 @@ jobs:
       - name: Pull Docker images
         run: docker compose pull db api
 
-      - name: Run PostgSail Database & generate documentation
+      - name: Run PostgSail Database
         # Environment variables
         env:
           # The hostname used to communicate with the PostgreSQL service container
@@ -53,8 +53,7 @@ jobs:
         env:
           PGSAIL_DB_URI: postgres://username:password@localhost:5432/signalk
         run: |
-          npm install -g schemalint || exit 1
-          npx schemalint -c schemalintConfig.js
+          go install github.com/KarnerTh/mermerd
           mv postgsail.md src/
           source <(curl -sL https://raw.githubusercontent.com/k1LoW/tbls/main/use)
           tbls doc --rm-dist -c tblsConfig.yml --sort
