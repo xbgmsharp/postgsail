@@ -1,0 +1,63 @@
+name: mdbook rules on database schema.
+
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+    branches:
+      - 'main'
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'docs/**'
+    tags:
+        - "*"
+  workflow_dispatch:
+
+jobs:
+  build-docs:
+    name: mdbook database schema
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the source
+        uses: actions/checkout@v6
+
+      - name: Set env
+        run: cp .env.example .env
+
+      - name: Pull Docker images
+        run: docker compose pull db api
+
+      - name: Run PostgSail Database & schemalint
+        # Environment variables
+        env:
+          # The hostname used to communicate with the PostgreSQL service container
+          PGHOST: localhost
+          PGPORT: 5432
+          PGDATABASE: signalk
+          PGUSER: username
+          PGPASSWORD: password
+          PGSAIL_DB_URI: postgres://username:password@localhost:5432/signalk
+        run: |
+          set -eu
+          source .env
+          docker compose stop || true
+          docker compose rm || true
+          docker compose up -d db && sleep 15
+          docker compose up migrate
+          docker compose ps -a
+
+      - run: |
+          source <(curl -sL https://raw.githubusercontent.com/k1LoW/tbls/main/use)
+          tbls doc --rm-dist -c ../tblsConfig.yml --sort
+
+      - uses: taiki-e/install-action@v2
+        with: { tool: 'mdbook,mdbook-toc,mdbook-tabs,mdbook-mermaid,mdbook-katex,mdbook-alerts,mdbook-linkcheck' }
+
+      - run: mdbook build docs
+
+      - name: Show the logs
+        if: always()
+        run: |
+          docker compose logs
