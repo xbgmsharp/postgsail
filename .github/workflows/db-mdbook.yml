@@ -29,7 +29,7 @@ jobs:
       - name: Pull Docker images
         run: docker compose pull db api
 
-      - name: Run PostgSail Database & schemalint
+      - name: Run PostgSail Database & generate documentation
         # Environment variables
         env:
           # The hostname used to communicate with the PostgreSQL service container
@@ -47,15 +47,16 @@ jobs:
           docker compose up -d db && sleep 15
           docker compose up migrate
           docker compose ps -a
-
-      - run: |
           source <(curl -sL https://raw.githubusercontent.com/k1LoW/tbls/main/use)
           tbls doc --rm-dist -c tblsConfig.yml --sort
 
       - uses: taiki-e/install-action@v2
         with: { tool: 'mdbook,mdbook-toc,mdbook-tabs,mdbook-mermaid,mdbook-katex,mdbook-alerts,mdbook-linkcheck' }
 
-      - run: mdbook build docs
+      - name: Build documentation
+      - run: |
+         cd docs
+         mdbook build docs
 
       - name: Show the logs
         if: always()
