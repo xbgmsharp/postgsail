@@ -53,7 +53,7 @@ jobs:
         env:
           PGSAIL_DB_URI: postgres://username:password@localhost:5432/signalk
         run: |
-          go install github.com/KarnerTh/mermerd
+          go install github.com/KarnerTh/mermerd@v0.13.0
           mermerd --runConfig ../mermerdConfig.yaml
           mv postgsail.md src/
           source <(curl -sL https://raw.githubusercontent.com/k1LoW/tbls/main/use)
