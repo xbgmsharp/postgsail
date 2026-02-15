@@ -12,8 +12,7 @@ smart-punctuation = true
 mathjax-support = false
 git-repository-url = "https://github.com/xbgmsharp/postgsail"
 edit-url-template = "https://github.com/xbgmsharp/postgsail/edit/main/docs/{path}"
-additional-js = ["mermaid.min.js", "mermaid-init.js", "theme/excalidraw.js"]
-additional-css = ["theme/excalidraw.css"]
+additional-js = ["mermaid.min.js", "mermaid-init.js"]
 
 [preprocessor.mermaid]
 command = "mdbook-mermaid"
