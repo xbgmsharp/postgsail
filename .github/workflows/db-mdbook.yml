@@ -1,4 +1,4 @@
-name: mdbook rules on database schema.
+name: mdbook documentation.
 
 on:
   pull_request:
@@ -47,12 +47,28 @@ jobs:
           docker compose up -d db && sleep 15
           docker compose up migrate
           docker compose ps -a
+
+      - name: Generate documentation
+        # Environment variables
+        env:
+          PGSAIL_DB_URI: postgres://username:password@localhost:5432/signalk
+        run: |
+          npm install -g schemalint || exit 1
+          npx schemalint -c schemalintConfig.js
+          mv postgsail.md src/
           source <(curl -sL https://raw.githubusercontent.com/k1LoW/tbls/main/use)
           tbls doc --rm-dist -c tblsConfig.yml --sort
+
+      - name: Clean cargo bin
+        run: rm -rf ~/.cargo/bin/mdbook-*
+        continue-on-error: true
 
       - name: Install mdbook & plugins 
         uses: taiki-e/install-action@v2
         with: { tool: 'mdbook,mdbook-toc,mdbook-tabs,mdbook-mermaid,mdbook-katex,mdbook-alerts,mdbook-linkcheck' }
+
+      - name: Fix preprocessor permissions
+        run: chmod +x ~/.cargo/bin/mdbook-mermaid
 
       - name: Build documentation
         run: mdbook build docs
