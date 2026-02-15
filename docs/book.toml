@@ -17,8 +17,3 @@ additional-css = ["theme/excalidraw.css"]
 
 [preprocessor.mermaid]
 command = "mdbook-mermaid"
-
-#[preprocessor.excalidraw]
-#command = "mdbook-excalidraw"
-
-#[preprocessor.external-links]

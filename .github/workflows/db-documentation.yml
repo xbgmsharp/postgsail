@@ -62,12 +62,11 @@ jobs:
 
       - name: Install mdbook & plugins 
         uses: taiki-e/install-action@v2
-        with: { tool: 'mdbook,mdbook-toc,mdbook-tabs,mdbook-mermaid,mdbook-katex,mdbook-alerts,mdbook-linkcheck,mdbook-excalidraw' }
+        with: { tool: 'mdbook,mdbook-toc,mdbook-tabs,mdbook-mermaid,mdbook-katex,mdbook-alerts,mdbook-linkcheck' }
 
       - name: Install mdbook plugins
-        run: |
-          mdbook-mermaid install docs
-          mdbook-excalidraw install docs
+        run: mdbook-mermaid install docs
+          #mdbook-excalidraw install docs
 
       - name: Build documentation
         run: mdbook build docs
