@@ -66,8 +66,8 @@ jobs:
 
       - name: Install mdbook plugins
         run: |
-          mdbook-mermaid intall docs
-          mdbook-excalidraw intall docs
+          mdbook-mermaid install docs
+          mdbook-excalidraw install docs
 
       - name: Build documentation
         run: mdbook build docs
