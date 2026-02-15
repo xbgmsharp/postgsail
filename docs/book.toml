@@ -16,9 +16,9 @@ additional-js = ["mermaid.min.js", "mermaid-init.js", "theme/excalidraw.js"]
 additional-css = ["theme/excalidraw.css"]
 
 [preprocessor.mermaid]
-command = "/root/.cargo/bin/mdbook-mermaid"
+command = "mdbook-mermaid"
 
 #[preprocessor.excalidraw]
-#command = "/root/.cargo/bin/mdbook-excalidraw"
+#command = "mdbook-excalidraw"
 
 #[preprocessor.external-links]
