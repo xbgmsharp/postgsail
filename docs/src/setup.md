@@ -14,7 +14,7 @@ flowchart TD
     user -->|HTTPS| grafana[Grafana]
 
     %% Web Server Layer
-    frontend -->|Apache / nginx| postgrest[PostgREST]
+    frontend -->|HTTPS| postgrest[PostgREST]
 
     %% Database
     postgrest --> |SQL|postgres[(PostgreSQL / TimescaleDB / PostGIS / MobilityDB)]
@@ -25,7 +25,7 @@ flowchart TD
     postgres -->|HTTPS|pushover[Pushover API]
     postgres -->|SMTP|email[Email]
     postgres -->|HTTPS|overpass[Overpass API]
-    postgres -->|HTTPS|nominatim[Nominatim Geocoding]
+    postgres -->|HTTPS|nominatim[Nominatim API]
 
     %% Boat (External Client)
     vessel([Boat])
@@ -40,6 +40,7 @@ flowchart TD
     telegram_bot -->|HTTPS| postgrest
 
     %% Groupings
+
     subgraph Clients
         user
         vessel
