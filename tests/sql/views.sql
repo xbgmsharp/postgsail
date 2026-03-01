@@ -37,11 +37,11 @@ SELECT name,"from","to",started IS NOT NULL AS started_not_null, ended IS NOT NU
 
 \echo 'stays view'
 --SELECT * FROM api.stays_view;
-SELECT name,moorage,moorage_id,date_trunc('minute', duration::INTERVAL) AS duration,stayed_at,stayed_at_id,arrived IS NOT NULL AS arrived_not_null,arrived_log_id,arrived_from_moorage_id,arrived_from_moorage_name,departed IS NOT NULL AS departed_not_null,departed_log_id,departed_to_moorage_id,departed_to_moorage_name,notes FROM api.stays_view;
+SELECT name IS NOT NULL as name_not_null,moorage,moorage_id,date_trunc('minute', duration::INTERVAL) AS duration,stayed_at,stayed_at_id,arrived IS NOT NULL AS arrived_not_null,arrived_log_id,arrived_from_moorage_id,arrived_from_moorage_name,departed IS NOT NULL AS departed_not_null,departed_log_id,departed_to_moorage_id,departed_to_moorage_name,notes FROM api.stays_view;
 
 \echo 'stay view'
 --SELECT * FROM api.stay_view;
-SELECT name,moorage,moorage_id,date_trunc('minute', duration::INTERVAL) AS duration,stayed_at,stayed_at_id,arrived IS NOT NULL AS arrived_not_null,arrived_log_id,arrived_from_moorage_id,arrived_from_moorage_name,departed IS NOT NULL AS departed_not_null,departed_log_id,departed_to_moorage_id,departed_to_moorage_name,notes FROM api.stay_view;
+SELECT name IS NOT NULL as name_not_null,moorage,moorage_id,date_trunc('minute', duration::INTERVAL) AS duration,stayed_at,stayed_at_id,arrived IS NOT NULL AS arrived_not_null,arrived_log_id,arrived_from_moorage_id,arrived_from_moorage_name,departed IS NOT NULL AS departed_not_null,departed_log_id,departed_to_moorage_id,departed_to_moorage_name,notes FROM api.stay_view;
 
 \echo 'moorages view'
 --SELECT * FROM api.moorages_view;

@@ -78,8 +78,8 @@ tags                      | "new_tag"
 observations              | {"seaState": -1, "visibility": -1, "cloudCoverage": -1}
 
 stays view
--[ RECORD 1 ]-------------+---------------------------------------------------------
-name                      | 1 days stay at Tallinnamadal lighthouse in February 2026
+-[ RECORD 1 ]-------------+-------------------
+name_not_null             | t
 moorage                   | patch moorage name
 moorage_id                | 4
 duration                  | PT21H14M
@@ -94,8 +94,8 @@ departed_log_id           | 3
 departed_to_moorage_id    | 3
 departed_to_moorage_name  | Harju County
 notes                     | new stay note 2
--[ RECORD 2 ]-------------+---------------------------------------------------------
-name                      | patch stay name 4
+-[ RECORD 2 ]-------------+-------------------
+name_not_null             | t
 moorage                   | Harju County
 moorage_id                | 3
 duration                  | PT1M
@@ -112,8 +112,8 @@ departed_to_moorage_name  |
 notes                     | new stay note 4
 
 stay view
--[ RECORD 1 ]-------------+---------------------------------------------------------
-name                      | 1 days stay at Tallinnamadal lighthouse in February 2026
+-[ RECORD 1 ]-------------+-------------------
+name_not_null             | t
 moorage                   | patch moorage name
 moorage_id                | 4
 duration                  | PT21H14M
@@ -128,8 +128,8 @@ departed_log_id           | 3
 departed_to_moorage_id    | 3
 departed_to_moorage_name  | Harju County
 notes                     | new stay note 2
--[ RECORD 2 ]-------------+---------------------------------------------------------
-name                      | patch stay name 4
+-[ RECORD 2 ]-------------+-------------------
+name_not_null             | t
 moorage                   | Harju County
 moorage_id                | 3
 duration                  | PT1M
