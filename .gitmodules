@@ -1,3 +1,9 @@
 [submodule "frontend"]
 	path = frontend
 	url = https://github.com/xbgmsharp/vuestic-postgsail
+[submodule "mcp-server"]
+	path = mcp-server
+	url = https://github.com/xbgmsharp/postgsail-mcp-server
+[submodule "signalk-plugin"]
+	path = signalk-plugin
+	url = https://github.com/xbgmsharp/signalk-postgsail
