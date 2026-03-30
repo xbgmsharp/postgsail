@@ -7,3 +7,6 @@
 [submodule "signalk-plugin"]
 	path = signalk-plugin
 	url = https://github.com/xbgmsharp/signalk-postgsail
+[submodule "telegram-bot"]
+	path = telegram-bot
+	url = https://github.com/xbgmsharp/postgsail-telegram-bot
