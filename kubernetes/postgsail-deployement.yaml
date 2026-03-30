@@ -1,0 +1,484 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: postgsail
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgsail-config
+  namespace: postgsail
+data:
+  TZ: UTC
+  POSTGRES_DB: postgres
+  PGDATABASE: postgres
+  PGRST_DB_SCHEMA: api
+  PGRST_DB_ANON_ROLE: api_anonymous
+  PGRST_DB_PRE_REQUEST: public.check_jwt
+  PGRST_DB_POOL: "20"
+  PGRST_DB_POOL_MAX_IDLETIME: "60"
+  PGRST_DB_POOL_ACQUISITION_TIMEOUT: "20"
+  PGRST_SERVER_TIMING_ENABLED: "1"
+  PGRST_DB_MAX_ROWS: "500"
+  PGRST_JWT_CACHE_MAX_LIFETIME: "3600"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data
+  namespace: postgsail
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-data
+  namespace: postgsail
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+  namespace: postgsail
+spec:
+  selector:
+    app: db
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db
+  namespace: postgsail
+spec:
+  serviceName: db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+        - name: db
+          image: xbgmsharp/postgsail-db:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5432
+          env:
+            - name: TIMESCALEDB_TELEMETRY
+              value: "off"
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: postgsail-config
+                  key: TZ
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgsail-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgsail-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: postgsail-config
+                  key: POSTGRES_DB
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: postgsail-secrets
+                  key: POSTGRES_USER
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgsail-secrets
+                  key: POSTGRES_PASSWORD
+            - name: PGDATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: postgsail-config
+                  key: PGDATABASE
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+            - name: initdb-src
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+            - name: seed-data-src
+              mountPath: /db/seed_data
+              readOnly: true
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U "$POSTGRES_USER" -d postgres
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: 5432
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: postgres-data
+        - name: initdb-src
+          hostPath:
+            path: /root/postgsail/initdb
+            type: Directory
+        - name: seed-data-src
+          hostPath:
+            path: /root/postgsail/db/seed_data
+            type: DirectoryOrCreate
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate
+  namespace: postgsail
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: xbgmsharp/postgsail-migrate:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - |
+              export PGSAIL_DB_URI="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/signalk?sslmode=disable"
+              export PGSAIL_CRONDB_URI="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/postgres?sslmode=disable"
+              export PGSAIL_GRAFANA_ADMIN_URI="http://admin:${PGSAIL_GRAFANA_PASSWORD}@app:3000"
+              exec /bin/sh /db/goose-entrypoint.sh
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgsail-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgsail-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              value: postgres
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: postgsail-secrets
+                  key: POSTGRES_USER
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgsail-secrets
+                  key: POSTGRES_PASSWORD
+            - name: PGDATABASE
+              value: postgres
+            - name: PGSAIL_GRAFANA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgsail-secrets
+                  key: PGSAIL_GRAFANA_PASSWORD
+          volumeMounts:
+            - name: db-src
+              mountPath: /db
+              readOnly: true
+            - name: initdb-src
+              mountPath: /initdb
+              readOnly: true
+      volumes:
+        - name: db-src
+          hostPath:
+            path: /root/postgsail/db
+            type: Directory
+        - name: initdb-src
+          hostPath:
+            path: /root/postgsail/initdb
+            type: Directory
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: postgsail
+spec:
+  selector:
+    app: api
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+    - name: admin
+      port: 3003
+      targetPort: 3003
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: postgsail
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+        - name: api
+          image: postgrest/postgrest:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+            - containerPort: 3003
+          env:
+            - name: PGRST_DB_SCHEMA
+              valueFrom:
+                configMapKeyRef:
+                  name: postgsail-config
+                  key: PGRST_DB_SCHEMA
+            - name: PGRST_DB_ANON_ROLE
+              valueFrom:
+                configMapKeyRef:
+                  name: postgsail-config
+                  key: PGRST_DB_ANON_ROLE
+            - name: PGRST_OPENAPI_SERVER_PROXY_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: postgsail-config
+                  key: PGSAIL_API_PUBLIC_URL
+            - name: PGRST_DB_PRE_REQUEST
+              valueFrom:
+                configMapKeyRef:
+                  name: postgsail-config
+                  key: PGRST_DB_PRE_REQUEST
+            - name: PGRST_DB_POOL
+              valueFrom:
+                configMapKeyRef:
+                  name: postgsail-config
+                  key: PGRST_DB_POOL
+            - name: PGRST_DB_POOL_MAX_IDLETIME
+              valueFrom:
+                configMapKeyRef:
+                  name: postgsail-config
+                  key: PGRST_DB_POOL_MAX_IDLETIME
+            - name: PGRST_DB_POOL_ACQUISITION_TIMEOUT
+              valueFrom:
+                configMapKeyRef:
+                  name: postgsail-config
+                  key: PGRST_DB_POOL_ACQUISITION_TIMEOUT
+            - name: PGRST_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: postgsail-secrets
+                  key: PGRST_DB_URI
+            - name: PGRST_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: postgsail-secrets
+                  key: PGRST_JWT_SECRET
+            - name: PGRST_SERVER_TIMING_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: postgsail-config
+                  key: PGRST_SERVER_TIMING_ENABLED
+            - name: PGRST_DB_MAX_ROWS
+              valueFrom:
+                configMapKeyRef:
+                  name: postgsail-config
+                  key: PGRST_DB_MAX_ROWS
+            - name: PGRST_JWT_CACHE_MAX_LIFETIME
+              valueFrom:
+                configMapKeyRef:
+                  name: postgsail-config
+                  key: PGRST_JWT_CACHE_MAX_LIFETIME
+          readinessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 20
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app
+  namespace: postgsail
+spec:
+  selector:
+    app: app
+  ports:
+    - port: 3000
+      targetPort: 3000
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+  namespace: postgsail
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app
+  template:
+    metadata:
+      labels:
+        app: app
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          env:
+            - name: GF_INSTALL_PLUGINS
+              value: pr0ps-trackmap-panel,fatcloud-windrose-panel
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgsail-secrets
+                  key: PGSAIL_GRAFANA_PASSWORD
+            - name: GF_USERS_ALLOW_SIGN_UP
+              value: "false"
+            - name: GF_SMTP_ENABLED
+              value: "false"
+          volumeMounts:
+            - name: grafana-data
+              mountPath: /var/lib/grafana
+            - name: grafana-data
+              mountPath: /var/log/grafana
+            - name: grafana-config
+              mountPath: /etc/grafana
+              readOnly: true
+      volumes:
+        - name: grafana-data
+          persistentVolumeClaim:
+            claimName: grafana-data
+        - name: grafana-config
+          hostPath:
+            path: /root/postgsail/grafana
+            type: Directory
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telegram
+  namespace: postgsail
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: telegram
+  template:
+    metadata:
+      labels:
+        app: telegram
+    spec:
+      containers:
+        - name: telegram
+          image: xbgmsharp/postgsail-telegram-bot:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: postgsail-secrets
+                  key: PGSAIL_TELEGRAM_BOT_TOKEN
+            - name: PGSAIL_URL
+              value: "http://api:3000"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: postgsail
+spec:
+  selector:
+    app: web
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: postgsail
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: xbgmsharp/postgsail-web:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+
