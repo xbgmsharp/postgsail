@@ -42,6 +42,14 @@ From https://docs.docker.com/engine/install/ubuntu/
 ...
 ```
 
+## Build the images
+```bash
+% docker compose build
+...
+[+] Building 0.3s (1/1) FINISHED
+...
+```
+
 ## Init the database
 ```bash
 % docker compose up db
