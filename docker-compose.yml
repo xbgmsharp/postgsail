@@ -144,8 +144,6 @@ services:
     restart: unless-stopped
     links:
       - "api:postgrest"
-    ports:
-      - "3005:8080"
     environment:
       - BOT_TOKEN=${PGSAIL_TELEGRAM_BOT_TOKEN}
       - PGSAIL_URL=http://api:3000
