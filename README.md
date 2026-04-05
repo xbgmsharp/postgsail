@@ -110,7 +110,8 @@ To understand the why and how, you might want to read [Why.md](https://github.co
 - Windy PWS (Personal Weather Station).
 - Engine Hours Logger.
 - Polar performance.
-- AI agent.
+- AI agent - Model Context Protocol (MCP) to answer natural language queries about your vessel in your language.
+- I18n support - Available in English, French, Spanish, German, Portugues
 - Anything missing? just ask!
 
 ## Cloud-hosted PostgSail
