@@ -186,18 +186,27 @@ erDiagram
         text url 
     }
 
-    public_goose_db_version {
-        integer id "{NOT_NULL}"
-        boolean is_applied "{NOT_NULL}"
-        timestamp_without_time_zone tstamp "{NOT_NULL}"
-        bigint version_id "{NOT_NULL}"
-    }
-
     public_iso3166 {
         text alpha_2 
         text alpha_3 
         text country 
         integer id 
+    }
+
+    public_metrics_rejected {
+        double_precision anglespeedapparent 
+        text client_id 
+        double_precision courseovergroundtrue 
+        double_precision latitude 
+        double_precision longitude 
+        jsonb metrics 
+        timestamp_with_time_zone rejected_at 
+        text rejection_reason 
+        double_precision speedoverground 
+        text status 
+        timestamp_with_time_zone time "{NOT_NULL}"
+        text vessel_id "{NOT_NULL}"
+        double_precision windspeedapparent 
     }
 
     public_mid {

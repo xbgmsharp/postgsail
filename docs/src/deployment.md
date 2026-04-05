@@ -15,6 +15,7 @@ PostgSail supports both cloud-hosted and self-hosted deployment options:
 
 #### Self-Hosted (Infrastructure you manage)
 - Docker Compose orchestration
+- Kubernetes orchestration
 - Full control over data and configuration
 - Requires Docker and basic Linux administration
 - Requires PostgreSQL administration
@@ -30,7 +31,7 @@ PostgSail is free to use, but is not free to make or host. The stability and acc
 
 ## Infrastructure you manage
 
-Self host postgSail where you want and how you want. There are no restrictions, you’re in full control. [Install Guide](https://github.com/xbgmsharp/postgsail/blob/main/docs/README.md)
+Self host postgSail where you want and how you want. There are no restrictions, you’re in full control. [Install Guide](setup.md)
 
 PostgSail is free to use, but is not free to make or host. The stability and accuracy of PostgSail depends on its volunteers and donations from its users. Please consider [sponsoring](https://github.com/sponsors/xbgmsharp) PostgSail.
 
@@ -39,6 +40,9 @@ PostgSail is free to use, but is not free to make or host. The stability and acc
 Self-hosting PostgSail means running your own instance of the PostgSail Control Plane.
 
 When you self-host PostgSail, you’re deploying:
-- Database (backend) - PostgreSQL for storing state and metadata
-- API Server - REST APIs using PostgREST
-- Dashboard (frontend) - Web UI for monitoring and visualize logs,stays,moorages
+- **Database** — PostgreSQL with TimescaleDB (time-series metrics), PostGIS (spatial data), MobilityDB (vessel trajectories), and pg_cron (background jobs)
+- **Migrations** — Goose migration runner that applies the schema, roles, grants, and seed data
+- **API Server** — PostgREST, which auto-generates a REST API directly from the `api` schema
+- **Frontend** — Vue 3 SPA for monitoring and visualizing logbook entries, stays, and moorages
+- **Grafana** — Monitoring dashboards connected directly to the database
+- **Telegram Bot** — Optional notification service for vessel alerts

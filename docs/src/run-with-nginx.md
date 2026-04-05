@@ -1,94 +1,102 @@
 ## Using with NGINX
 
-You should run PostgSail behind NGINX proxy, so you can cache frequently accessed tiles and reduce unnecessary pressure on the database. Here is an example `docker-compose.yml` file that runs PostgSail with NGINX and PostgreSQL.
+You should run PostgSail behind an NGINX reverse proxy to enable HTTPS and serve multiple services from a single domain. Here is an example configuration that proxies the PostgSail API, web frontend, and Grafana dashboard.
+
+### Example: Subdomain-based routing
+
+The following `nginx.conf` example routes traffic for three subdomains:
+- `api.example.com` → PostgREST API (port 3000)
+- `web.example.com` → Vue 3 frontend (port 8080)
+- `app.example.com` → Grafana (port 3001)
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name api.example.com;
+
+    ssl_certificate     /etc/ssl/certs/api.example.com.crt;
+    ssl_certificate_key /etc/ssl/private/api.example.com.key;
+
+    location / {
+        proxy_pass         http://localhost:3000/;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name web.example.com;
+
+    ssl_certificate     /etc/ssl/certs/web.example.com.crt;
+    ssl_certificate_key /etc/ssl/private/web.example.com.key;
+
+    location / {
+        proxy_pass         http://localhost:8080/;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name app.example.com;
+
+    ssl_certificate     /etc/ssl/certs/app.example.com.crt;
+    ssl_certificate_key /etc/ssl/private/app.example.com.key;
+
+    location / {
+        proxy_pass         http://localhost:3001/;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+### HTTP to HTTPS redirect
+
+Add this block for each domain to redirect HTTP traffic to HTTPS:
+
+```nginx
+server {
+    listen 80;
+    server_name api.example.com web.example.com app.example.com;
+    return 301 https://$host$request_uri;
+}
+```
+
+### Apply and reload
+
+```bash
+sudo nginx -t          # Test configuration
+sudo systemctl reload nginx
+```
+
+### With Docker Compose
+
+Add NGINX as a service in your `docker-compose.yml`:
 
 ```yml
-version: '3'
-
 services:
   nginx:
     image: nginx:alpine
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
     volumes:
-      - ./cache:/var/cache/nginx
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/ssl:ro
     depends_on:
-      - martin
-
-  martin:
-    image: maplibre/martin:v0.7.0
-    restart: unless-stopped
-    environment:
-      - DATABASE_URL=postgresql://postgres:password@db/db
-    depends_on:
-      - db
-
-  db:
-    image: postgis/postgis:14-3.3-alpine
-    restart: unless-stopped
-    environment:
-      - POSTGRES_DB=db
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-    volumes:
-      - ./pg_data:/var/lib/postgresql/data
+      - api
+      - web
+      - app
 ```
 
-You can [find an example NGINX configuration file here](https://github.com/maplibre/martin/blob/main/demo/frontend/nginx.conf).
-
-### Rewriting URLs
-
-If you are running Martin behind NGINX proxy, you may want to rewrite the request URL to properly handle tile URLs in [TileJSON](using.md#source-tilejson).
-
-```nginx
-location ~ /tiles/(?<fwd_path>.*) {
-    proxy_set_header  X-Rewrite-URL $uri;
-    proxy_set_header  X-Forwarded-Host $host:$server_port;
-    proxy_set_header  X-Forwarded-Proto $scheme;
-    proxy_redirect    off;
-
-    proxy_pass        http://martin:3000/$fwd_path$is_args$args;
-}
-```
-
-### Caching tiles
-
-You can also use NGINX to cache tiles. In the example, the maximum cache size is set to 10GB, and caching time is set to 1 hour for responses with codes 200, 204, and 302 and 1 minute for responses with code 404.
-
-```nginx
-http {
-  ...
-  proxy_cache_path  /var/cache/nginx/
-                    levels=1:2
-                    max_size=10g
-                    use_temp_path=off
-                    keys_zone=tiles_cache:10m;
-
-  server {
-    ...
-    location ~ /tiles/(?<fwd_path>.*) {
-        proxy_set_header        X-Rewrite-URL $uri;
-        proxy_set_header        X-Forwarded-Host $host:$server_port;
-        proxy_set_header        X-Forwarded-Proto $scheme;
-        proxy_redirect          off;
-
-        proxy_cache             tiles_cache;
-        proxy_cache_lock        on;
-        proxy_cache_revalidate  on;
-
-        # Set caching time for responses
-        proxy_cache_valid       200 204 302 1h;
-        proxy_cache_valid       404 1m;
-
-        proxy_cache_use_stale   error timeout http_500 http_502 http_503 http_504;
-        add_header              X-Cache-Status $upstream_cache_status;
-
-        proxy_pass              http://martin:3000/$fwd_path$is_args$args;
-    }
-  }
-}
-```
-
-You can [find an example NGINX configuration file here](https://github.com/maplibre/martin/blob/main/demo/frontend/nginx.conf).
+For automated TLS certificate management, see [Certbot](https://certbot.eff.org/) or use the [Kubernetes deployment](run-with-kubernetes.md) with cert-manager.

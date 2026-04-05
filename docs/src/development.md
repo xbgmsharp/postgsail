@@ -48,7 +48,7 @@ and there are a few reasons why core contributors should **never** do it from th
 * it ensures that the primary repo only has maintained branches (e.g. `main` and `v1.x`),
   not a bunch of PR branches whose ownership and work status is unclear to everyone
 
-In the martin repository, we follow this and have a branch protection rule that prevents core contributors from creating pull requests from the primary repo.
+In the postgsail repository, we follow this and have a branch protection rule that prevents core contributors from creating pull requests from the primary repo.
 
 </details>
 
@@ -56,7 +56,7 @@ In the martin repository, we follow this and have a branch protection rule that 
 # clone the primary fork to your local machine, naming the remote "upstream"
 # make sure to replace the URL with the correct one
 git clone -o upstream https://github.com/xbgmsharp/postgsail.git
-cd martin
+cd postgsail
 
 # add your own fork as a remote, naming it "origin"
 git remote add origin https://github.com/username/postgsail.git

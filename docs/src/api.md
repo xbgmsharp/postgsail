@@ -102,9 +102,33 @@ The PostgREST service is configured via environment variables:
 - `PGRST_DB_PRE_REQUEST: public.check_jwt` - JWT validation function
 - `PGRST_JWT_SECRET` - JWT signing secret
 
+## Data Units and Conventions
+
+PostgSail follows [SignalK SI unit conventions](https://signalk.org/specification/1.7.0/doc/vesselsBranch.html). All numeric values stored in the database use SI base units:
+
+| Measurement | Unit stored | Conversion |
+|-------------|-------------|------------|
+| Temperature | Kelvin (K) | subtract 273.15 for °C |
+| Angles (heading, bearing) | Radians | multiply by 57.2958 for degrees |
+| Speed | Meters/second (m/s) | multiply by 1.94384 for knots |
+| Pressure | Pascals (Pa) | divide by 100 for millibars |
+| Distance | Meters (m) | divide by 1852 for nautical miles |
+| Time | `timestamptz` UTC | — |
+| Duration | `interval` (ISO 8601) | — |
+
+## Data Export
+
+Trip data can be exported in multiple formats via RPC functions:
+
+- `GET /rpc/export_logbook_geojson_fn` — GeoJSON (route geometry + metadata)
+- `GET /rpc/export_logbook_gpx_fn` — GPX (compatible with Navionics, OpenCPN, etc.)
+- `GET /rpc/export_logbook_kml_fn` — KML (Google Earth)
+- `GET /rpc/export_logbook_csv_fn` — CSV (spreadsheet-compatible)
+
 ## Notes
 
 - The API runs on port 3000 by default
-- All data access is controlled by Row Level Security policies based on vessel ownership
-- The SignalK plugin uses vessel_role for continuous data ingestion
-- Rate limiting and connection limits are enforced per role
+- All data access is controlled by Row Level Security (RLS) policies scoped per vessel/user via JWT claims
+- The SignalK plugin uses `vessel_role` for continuous data ingestion
+- Rate limiting per IP is enforced at the reverse proxy layer (Apache or NGINX) — see [reverse proxy guides](run-with-reverse-proxy.md)
+- Connection pool limits are configured via `PGRST_DB_POOL` and related settings

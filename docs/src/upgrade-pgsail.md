@@ -79,10 +79,10 @@ HEAD is now at 12e4baf Release PostgSail 0.9.3
 
 **Ensure new docker-compose.yml file matches your database folder or volume setting, adjust as needed.**
 
-Get the latest containers.
+Rebuild the images from the latest sources. Most PostgSail images are not available in a public registry and must be built locally.
 
 ```bash
-docker compose pull
+docker compose build --pull --no-cache
 ```
 
 ### Update possible extensions

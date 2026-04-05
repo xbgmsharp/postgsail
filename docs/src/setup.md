@@ -128,42 +128,61 @@ flowchart LR
 
 ### Deploy
 
-There is two compose files used. You can update the default settings by editing `docker-compose.yml` and `docker-compose.dev.yml` to your need.
+There are two compose files. You can update the default settings by editing `docker-compose.yml` and `docker-compose.dev.yml` to your need.
 
-Now let's initialize the database.
+> [!NOTE]
+> Most PostgSail images are **not available in a public registry** — they must be built from source. Only `api` (PostgREST) and `app` (Grafana) use official upstream images.
+
+#### Step 0. Build the images
+
+```bash
+docker compose build
+```
+
+This builds `db`, `migrate`, `web`, and `telegram` from their upstream git repositories. The `web` build takes a few minutes as it compiles the Vue 3 frontend.
 
 #### Step 1. Initialize database
 
-First let's import the SQL schema, execute:
+First start the database and wait for it to be ready:
 
 ```bash
-$ docker compose up db
+docker compose up db
 ```
 
-#### Step 2. Start backend (db, api)
+#### Step 2. Run migrations
 
-Then launch the full backend stack (db, api), execute:
+Run the database migrations (applies the schema, roles, grants, and seed data):
 
 ```bash
-$ docker compose up db api
+docker compose up migrate
 ```
 
-The API should be accessible via port HTTP/3000.
-The database should be accessible via port TCP/5432.
+The migrate service will run once and exit when complete.
 
-You can connect to the database via a web gui like [pgadmin](https://www.pgadmin.org/) or you can use a client [dbeaver](https://dbeaver.io/).
+#### Step 3. Start backend (db, api)
+
+Then launch the full backend stack (db, api):
+
 ```bash
-$ docker compose -f docker-compose.yml -f docker-compose.dev.yml pgadmin
+docker compose up -d db api
+```
+
+The API is accessible on port HTTP/3000.
+The database is accessible on port TCP/5432.
+
+You can connect to the database via a web GUI like [pgadmin](https://www.pgadmin.org/) or a client like [dbeaver](https://dbeaver.io/).
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d pgadmin
 ```
 Then connect to the web UI on port HTTP/5050.
 
-#### Step 3. Start frontend (web)
+#### Step 4. Start frontend (web)
 
-Last build and launch the web frontend, execute:
+Build and launch the web frontend:
 
 ```bash
 docker compose build web
-docker compose up web
+docker compose up -d web
 ```
 
 The first step can take some time as it will first run a build to generate the static website based on your settings.
@@ -207,8 +226,8 @@ Last, if you like, you can import the sample data from Signalk NMEA Plaka by run
 If everything goes well all tests pass successfully and you should receive a few notifications by email or PushOver or Telegram.
 [End-to-End (E2E) Testing.](https://github.com/xbgmsharp/postgsail/blob/main/tests/)
 
-```
-$ docker-compose up tests
+```bash
+docker compose up tests
 ```
 
 ### API Documentation
@@ -239,19 +258,29 @@ $ curl http://localhost:3000/ -H 'Authorization: Bearer my_token_from_register_v
 
 Check the [End-to-End (E2E) test sample](https://github.com/xbgmsharp/postgsail/blob/main/tests/).
 
-### Docker dependencies
+### Docker services
 
-`docker compose` is used to start environment dependencies. Dependencies consist of 3 containers:
+`docker compose` is used to start all services. The core services are:
 
-- `timescaledb-postgis` alias `db`, PostgreSQL with TimescaleDB extension along with the PostGIS extension.
-- `postgrest` alias `api`, Standalone web server that turns your PostgreSQL database directly into a RESTful API.
-- `grafana` alias `app`, visualize and monitor your data
+| Service | Alias | Description |
+|---------|-------|-------------|
+| `db` | database | PostgreSQL with TimescaleDB, PostGIS, and MobilityDB extensions |
+| `migrate` | — | One-shot Goose migration runner (schema, roles, seed data) |
+| `api` | postgrest | PostgREST — turns the PostgreSQL `api` schema into a REST API |
+| `app` | grafana | Grafana dashboards for monitoring and visualization |
+| `web` | — | Vue 3 frontend (built from vuestic-postgsail) |
+| `telegram` | — | Telegram bot service for notifications |
 
-### Optional docker images
+### Development services (docker-compose.dev.yml)
 
-- [pgAdmin](https://hub.docker.com/r/dpage/pgadmin4), web UI to monitor and manage multiple PostgreSQL
-- [Swagger](https://hub.docker.com/r/swaggerapi/swagger-ui), web UI to visualize documentation from PostgREST
+Additional services available with the dev compose file:
 
-```
-docker-compose -f docker-compose-optional.yml up
+| Service | Port | Description |
+|---------|------|-------------|
+| `pgadmin` | 5050 | Web UI for managing PostgreSQL |
+| `swagger` | 8181 | Swagger UI for browsing the PostgREST OpenAPI spec |
+| `tests` | — | Mocha + SQL integration tests |
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d pgadmin swagger
 ```

@@ -80,3 +80,4 @@ PostgSail offers a rich set of capabilities tailored to maritime use:
 *  Trend history and alert notifications (via email, PushOver, or Telegram) for conditions like low voltage or low fuel. 
 *  Support for offline and low-bandwidth operation. 
 *  Integration with monitoring dashboards using Grafana and related tools.
+*  AI assistant integration via [Model Context Protocol (MCP)](mcp.md) for querying vessel data with LLMs.
