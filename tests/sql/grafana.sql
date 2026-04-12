@@ -35,7 +35,7 @@ SELECT v.name AS __text, m.vessel_id IS NOT NULL AS __value FROM auth.vessels v 
 SELECT v.vessel_id IS NOT NULL AS vessel_id, v.owner_email, v.mmsi, v.name, v.role FROM auth.vessels AS v;
 --SELECT * FROM api.metadata m;
 \echo 'api.metadata details'
-SELECT vessel_id IS NOT NULL AS vessel_id_not_null, m.name, m.mmsi, m.length, m.beam, m.height, m.ship_type, m.plugin_version, m.signalk_version, m.time IS NOT NULL AS time, m.active, configuration IS NOT NULL AS configuration_not_null, available_keys FROM api.metadata AS m  ORDER BY name ASC;
+SELECT vessel_id IS NOT NULL AS vessel_id_not_null, m.name, m.mmsi, m.length, m.beam, m.height, m.ship_type, m.plugin_version, m.signalk_version, m.time IS NOT NULL AS time, m.active, configuration IS NOT NULL AS configuration_not_null, available_keys FROM api.metadata AS m ORDER BY name ASC;
 
 \echo 'api.logs_view'
 --SELECT * FROM api.logbook l;

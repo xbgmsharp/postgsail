@@ -85,6 +85,21 @@ select t.table_name as schema_jwt
 \echo 'List Row Security Policies'
 select * from pg_policies order by schemaname, tablename, policyname;
 
+-- List user roles and permissions
+\echo 'List user roles and permissions'
+SELECT r.rolname, r.rolsuper, r.rolinherit,
+  r.rolcreaterole, r.rolcreatedb, r.rolcanlogin,
+  r.rolconnlimit, r.rolvaliduntil,
+  ARRAY(SELECT b.rolname
+        FROM pg_catalog.pg_auth_members m
+        JOIN pg_catalog.pg_roles b ON (m.roleid = b.oid)
+        WHERE m.member = r.oid) as memberof
+, r.rolreplication
+, r.rolbypassrls
+FROM pg_catalog.pg_roles r
+WHERE r.rolname !~ '^pg_'
+ORDER BY 1;
+
 -- Test functions
 \echo 'Test nominatim reverse_geocode_py_fn'
 SELECT public.reverse_geocode_py_fn('nominatim', 1.4440116666666667, 38.82985166666667);
