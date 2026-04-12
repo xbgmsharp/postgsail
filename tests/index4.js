@@ -20,6 +20,7 @@ const should = require("should");
 //const should = chai.should();
 let request = null;
 let user_jwt = null;
+let bot_jwt = null;
 var moment = require("moment");
 
 // Users Array
@@ -110,11 +111,25 @@ var moment = require("moment");
     ],
     telegram: { payload: { user_id: 1234567890 } },
     telegram_fn: [{ url: "/rpc/vessel_fn" }, { url: "/monitoring_view" }],
-    badges: {
+    settings: {
       url: "/rpc/settings_fn",
       payload: null,
       res: {
         obj_name: "settings",
+      },
+    },
+    badges: {
+      url: "/rpc/badges_fn",
+      payload: null,
+      res: {
+        obj_name: "badges",
+      },
+    },
+    profile: {
+      url: "/rpc/profile_fn",
+      payload: null,
+      res: {
+        obj_name: "profile",
       },
     },
     monitoring: [
@@ -166,6 +181,26 @@ var moment = require("moment");
       {
         url: "/rpc/update_user_preferences_fn",
         payload: { key: "{public_timelapse}", value: true },
+      },
+    ],
+    views: [
+      {
+        url: "/logs_view",
+      },
+      {
+        url: "/stays_view",
+      },
+      {
+        url: "/moorages_view",
+      },
+      {
+        url: "/log_view",
+      },
+      {
+        url: "/stay_view",
+      },
+      {
+        url: "/moorage_view",
       },
     ],
   },
@@ -255,11 +290,25 @@ var moment = require("moment");
     ],
     telegram: { payload: { user_id: 9876543210 } },
     telegram_fn: [{ url: "/rpc/vessel_fn" }, { url: "/monitoring_view" }],
-    badges: {
+    settings: {
       url: "/rpc/settings_fn",
       payload: null,
       res: {
         obj_name: "settings",
+      },
+    },
+    badges: {
+      url: "/rpc/badges_fn",
+      payload: null,
+      res: {
+        obj_name: "badges",
+      },
+    },
+    profile: {
+      url: "/rpc/profile_fn",
+      payload: null,
+      res: {
+        obj_name: "profile",
       },
     },
     monitoring: [
@@ -307,6 +356,26 @@ var moment = require("moment");
       {
         url: "/rpc/update_user_preferences_fn",
         payload: { key: "{public_monitoring}", value: true },
+      },
+    ],
+    views: [
+      {
+        url: "/logs_view",
+      },
+      {
+        url: "/stays_view",
+      },
+      {
+        url: "/moorages_view",
+      },
+      {
+        url: "/log_view",
+      },
+      {
+        url: "/stay_view",
+      },
+      {
+        url: "/moorage_view",
       },
     ],
   },
@@ -515,7 +584,7 @@ var moment = require("moment");
     }); // telegram OTP endpoint
 
     describe("telegram session, anonymous", function () {
-      it("/rpc/telegram return jwt token", function (done) {
+      it("/rpc/telegram return bot jwt token", function (done) {
         // Reset agent so we do not save cookies
         request = supertest.agent(test.cname);
         request
@@ -530,7 +599,7 @@ var moment = require("moment");
             res.header["content-type"].should.match(new RegExp("json", "g"));
             res.header["server"].should.match(new RegExp("postgrest", "g"));
             should.exist(res.body.token);
-            user_jwt = res.body.token;
+            bot_jwt = res.body.token;
             console.log(res.body.token);
             done(err);
           });
@@ -605,7 +674,7 @@ var moment = require("moment");
   }); // Function endpoint
 */
 
-    describe("Badges, user jwt", function () {
+    describe("Settings, user jwt", function () {
       it("/rpc/settings_fn return user settings", function (done) {
         // Reset agent so we do not save cookies
         request = supertest.agent(test.cname);
@@ -621,6 +690,10 @@ var moment = require("moment");
             res.header["server"].should.match(new RegExp("postgrest", "g"));
             console.log(res.body);
             should.exist(res.body.settings);
+            should.exist(res.body.settings.preferences.public_vessel);
+            should.exist(res.body.settings.preferences.email_notifications);
+            should.exist(res.body.settings.preferences.phone_notifications);
+            /*
             should.exist(res.body.settings.preferences.badges);
             let badges = res.body.settings.preferences.badges;
             //console.log(Object.keys(badges));
@@ -630,10 +703,60 @@ var moment = require("moment");
               "Wake Maker",
               "Stormtrooper"
             );
+            */
             done(err);
           });
       });
     }); // user JWT
+
+    describe("Badges, bot jwt", function () {
+      it("/rpc/badges_fn return user badges", function (done) {
+        // Reset agent so we do not save cookies
+        request = supertest.agent(test.cname);
+        request
+          .post("/rpc/badges_fn")
+          .set("Authorization", `Bearer ${bot_jwt}`)
+          .set("Accept", "application/json")
+          .end(function (err, res) {
+            res.status.should.equal(200);
+            should.exist(res.header["content-type"]);
+            should.exist(res.header["server"]);
+            res.header["content-type"].should.match(new RegExp("json", "g"));
+            res.header["server"].should.match(new RegExp("postgrest", "g"));
+            console.log(res.body);
+            should.exist(res.body.badges);
+            res.body.badges.should.be.an.Array();
+            let badges = res.body.badges;
+            badges.length.should.be.aboveOrEqual(2);
+            done(err);
+          });
+      });
+    }); // bot JWT
+
+    describe("Profile, bot jwt", function () {
+      it("/rpc/profile_fn return user profile", function (done) {
+        // Reset agent so we do not save cookies
+        request = supertest.agent(test.cname);
+        request
+          .post("/rpc/profile_fn")
+          .set("Authorization", `Bearer ${bot_jwt}`)
+          .set("Accept", "application/json")
+          .end(function (err, res) {
+            res.status.should.equal(200);
+            should.exist(res.header["content-type"]);
+            should.exist(res.header["server"]);
+            res.header["content-type"].should.match(new RegExp("json", "g"));
+            res.header["server"].should.match(new RegExp("postgrest", "g"));
+            console.log(res.body);
+            should.exist(res.body.profile.has_vessel);
+            should.exist(res.body.profile.username);
+            should.exist(res.body.profile.created_at);
+            should.exist(res.body.profile.preferences);
+            Object.keys(res.body.profile).length.should.be.aboveOrEqual(6);
+            done(err);
+          });
+      });
+    }); // bot JWT
 
     describe("Function monitoring endpoint, JWT user_role", function () {
       let otp = null;
@@ -684,9 +807,10 @@ var moment = require("moment");
             should.exist(res.header["server"]);
             res.header["content-type"].should.match(new RegExp("json", "g"));
             res.header["server"].should.match(new RegExp("postgrest", "g"));
-            //console.log(res.body);
+            console.log(res.body);
             should.exist(res.body);
             let event = res.body;
+            event.should.be.an.Array();
             //console.log(event);
             // minimum events log per users 6 + 4 logs + OTP one per login
             event.length.should.be.aboveOrEqual(11);
@@ -725,7 +849,35 @@ var moment = require("moment");
           }
         });
       });
-    }); // Monitoring endpoint
+    }); // Public endpoint
+
+    describe("tests views endpoint, JWT bot_role", function () {
+      test.views.forEach(function (subtest) {
+        it(`${subtest.url}`, function (done) {
+          try {
+            // Reset agent so we do not save cookies
+            request = supertest.agent(test.cname);
+            request
+              .get(subtest.url)
+              .set("Authorization", `Bearer ${bot_jwt}`)
+              .set("Accept", "application/json")
+              .end(function (err, res) {
+                res.status.should.equal(200);
+                should.exist(res.header["content-type"]);
+                should.exist(res.header["server"]);
+                res.header["server"].should.match(new RegExp("postgrest", "g"));
+                //console.log(res.body);
+                should.exist(res.body);
+                res.body.should.be.an.Array();
+                res.body.length.should.be.aboveOrEqual(2);
+                done(err);
+              });
+          } catch (error) {
+            done();
+          }
+        });
+      });
+    }); // Views endpoint
 
   }); // OpenAPI description
 }); // Users Array
