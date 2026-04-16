@@ -1,12 +1,12 @@
-FROM mcr.microsoft.com/devcontainers/go:1.24
-
-RUN apt-get update && apt-get install --no-install-recommends -y postgresql-client && rm -rf /var/lib/apt/lists/*
-
-#COPY --from=builder /build/goose /usr/local/bin/goose
-#RUN go install github.com/pressly/goose/v3/cmd/goose@latest
+# Build stage: compile goose
+FROM golang:1.24-alpine AS builder
+ENV CGO_ENABLED=0
 RUN go install github.com/pressly/goose/v3/cmd/goose@v3.26.0
-RUN cp $GOPATH/bin/goose /usr/local/bin/goose
-RUN chmod +x /usr/local/bin/goose
+
+# Final stage: minimal image with only postgresql-client + goose binary
+FROM alpine:3.21
+RUN apk add --no-cache postgresql-client curl
+COPY --from=builder /go/bin/goose /usr/local/bin/goose
 
 WORKDIR /db
 ENTRYPOINT ["goose"]
