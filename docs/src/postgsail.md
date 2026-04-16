@@ -159,7 +159,7 @@ erDiagram
 
     public_aistypes {
         text description 
-        numeric id 
+        numeric id "{NOT_NULL}"
     }
 
     public_app_settings {
@@ -190,7 +190,7 @@ erDiagram
         text alpha_2 
         text alpha_3 
         text country 
-        integer id 
+        integer id "{NOT_NULL}"
     }
 
     public_metrics_rejected {
