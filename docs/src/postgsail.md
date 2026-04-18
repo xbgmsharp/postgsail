@@ -11,7 +11,7 @@ erDiagram
         double_precision _to_lng 
         integer _to_moorage_id "Link api.moorages with api.logbook via FOREIGN KEY and REFERENCES"
         timestamp_with_time_zone _to_time 
-        boolean active 
+        boolean active "{NOT_NULL}"
         double_precision avg_speed "avg speed in knots"
         numeric distance "Distance in Nautical Miles converted mobilitydb meters to NM"
         interval duration "Duration in ISO 8601 format"
@@ -41,13 +41,14 @@ erDiagram
         tfloat trip_temp_water "Temperature water in Kelvin, raw from signalk plugin"
         tfloat trip_twd "TWD - True Wind Direction in degrees converted from radians, raw from signalk plugin"
         tfloat trip_tws "TWS - True Wind Speed in knots converted from m/s, raw from signalk plugin"
+        timestamp_with_time_zone updated_at "Timestamp of last row modification, maintained automatically by logbook_moddatetime trigger. Use for incremental sync. {NOT_NULL}"
         jsonb user_data "User-defined data Log-specific data including actual tags, observations, images and custom fields"
         text vessel_id "Unique identifier for the vessel associated with the api.metadata entry {NOT_NULL}"
     }
 
     api_metadata {
-        boolean active "trigger monitor online/offline"
-        boolean active 
+        boolean active "trigger monitor online/offline {NOT_NULL}"
+        boolean active "{NOT_NULL}"
         jsonb available_keys "Signalk paths with unit for custom mapping"
         jsonb available_keys 
         double_precision beam 
@@ -100,12 +101,13 @@ erDiagram
         text notes 
         jsonb overpass "Output of the overpass API, see https://wiki.openstreetmap.org/wiki/Overpass_API"
         integer stay_code "Link api.stays_at with api.moorages via FOREIGN KEY and REFERENCES"
+        timestamp_with_time_zone updated_at "Timestamp of last row modification, maintained automatically by moorages_moddatetime trigger. Use for incremental sync. {NOT_NULL}"
         jsonb user_data "User-defined data Mooring-specific data including images and custom fields"
         text vessel_id "Unique identifier for the vessel associated with the api.metadata entry {NOT_NULL}"
     }
 
     api_stays {
-        boolean active 
+        boolean active "{NOT_NULL}"
         timestamp_with_time_zone arrived "{NOT_NULL}"
         timestamp_with_time_zone departed 
         interval duration "Best to use standard ISO 8601"
@@ -117,6 +119,7 @@ erDiagram
         text name 
         text notes 
         integer stay_code "Link api.stays_at with api.stays via FOREIGN KEY and REFERENCES"
+        timestamp_with_time_zone updated_at "Timestamp of last row modification, maintained automatically by stays_moddatetime trigger. Use for incremental sync. {NOT_NULL}"
         jsonb user_data "User-defined data Stay-specific data including images and custom fields"
         text vessel_id "Unique identifier for the vessel associated with the api.metadata entry {NOT_NULL}"
     }
@@ -169,13 +172,13 @@ erDiagram
 
     public_badges {
         text description 
-        text name 
+        text name "{NOT_NULL}"
     }
 
     public_email_templates {
         text email_content 
         text email_subject 
-        text name 
+        text name "{NOT_NULL}"
         text pushover_message 
         text pushover_title 
     }
@@ -266,7 +269,7 @@ erDiagram
 
     public_process_queue {
         text channel "{NOT_NULL}"
-        integer id "{NOT_NULL}"
+        bigint id "bigint primary key (upgraded from integer to avoid sequence exhaustion at sustained load). {NOT_NULL}"
         text payload "{NOT_NULL}"
         timestamp_with_time_zone processed 
         text ref_id "either user_id or vessel_id {NOT_NULL}"

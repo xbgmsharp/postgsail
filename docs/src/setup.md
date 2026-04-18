@@ -192,9 +192,9 @@ The frontend is a SPA (Single-Page Application). With SPA, the server provides t
 The frontend should be accessible via port HTTP/8080.
 
 Users are collaborating on two installation guide:
-- [Self-hosted-installation-guide](https://github.com/xbgmsharp/postgsail/blob/main/docs/install_guide.md)
-- [Self-hosted-installation-guide on AWS EC2](https://github.com/xbgmsharp/postgsail/blob/main/docs/Self%E2%80%90hosted-installation-guide%20on%20AWS.md)
-- [Self-hosted-installation-guide](https://github.com/xbgmsharp/postgsail/blob/main/docs/Self%E2%80%90hosted-installation-guide.md)
+- [Self-hosted-installation-guide](run-with-docker-compose.md)
+- [Self-hosted-installation-guide on AWS EC2](run-with-aws.md)
+- [Self-hosted-installation-guide](run-with-docker.md)
 
 ### SQL Configuration
 
@@ -211,7 +211,7 @@ UPDATE app_settings
     WHERE name = 'app.email_server';
 ```
 
-As it is all about SQL, [Read more](https://github.com/xbgmsharp/postgsail/blob/main/docs/ERD/README.md) about the database to configure your instance and explore your data.
+As it is all about SQL, [Read more](db/) about the database to configure your instance and explore your data.
 
 ### Ingest data
 
