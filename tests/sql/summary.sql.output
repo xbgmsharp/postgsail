@@ -183,410 +183,327 @@ List of relations from schema jwt
 
 List Row Security Policies
 -[ RECORD 1 ]------------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | logbook
 policyname | admin_all
-permissive | PERMISSIVE
 roles      | {username}
 cmd        | ALL
 qual       | true
 with_check | true
 -[ RECORD 2 ]------------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | logbook
 policyname | api_anonymous_role
-permissive | PERMISSIVE
 roles      | {api_anonymous}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
 -[ RECORD 3 ]------------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | logbook
 policyname | api_bot_role
-permissive | PERMISSIVE
 roles      | {bot_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
 -[ RECORD 4 ]------------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | logbook
 policyname | api_scheduler_role
-permissive | PERMISSIVE
 roles      | {scheduler}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
 -[ RECORD 5 ]------------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | logbook
 policyname | api_user_role
-permissive | PERMISSIVE
 roles      | {user_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, true))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
 -[ RECORD 6 ]------------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | logbook
 policyname | api_vessel_role
-permissive | PERMISSIVE
 roles      | {vessel_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
-with_check | true
+with_check | (vessel_id = current_setting('vessel.id'::text, false))
 -[ RECORD 7 ]------------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | logbook
 policyname | grafana_role
-permissive | PERMISSIVE
 roles      | {grafana}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
 -[ RECORD 8 ]------------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | metadata
 policyname | admin_all
-permissive | PERMISSIVE
 roles      | {username}
 cmd        | ALL
 qual       | true
 with_check | true
 -[ RECORD 9 ]------------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | metadata
 policyname | api_anonymous_role
-permissive | PERMISSIVE
 roles      | {api_anonymous}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
 -[ RECORD 10 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | metadata
 policyname | api_bot_role
-permissive | PERMISSIVE
 roles      | {bot_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
 -[ RECORD 11 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | metadata
 policyname | api_scheduler_role
-permissive | PERMISSIVE
 roles      | {scheduler}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
 -[ RECORD 12 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | metadata
 policyname | api_user_role
-permissive | PERMISSIVE
 roles      | {user_role}
 cmd        | ALL
-qual       | (vessel_id = current_setting('vessel.id'::text, false))
+qual       | (vessel_id = current_setting('vessel.id'::text, true))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
 -[ RECORD 13 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | metadata
 policyname | api_vessel_role
-permissive | PERMISSIVE
 roles      | {vessel_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
 -[ RECORD 14 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | metadata
 policyname | grafana_role
-permissive | PERMISSIVE
 roles      | {grafana}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
 -[ RECORD 15 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | metrics
 policyname | admin_all
-permissive | PERMISSIVE
 roles      | {username}
 cmd        | ALL
 qual       | true
 with_check | true
 -[ RECORD 16 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | metrics
 policyname | api_anonymous_role
-permissive | PERMISSIVE
 roles      | {api_anonymous}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
 -[ RECORD 17 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | metrics
 policyname | api_bot_role
-permissive | PERMISSIVE
 roles      | {bot_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
 -[ RECORD 18 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | metrics
 policyname | api_scheduler_role
-permissive | PERMISSIVE
 roles      | {scheduler}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
 -[ RECORD 19 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | metrics
 policyname | api_user_role
-permissive | PERMISSIVE
 roles      | {user_role}
 cmd        | ALL
-qual       | (vessel_id = current_setting('vessel.id'::text, false))
+qual       | (vessel_id = current_setting('vessel.id'::text, true))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
 -[ RECORD 20 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | metrics
 policyname | api_vessel_role
-permissive | PERMISSIVE
 roles      | {vessel_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
 -[ RECORD 21 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | metrics
 policyname | grafana_role
-permissive | PERMISSIVE
 roles      | {grafana}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
 -[ RECORD 22 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | moorages
 policyname | admin_all
-permissive | PERMISSIVE
 roles      | {username}
 cmd        | ALL
 qual       | true
 with_check | true
 -[ RECORD 23 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | moorages
 policyname | api_anonymous_role
-permissive | PERMISSIVE
 roles      | {api_anonymous}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
 -[ RECORD 24 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | moorages
 policyname | api_bot_role
-permissive | PERMISSIVE
 roles      | {bot_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
 -[ RECORD 25 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | moorages
 policyname | api_scheduler_role
-permissive | PERMISSIVE
 roles      | {scheduler}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
 -[ RECORD 26 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | moorages
 policyname | api_user_role
-permissive | PERMISSIVE
 roles      | {user_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, true))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
 -[ RECORD 27 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | moorages
 policyname | api_vessel_role
-permissive | PERMISSIVE
 roles      | {vessel_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
-with_check | true
+with_check | (vessel_id = current_setting('vessel.id'::text, false))
 -[ RECORD 28 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | moorages
 policyname | grafana_role
-permissive | PERMISSIVE
 roles      | {grafana}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
 -[ RECORD 29 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | stays
 policyname | admin_all
-permissive | PERMISSIVE
 roles      | {username}
 cmd        | ALL
 qual       | true
 with_check | true
 -[ RECORD 30 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | stays
 policyname | api_anonymous_role
-permissive | PERMISSIVE
 roles      | {api_anonymous}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
 -[ RECORD 31 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | stays
 policyname | api_bot_role
-permissive | PERMISSIVE
 roles      | {bot_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
 -[ RECORD 32 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | stays
 policyname | api_scheduler_role
-permissive | PERMISSIVE
 roles      | {scheduler}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
 -[ RECORD 33 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | stays
 policyname | api_user_role
-permissive | PERMISSIVE
 roles      | {user_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, true))
 with_check | (vessel_id = current_setting('vessel.id'::text, false))
 -[ RECORD 34 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | stays
 policyname | api_vessel_role
-permissive | PERMISSIVE
 roles      | {vessel_role}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
-with_check | true
+with_check | (vessel_id = current_setting('vessel.id'::text, false))
 -[ RECORD 35 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | api
 tablename  | stays
 policyname | grafana_role
-permissive | PERMISSIVE
 roles      | {grafana}
 cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
 -[ RECORD 36 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | auth
 tablename  | accounts
 policyname | admin_all
-permissive | PERMISSIVE
 roles      | {username}
 cmd        | ALL
 qual       | true
 with_check | true
 -[ RECORD 37 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | auth
 tablename  | accounts
 policyname | api_scheduler_role
-permissive | PERMISSIVE
 roles      | {scheduler}
 cmd        | ALL
 qual       | ((email)::text = current_setting('user.email'::text, true))
-with_check | ((email)::text = current_setting('user.email'::text, true))
+with_check | ((email)::text = current_setting('user.email'::text, false))
 -[ RECORD 38 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | auth
 tablename  | accounts
 policyname | api_user_role
-permissive | PERMISSIVE
 roles      | {user_role}
 cmd        | ALL
 qual       | ((email)::text = current_setting('user.email'::text, true))
 with_check | ((email)::text = current_setting('user.email'::text, true))
 -[ RECORD 39 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | auth
+tablename  | otp
+policyname | otp_user_role
+roles      | {user_role}
+cmd        | ALL
+qual       | ((user_email)::text = current_setting('user.email'::text, true))
+with_check | ((user_email)::text = current_setting('user.email'::text, true))
+-[ RECORD 40 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | vessels
 policyname | admin_all
-permissive | PERMISSIVE
 roles      | {username}
 cmd        | ALL
 qual       | true
 with_check | true
--[ RECORD 40 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | auth
+-[ RECORD 41 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | vessels
 policyname | api_user_role
-permissive | PERMISSIVE
 roles      | {user_role}
 cmd        | ALL
 qual       | ((vessel_id = current_setting('vessel.id'::text, true)) AND ((owner_email)::text = current_setting('user.email'::text, true)))
 with_check | ((vessel_id = current_setting('vessel.id'::text, true)) AND ((owner_email)::text = current_setting('user.email'::text, true)))
--[ RECORD 41 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | auth
+-[ RECORD 42 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | vessels
 policyname | grafana_role
-permissive | PERMISSIVE
 roles      | {grafana}
 cmd        | ALL
 qual       | ((owner_email)::text = current_setting('user.email'::text, true))
 with_check | false
--[ RECORD 42 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | public
+-[ RECORD 43 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | process_queue
 policyname | admin_all
-permissive | PERMISSIVE
 roles      | {username}
 cmd        | ALL
 qual       | true
 with_check | true
--[ RECORD 43 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | public
+-[ RECORD 44 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | process_queue
 policyname | api_scheduler_role
-permissive | PERMISSIVE
 roles      | {scheduler}
 cmd        | ALL
 qual       | true
 with_check | false
--[ RECORD 44 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | public
+-[ RECORD 45 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | process_queue
 policyname | api_user_role
-permissive | PERMISSIVE
 roles      | {user_role}
 cmd        | ALL
 qual       | ((ref_id = current_setting('user.id'::text, true)) OR (ref_id = current_setting('vessel.id'::text, true)))
-with_check | ((ref_id = current_setting('user.id'::text, true)) OR (ref_id = current_setting('vessel.id'::text, true)))
--[ RECORD 45 ]-----------------------------------------------------------------------------------------------------------------------------
-schemaname | public
+with_check | ((ref_id = current_setting('user.id'::text, false)) OR (ref_id = current_setting('vessel.id'::text, false)))
+-[ RECORD 46 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | process_queue
 policyname | api_vessel_role
-permissive | PERMISSIVE
 roles      | {vessel_role}
 cmd        | ALL
-qual       | ((ref_id = current_setting('user.id'::text, true)) OR (ref_id = current_setting('vessel.id'::text, true)))
-with_check | true
+qual       | (ref_id = current_setting('vessel.id'::text, false))
+with_check | (ref_id = current_setting('vessel.id'::text, false))
 
 List user roles and permissions
 -[ RECORD 1 ]--+---------------------------------------------------------
@@ -693,12 +610,12 @@ reverse_geocode_py_fn | {"name": "Spain", "country_code": "es"}
 Test geoip reverse_geoip_py_fn
 Test opverpass API overpass_py_fn
 -[ RECORD 1 ]---------------------------------------------------------------------------------------------------------------------------------------------------------------------
-versions_fn | {"api_version" : "0.10.0", "sys_version" : "PostgreSQL 18.3", "mobilitydb" : "1.3.0", "timescaledb" : "2.26.2", "postgis" : "3.6.2", "postgrest" : "PostgREST 14.8"}
+versions_fn | {"api_version" : "0.10.0", "sys_version" : "PostgreSQL 18.3", "mobilitydb" : "1.3.0", "timescaledb" : "2.26.2", "postgis" : "3.6.2", "postgrest" : "PostgREST 14.9"}
 
 -[ RECORD 1 ]----------------
 api_version | 0.10.0
 sys_version | PostgreSQL 18.3
 timescaledb | 2.26.2
 postgis     | 3.6.2
-postgrest   | PostgREST 14.8
+postgrest   | PostgREST 14.9
 
