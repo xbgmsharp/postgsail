@@ -31,7 +31,7 @@ Check badges for all users
 -[ RECORD 1 ]
 count | 5
 -[ RECORD 2 ]
-count | 10
+count | 11
 
 Check details from vessel_id kapla
 -[ RECORD 1 ]-+-----------------------------------------------------------------------------------------------------------------
@@ -68,18 +68,20 @@ jsonb_object_keys | Wake Maker
 -[ RECORD 8 ]-----+------------------
 jsonb_object_keys | Club Alaska
 -[ RECORD 9 ]-----+------------------
-jsonb_object_keys | Stormtrooper
+jsonb_object_keys | Speed Demon
 -[ RECORD 10 ]----+------------------
-jsonb_object_keys | Captain Award
+jsonb_object_keys | Stormtrooper
 -[ RECORD 11 ]----+------------------
-jsonb_object_keys | Caribbean Sea
+jsonb_object_keys | Captain Award
 -[ RECORD 12 ]----+------------------
-jsonb_object_keys | Gulf of Alaska
+jsonb_object_keys | Caribbean Sea
 -[ RECORD 13 ]----+------------------
-jsonb_object_keys | Gulf of Finland
+jsonb_object_keys | Gulf of Alaska
 -[ RECORD 14 ]----+------------------
-jsonb_object_keys | Navigator Award
+jsonb_object_keys | Gulf of Finland
 -[ RECORD 15 ]----+------------------
+jsonb_object_keys | Navigator Award
+-[ RECORD 16 ]----+------------------
 jsonb_object_keys | Tropical Traveler
 
 Check details from vessel_id aava
