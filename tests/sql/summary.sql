@@ -83,7 +83,11 @@ select t.table_name as schema_jwt
 
 -- List Row Security Policies - todo reduce and improve output
 \echo 'List Row Security Policies'
-select * from pg_policies order by schemaname, tablename, policyname;
+--select * from pg_policies order by schemaname, tablename, policyname;
+SELECT tablename, policyname, roles, cmd, qual, with_check
+FROM pg_policies
+WHERE schemaname IN ('api', 'auth', 'public')
+ORDER BY schemaname, tablename, policyname;
 
 -- List user roles and permissions
 \echo 'List user roles and permissions'
