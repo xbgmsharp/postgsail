@@ -21,7 +21,7 @@ logs view
 -[ RECORD 1 ]----+-----------------------------------------
 name             | patch log name 4
 from             | Spain
-to               | Monsolís
+to               | Montsolís
 started_not_null | t
 ended_not_null   | t
 distance         | 5.19
@@ -45,7 +45,7 @@ log view
 -[ RECORD 1 ]-------------+--------------------------------------------------------
 name                      | patch log name 4
 from                      | Spain
-to                        | Monsolís
+to                        | Montsolís
 started_not_null          | t
 ended_not_null            | t
 geojson_features_not_null | t
@@ -88,7 +88,7 @@ stayed_at_id              | 2
 arrived_not_null          | t
 arrived_log_id            | 4
 arrived_from_moorage_id   | 2
-arrived_from_moorage_name | Monsolís
+arrived_from_moorage_name | Montsolís
 departed_not_null         | t
 departed_log_id           | 3
 departed_to_moorage_id    | 3
@@ -122,7 +122,7 @@ stayed_at_id              | 2
 arrived_not_null          | t
 arrived_log_id            | 4
 arrived_from_moorage_id   | 2
-arrived_from_moorage_name | Monsolís
+arrived_from_moorage_name | Montsolís
 departed_not_null         | t
 departed_log_id           | 3
 departed_to_moorage_id    | 3
@@ -165,7 +165,7 @@ default_stay_id     | 1
 arrivals_departures | 1
 total_duration      | PT0S
 -[ RECORD 4 ]-------+-------------------
-moorage             | Monsolís
+moorage             | Montsolís
 default_stay        | Unknown
 default_stay_id     | 1
 arrivals_departures | 1
@@ -187,7 +187,7 @@ stay_last_seen_not_null  | f
 stay_first_seen_id       | 
 stay_last_seen_id        | 
 -[ RECORD 2 ]------------+---------------------------------------------------
-name                     | Monsolís
+name                     | Montsolís
 default_stay             | Unknown
 default_stay_id          | 1
 stays_sum_duration       | PT0S
@@ -249,7 +249,7 @@ geojson_geometry_not_null   | t
 geojson_properties_not_null | t
 -[ RECORD 2 ]---------------+-------------------
 id                          | 2
-name                        | Monsolís
+name                        | Montsolís
 geojson_geometry_not_null   | t
 geojson_properties_not_null | t
 -[ RECORD 3 ]---------------+-------------------
