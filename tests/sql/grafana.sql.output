@@ -96,7 +96,7 @@ notes      |
 -[ RECORD 3 ]--------------------------------------------------
 id         | 3
 vessel_id  | t
-moorage_id | 
+moorage_id | 7
 active     | t
 name       | f
 latitude   | 59.86
@@ -105,7 +105,7 @@ geog       |
 arrived    | t
 departed   | f
 duration   | 
-stay_code  | 2
+stay_code  | 1
 notes      | 
 
 api.stays_view

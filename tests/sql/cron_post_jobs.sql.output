@@ -67,7 +67,7 @@ stay_code | 4
 active    | t
 name      | f
 geog      | 
-stay_code | 2
+stay_code | 1
 
 eventlogs_view
 -[ RECORD 1 ]
