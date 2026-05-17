@@ -18,7 +18,6 @@ module.exports = {
       'index-referencing-column': ['error'],
       'row-level-security': ['error', { enforced: true}],
       'require-primary-key': ['error', { ignorePattern: 'information_schema.*' } ],
-      'index-referencing-column': ['error'],
     },
 
     schemas: [{ name: "public" },{ name: "api" },{ name: "auth" }],
