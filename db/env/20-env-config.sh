@@ -24,12 +24,20 @@ INSERT INTO app_settings (name, value) VALUES
 ON CONFLICT (name)
 DO UPDATE SET value = EXCLUDED.value
 WHERE app_settings.value IS DISTINCT FROM EXCLUDED.value;
+
+INSERT INTO app_settings (name, value)
+        VALUES ('app.instance_id', public.uuid_generate_v7()::text)
+        ON CONFLICT (name) DO NOTHING;
+
 -- Update comment with version
 COMMENT ON DATABASE signalk IS 'PostgSail version ${PGSAIL_VERSION}';
+
 -- Update password from env
 ALTER ROLE authenticator WITH PASSWORD '${PGSAIL_AUTHENTICATOR_PASSWORD}';
 ALTER ROLE grafana WITH PASSWORD '${PGSAIL_GRAFANA_PASSWORD}';
 COMMIT;
 END
 
-curl -s -XPOST -Hx-pgsail:${PGSAIL_VERSION} https://api.openplotter.cloud/rpc/telemetry_fn
+INSTANCE_ID=$(psql ${PGSAIL_DB_URI} signalk -At -c "SELECT value FROM app_settings WHERE name = 'app.instance_id'")
+
+curl -s -XPOST -Hx-pgsail:${PGSAIL_VERSION} -H "x-instance-id:${INSTANCE_ID}" -H "x-ci:${PGSAIL_CI}" https://api.openplotter.cloud/rpc/telemetry_fn
