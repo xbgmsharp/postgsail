@@ -12,13 +12,16 @@ user_id | t
 vessel_id | t
 
 SET
+-[ RECORD 1 ]
+vessel_id | t
+
 logbook
 -[ RECORD 1 ]
 count | 2
 
 logbook
 -[ RECORD 1 ]-----+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-name              | Pojoviken to Norra hamnen
+name_not_null     | t
 _from_time        | t
 _to_time          | t
 track_geojson     | t
@@ -33,7 +36,7 @@ polar_is_not_null | t
 avg_wind_speed    | 9.15
 user_data         | {"observations": {"seaState": -1, "visibility": -1, "cloudCoverage": -1}}
 -[ RECORD 2 ]-----+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-name              | Norra hamnen to Ekenäs
+name_not_null     | t
 _from_time        | t
 _to_time          | t
 track_geojson     | t
@@ -53,47 +56,71 @@ stays
 count | 3
 
 stays
--[ RECORD 1 ]-------------------------------------------------
-active    | f
-name      | t
-geog      | 0101000020E6100000B0DEBBE0E68737404DA938FBF0094E40
-stay_code | 2
--[ RECORD 2 ]-------------------------------------------------
-active    | f
-name      | t
-geog      | 0101000020E6100000029A081B9E6E37404A5658830AFD4D40
-stay_code | 4
--[ RECORD 3 ]-------------------------------------------------
-active    | t
-name      | f
-geog      | 
-stay_code | 1
+-[ RECORD 1 ]------+---------------------------------------------------
+active             | f
+name_not_null      | t
+geog               | 0101000020E6100000B0DEBBE0E68737404DA938FBF0094E40
+stay_code_not_null | t
+-[ RECORD 2 ]------+---------------------------------------------------
+active             | f
+name_not_null      | t
+geog               | 0101000020E6100000029A081B9E6E37404A5658830AFD4D40
+stay_code_not_null | t
+-[ RECORD 3 ]------+---------------------------------------------------
+active             | t
+name_not_null      | f
+geog               | 
+stay_code_not_null | t
 
 eventlogs_view
 -[ RECORD 1 ]
 count | 11
 
-stats_logs_fn
+stats_fn
 SELECT 1
--[ RECORD 1 ]--+--------
-name           | "kapla"
-count          | 2
-max_speed      | 6.5
-max_distance   | 8.92
-max_duration   | "PT27M"
-?column?       | 2
-sum_distance   | 16.58
-sum_duration   | "PT47M"
-max_wind_speed | 37.92
-?column?       | 2
-?column?       | 1
-?column?       | 2
-first_date     | t
-last_date      | t
+-[ RECORD 1 ]--------------+------------------------------------------------------------------------
+stats_logs_name            | "kapla"
+logs_top_speed             | [{"id": 2, "max_speed": 6.5}, {"id": 1, "max_speed": 6.1}]
+stats_moorages_not_null    | t
+logs_top_distance          | [2, 1]
+logs_top_duration          | [1, 2]
+logs_top_avg_speed         | [{"id": 2, "avg_speed": 26.76}, {"id": 1, "avg_speed": 17.03}]
+logs_top_wind_speed        | [{"id": 2, "max_wind_speed": 37.92}, {"id": 1, "max_wind_speed": 19.3}]
+moorages_top_arrivals      | [{"id": 5, "ref_count": 1}, {"id": 6, "ref_count": 1}]
+moorages_top_duration      | [{"id": 6, "dur": "PT2M"}, {"id": 5, "dur": "PT1M"}]
+moorages_top_countries     | ["fi"]
+time_spent_away_by_is_gt_1 | t
+time_at_home_ports         | "PT0S"
 
 DROP TABLE
--[ RECORD 1 ]-+-
-stats_logs_fn | 
+stats_logs_fn
+SELECT 1
+-[ RECORD 1 ]---------+--------
+name                  | "kapla"
+count                 | 2
+max_speed             | 6.5
+max_distance          | 8.92
+max_duration          | "PT27M"
+max_speed_id          | 2
+sum_distance          | 16.58
+sum_duration          | "PT47M"
+max_wind_speed        | 37.92
+max_distance_id       | 2
+max_duration_id       | 1
+max_wind_speed_id     | 2
+first_date            | t
+last_date             | t
+metrics_first         | t
+metrics_last          | t
+longest_nonstop_sail  | t
+best_24h_distance_nm  | t
+best_24h_window_start | t
+best_24h_log_id       | t
+best_24h_route        | t
+
+DROP TABLE
+-[ RECORD 1 ]-+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+stats_logs_fn | {"name": "kapla", "count": 0, "last_date": null, "max_speed": null, "first_date": null, "max_distance": null, "max_duration": null, "max_speed_id": null, "metrics_last": null, "sum_distance": null, "sum_duration": null, "metrics_first": null, "best_24h_route": null, "max_wind_speed": null, "best_24h_log_id": null, "max_distance_id": null, "max_duration_id": null, "max_wind_speed_id": null, "best_24h_distance_nm": null, "longest_nonstop_sail": null, "best_24h_window_start": null}
 
 update_logbook_observations_fn
 -[ RECORD 1 ]------------------------------------------------------------------------

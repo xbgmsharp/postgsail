@@ -38,9 +38,10 @@ SELECT badges_geom_fn(5,NOW()::TEXT);
 SELECT badges_geom_fn(6,NOW()::TEXT);
 
 \echo 'Check badges for all users'
-select (SELECT COUNT(*) from jsonb_object_keys ( a.preferences->'badges' )) FROM auth.accounts a;
+select (SELECT COUNT(*) from jsonb_object_keys ( a.preferences->'badges' )) FROM auth.accounts a ORDER BY 1 DESC;
 
 \echo 'Check details from vessel_id kapla'
+--SELECT get_user_settings_from_vesselid_fn(:'vessel_id'::TEXT);
 SELECT 
     json_build_object( 
             'boat', v.name,
@@ -73,10 +74,10 @@ SELECT set_config('vessel.id', :'vessel_id', false) IS NOT NULL as vessel_id;
 SELECT badges_moorages_fn();
 
 \echo 'Check badges for all users'
-SELECT jsonb_object_keys ( a.preferences->'badges' ) FROM auth.accounts a;
+SELECT jsonb_object_keys ( a.preferences->'badges' ) AS badges FROM auth.accounts a ORDER BY badges;
 
 \echo 'Check details from vessel_id aava'
---SELECT get_user_settings_from_vesselid_fn('vessels.urn:mrn:imo:mmsi:787654321'::TEXT);
+--SELECT get_user_settings_from_vesselid_fn(:'vessel_id'::TEXT);
 SELECT 
     json_build_object( 
             'boat', v.name,

@@ -116,7 +116,7 @@ SELECT public.reverse_geocode_py_fn('nominatim', 1.4440116666666667, 38.82985166
 
 -- List details product versions
 SELECT api.versions_fn();
-SELECT * FROM api.versions_view;
+--SELECT * FROM api.versions_view;
 
 -- List application settings
 --SELECT * IS NOT NULl FROM public.app_settings;

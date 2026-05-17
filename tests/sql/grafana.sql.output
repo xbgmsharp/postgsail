@@ -134,14 +134,14 @@ notes        |
 
 api.moorages
 -[ RECORD 1 ]-------------------------------------------------
-id        | 5
+id        | 7
 vessel_id | t
-name      | Pojoviken
+name      | Ekenäs
 country   | fi
-stay_code | 2
-latitude  | 60.0776666666667
-longitude | 23.5308666666667
-geog      | 0101000020E6100000B9DEBBE0E687374052A938FBF0094E40
+stay_code | 1
+latitude  | 59.86
+longitude | 23.3657666666667
+geog      | 0101000020E6100000E84C5FE2A25D3740AE47E17A14EE4D40
 home_flag | f
 notes     | 
 -[ RECORD 2 ]-------------------------------------------------
@@ -156,56 +156,56 @@ geog      | 0101000020E6100000029A081B9E6E3740455658830AFD4D40
 home_flag | f
 notes     | 
 -[ RECORD 3 ]-------------------------------------------------
-id        | 7
+id        | 5
 vessel_id | t
-name      | Ekenäs
+name      | Pojoviken
 country   | fi
-stay_code | 1
-latitude  | 59.86
-longitude | 23.3657666666667
-geog      | 0101000020E6100000E84C5FE2A25D3740AE47E17A14EE4D40
+stay_code | 2
+latitude  | 60.0776666666667
+longitude | 23.5308666666667
+geog      | 0101000020E6100000B9DEBBE0E687374052A938FBF0094E40
 home_flag | f
 notes     | 
 
 api.moorages_view
 -[ RECORD 1 ]-------+-------------
-id                  | 6
-moorage             | Norra hamnen
-default_stay        | Dock
-default_stay_id     | 4
-arrivals_departures | 2
-total_duration      | PT2M
--[ RECORD 2 ]-------+-------------
-id                  | 5
-moorage             | Pojoviken
-default_stay        | Anchor
-default_stay_id     | 2
-arrivals_departures | 1
-total_duration      | PT1M
--[ RECORD 3 ]-------+-------------
 id                  | 7
 moorage             | Ekenäs
 default_stay        | Unknown
 default_stay_id     | 1
 arrivals_departures | 1
 total_duration      | PT0S
+-[ RECORD 2 ]-------+-------------
+id                  | 6
+moorage             | Norra hamnen
+default_stay        | Dock
+default_stay_id     | 4
+arrivals_departures | 2
+total_duration      | PT2M
+-[ RECORD 3 ]-------+-------------
+id                  | 5
+moorage             | Pojoviken
+default_stay        | Anchor
+default_stay_id     | 2
+arrivals_departures | 1
+total_duration      | PT1M
 
 api.moorage_view
 -[ RECORD 1 ]------+---------------------------------------------------
-id                 | 5
-name               | Pojoviken
-default_stay       | Anchor
-latitude           | 60.0776666666667
-longitude          | 23.5308666666667
-geog               | 0101000020E6100000B9DEBBE0E687374052A938FBF0094E40
+id                 | 7
+name               | Ekenäs
+default_stay       | Unknown
+latitude           | 59.86
+longitude          | 23.3657666666667
+geog               | 0101000020E6100000E84C5FE2A25D3740AE47E17A14EE4D40
 home               | f
 notes              | 
 logs_count         | 1
-stays_count        | 1
-stay_first_seen_id | 1
-stay_last_seen_id  | 1
-stay_first_seen    | t
-stay_last_seen     | t
+stays_count        | 0
+stay_first_seen_id | 
+stay_last_seen_id  | 
+stay_first_seen    | f
+stay_last_seen     | f
 -[ RECORD 2 ]------+---------------------------------------------------
 id                 | 6
 name               | Norra hamnen
@@ -222,18 +222,18 @@ stay_last_seen_id  | 2
 stay_first_seen    | t
 stay_last_seen     | t
 -[ RECORD 3 ]------+---------------------------------------------------
-id                 | 7
-name               | Ekenäs
-default_stay       | Unknown
-latitude           | 59.86
-longitude          | 23.3657666666667
-geog               | 0101000020E6100000E84C5FE2A25D3740AE47E17A14EE4D40
+id                 | 5
+name               | Pojoviken
+default_stay       | Anchor
+latitude           | 60.0776666666667
+longitude          | 23.5308666666667
+geog               | 0101000020E6100000B9DEBBE0E687374052A938FBF0094E40
 home               | f
 notes              | 
 logs_count         | 1
-stays_count        | 0
-stay_first_seen_id | 
-stay_last_seen_id  | 
-stay_first_seen    | f
-stay_last_seen     | f
+stays_count        | 1
+stay_first_seen_id | 1
+stay_last_seen_id  | 1
+stay_first_seen    | t
+stay_last_seen     | t
 

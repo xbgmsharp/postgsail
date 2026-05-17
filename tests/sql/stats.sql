@@ -13,8 +13,8 @@ select current_database();
 
 \echo 'Validate Stats operation'
 -- Assign vessel_id var
-SELECT v.vessel_id as "vessel_id_kapla" FROM auth.vessels v WHERE v.owner_email = 'demo+kapla@openplotter.cloud' \gset
-SELECT v.vessel_id as "vessel_id_aava" FROM auth.vessels v WHERE v.owner_email = 'demo+aava@openplotter.cloud' \gset
+SELECT v.vessel_id AS "vessel_id_kapla" FROM auth.vessels v WHERE v.owner_email = 'demo+kapla@openplotter.cloud' \gset
+SELECT v.vessel_id AS "vessel_id_aava" FROM auth.vessels v WHERE v.owner_email = 'demo+aava@openplotter.cloud' \gset
 
 -- user_role
 SET ROLE user_role;
@@ -35,7 +35,12 @@ SELECT tbl.stats->'stats_logs'->>'name' AS boat_name,
   (tbl.stats->'stats_moorages'->>'home_ports')::int AS home_ports,
   (tbl.stats->'stats_moorages'->>'unique_moorages')::numeric AS unique_moorages,
   --(tbl.stats->'moorages_top_countries') = '["fi"]' AS moorages_top_countries
-  (tbl.stats->'moorages_top_countries') AS moorages_top_countries
+  (tbl.stats->'moorages_top_countries') AS moorages_top_countries,
+  date_trunc('minute', (tbl.stats->'stats_moorages'->>'time_at_home_ports')::interval) AS time_at_home_ports,
+  date_trunc('minute', (tbl.stats->'stats_moorages'->>'time_spent_away')::interval) AS time_spent_away,
+  jsonb_array_length(
+    tbl.stats->'stats_moorages'->'time_spent_away_by'
+  ) > 0                                                         AS has_away_breakdown
   FROM tbl;
 
 SELECT set_config('vessel.id', :'vessel_id_aava', false) IS NOT NULL as vessel_id;
@@ -50,5 +55,10 @@ SELECT tbl.stats->'stats_logs'->>'name' AS boat_name,
   (tbl.stats->'stats_logs'->>'max_distance')::numeric AS max_distance,
   (tbl.stats->'stats_moorages'->>'home_ports')::int AS home_ports,
   (tbl.stats->'stats_moorages'->>'unique_moorages')::numeric AS unique_moorages,
-  (tbl.stats->'moorages_top_countries') AS moorages_top_countries
+  (tbl.stats->'moorages_top_countries') AS moorages_top_countries,
+  date_trunc('minute', (tbl.stats->'stats_moorages'->>'time_at_home_ports')::interval) AS time_at_home_ports,
+  date_trunc('minute', (tbl.stats->'stats_moorages'->>'time_spent_away')::interval)   AS time_spent_away,
+  jsonb_array_length(
+    tbl.stats->'stats_moorages'->'time_spent_away_by'
+  ) > 0                                                         AS has_away_breakdown
   FROM tbl;

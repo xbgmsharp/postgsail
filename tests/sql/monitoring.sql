@@ -27,6 +27,25 @@ SELECT set_config('vessel.name', :'name', false) IS NOT NULL as name;
 --select * from api.monitoring_view;
 select count(*) from api.monitoring_view;
 
+\echo 'Test monitoring_live for user'
+-- Test monitoring for user
+--select * from api.monitoring_live;
+select count(*) from api.monitoring_live;
+
+\echo 'Test monitoring_history_fn for user'
+-- Test monitoring for user
+--select api.monitoring_history_fn();
+SELECT jsonb_array_length(api.monitoring_history_fn()) > 25 AS monitoring_history_fn_length_gt_25;
+/*WITH buckets AS (
+    SELECT jsonb_array_elements(api.monitoring_history_fn()) AS b
+)
+SELECT
+    b->>'time_bucket' is not null           AS time_bucket_not_null,
+    (b->>'windspeedoverground') IS NOT NULL AS wind_not_null,
+    (b->>'depth') IS NOT NULL               AS depth_not_null
+FROM buckets;
+*/
+
 \echo 'Test monitoring_view2 for user'
 -- Test monitoring for user
 --select * from api.monitoring_view2;
