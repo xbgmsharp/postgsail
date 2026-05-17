@@ -114,7 +114,7 @@ var moment = require('moment');
         }
       },
       { //url: '/rpc/export_logbook_gpx_fn',
-        url: '/rpc/export_logbook_kml_trip_fn',
+        url: '/rpc/export_logbook_gpx_trip_fn',
         payload: {
               _id: 2
             },
@@ -362,7 +362,7 @@ var moment = require('moment');
         }
       },
       { //url: '/rpc/export_logbooks_gpx_fn',
-        url: '/rpc/export_logbooks_kml_trips_fn',
+        url: '/rpc/export_logbooks_gpx_trips_fn',
         payload: {
             start_log: 3,
             end_log: 4
@@ -473,35 +473,6 @@ var moment = require('moment');
         }
       },
     ],
-    others_fn: [
-      { url: '/rpc/generate_otp_fn',
-        payload: { email: 'demo+aava@openplotter.cloud' },
-        res: {
-          obj_name: 'settings'
-        }
-      },
-      { url: '/rpc/pushover_fn',
-        // invalid key to avoid trigger notification
-        payload: { token: 'zxy', pushover_test_key: '987azerty#'},
-        res: {
-          obj_name: 'settings'
-        }
-      },
-      { url: '/rpc/update_user_preferences_fn',
-        //payload: { key: '{xyz}', value: '987azerty#'},
-        // invalid key to avoid trigger notification
-        payload: { key: '{telegram_test}', value: '{"id": 987654321, "is_bot": false, "first_name": "aaVa", "language_code": "en"}' },
-        res: {
-          obj_name: 'settings'
-        }
-      },
-      { url: '/rpc/bot',
-        payload: { email: 'demo+aava@openplotter.cloud', chat_id: 987654321},
-        res: {
-          obj_name: 'settings'
-        }
-      }
-    ]
   }
 ].forEach( function(test){
 
@@ -527,7 +498,6 @@ request.set('User-Agent', 'PostgSail unit tests');
           //should.exist(res.body.paths['/rpc/generate_otp_fn']);
           should.exist(res.body.paths['/rpc/pushover_fn']);
           should.exist(res.body.paths['/rpc/telegram_fn']);
-          //should.exist(res.body.paths['/rpc/bot']);
           done(err);
         });
       });
@@ -592,11 +562,15 @@ request.set('User-Agent', 'PostgSail unit tests');
           should.exist(res.header['server']);
           res.header['content-type'].should.match(new RegExp('json','g'));
           res.header['server'].should.match(new RegExp('postgrest','g'));
-          // Function
+          // Functions
           should.exist(res.body.paths['/rpc/register_vessel']);
           should.exist(res.body.paths['/rpc/update_user_preferences_fn']);
+          should.exist(res.body.paths['/rpc/update_metadata_userdata_fn']);
           should.exist(res.body.paths['/rpc/settings_fn']);
           should.exist(res.body.paths['/rpc/versions_fn']);
+          should.exist(res.body.paths['/rpc/vessel_fn']);
+          should.exist(res.body.paths['/rpc/monitoring_history_fn']);
+          should.exist(res.body.paths['/rpc/stats_fn']);
           // Tables
           should.exist(res.body.paths['/metadata']);
           should.exist(res.body.paths['/metrics']);
@@ -611,8 +585,8 @@ request.set('User-Agent', 'PostgSail unit tests');
           should.exist(res.body.paths['/moorage_view']);
           should.exist(res.body.paths['/stay_view']);
           should.exist(res.body.paths['/vessels_view']);
-          //should.exist(res.body.paths['/stats_view']);
           should.exist(res.body.paths['/monitoring_view']);
+          should.exist(res.body.paths['/monitoring_live']);
           done(err);
         });
     });
@@ -893,43 +867,6 @@ request.set('User-Agent', 'PostgSail unit tests');
       });
     });
   }); // Function endpoint
-
-/*
-  describe("Function others endpoint, JWT user_role", function(){
-
-    let otp = null;
-    test.others_fn.forEach(function (subtest) {
-      it(`${subtest.url}`, function(done) {
-        try {
-          //console.log(`${subtest.url} ${subtest.res_body_length}`);
-          // Reset agent so we do not save cookies
-          request = supertest.agent(test.cname);
-          request
-            .post(subtest.url)
-            .send(subtest.payload)
-            .set('Authorization', `Bearer ${user_jwt}`)
-            .set('Accept', 'application/json')
-            .end(function(err,res){
-              res.status.should.equal(200);
-              should.exist(res.header['content-type']);
-              should.exist(res.header['server']);
-              res.header['content-type'].should.match(new RegExp('json','g'));
-              res.header['server'].should.match(new RegExp('postgrest','g'));
-              //console.log(res.body);
-              should.exist(res.body);
-              if (subtest.url == '/rpc/generate_otp_fn') {
-                otp = res.body.text();
-              }
-              done(err);
-            });
-        }
-        catch (error) {
-          done();
-        }
-      });
-    });
-  }); // Function endpoint
-*/
 
 }); // OpenAPI description
 

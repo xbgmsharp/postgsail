@@ -9,6 +9,9 @@
  * alias mocha="./node_modules/mocha/bin/_mocha"
  * mocha index5.js --reporter mochawesome --reporter-options reportDir=/mnt/postgsail/,reportFilename=report_api.html
  *
+ * Tests for public/anonymous access to views and functions, with x-is-public header and no JWT token.
+ * Expected: 404 for unauthorized path
+ * Expected: 200 with empty array for authorized path, with data returned for anonymous access.
  */
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -50,6 +53,12 @@ var moment = require("moment");
       payload: null,
       res: {},
     },
+    monitoring_history: {
+      url: "/rpc/monitoring_history_fn",
+      header: { name: "x-is-public", value: btoa("kapla,public_monitoring,0") },
+      payload: null,
+      res: {},
+    },
     timelapse: {
       //url: "/rpc/timelapse_fn",
       url: '/rpc/export_logbooks_geojson_linestring_trips_fn',
@@ -78,7 +87,13 @@ var moment = require("moment");
       res: {},
     },
     stats_stays: {
-      url: "/rpc/stats_stay_fn",
+      url: "/rpc/stats_stays_fn",
+      header: { name: "x-is-public", value: btoa("kapla,public_stats,0") },
+      payload: null,
+      res: {},
+    },
+    stats: {
+      url: "/rpc/stats_fn",
       header: { name: "x-is-public", value: btoa("kapla,public_stats,0") },
       payload: null,
       res: {},
@@ -123,6 +138,12 @@ var moment = require("moment");
       payload: null,
       res: {},
     },
+    monitoring_history: {
+      url: "/rpc/monitoring_history_fn",
+      header: { name: "x-is-public", value: btoa("aava,public_monitoring,0") },
+      payload: null,
+      res: {},
+    },
     timelapse: {
       //url: "/rpc/timelapse_fn",
       url: '/rpc/export_logbooks_geojson_linestring_trips_fn',
@@ -150,8 +171,14 @@ var moment = require("moment");
       res: {},
     },
     stats_stays: {
-      url: "/rpc/stats_stay_fn",
-      header: { name: "x-is-public", value: btoa("kapla,public_stats,0") },
+      url: "/rpc/stats_stays_fn",
+      header: { name: "x-is-public", value: btoa("aava,public_stats,0") },
+      payload: null,
+      res: {},
+    },
+    stats: {
+      url: "/rpc/stats_fn",
+      header: { name: "x-is-public", value: btoa("aava,public_stats,0") },
       payload: null,
       res: {},
     },
@@ -241,6 +268,74 @@ var moment = require("moment");
             done(err);
           });
       });
+      it("/rpc/monitoring_history_fn, api_anonymous no jwt token, x-is-public header", function (done) {
+        // Reset agent so we do not save cookies
+        request = supertest.agent(test.cname);
+        request
+          .get(test.monitoring_history.url)
+          .set(test.monitoring_history.header.name, test.monitoring_history.header.value)
+          .set("Accept", "application/json")
+          .end(function (err, res) {
+            console.log(res.text);
+            res.status.should.equal(404);
+            should.exist(res.header["content-type"]);
+            should.exist(res.header["server"]);
+            res.header["content-type"].should.match(new RegExp("json", "g"));
+            res.header["server"].should.match(new RegExp("postgrest", "g"));
+            done(err);
+          });
+      });
+      it("/rpc/stats_logs_fn, api_anonymous no jwt token, x-is-public header", function (done) {
+        // Reset agent so we do not save cookies
+        request = supertest.agent(test.cname);
+        request
+          .get(test.stats_logs.url)
+          .set(test.stats_logs.header.name, test.stats_logs.header.value)
+          .set("Accept", "application/json")
+          .end(function (err, res) {
+            console.log(res.text);
+            res.status.should.equal(404);
+            should.exist(res.header["content-type"]);
+            should.exist(res.header["server"]);
+            res.header["content-type"].should.match(new RegExp("json", "g"));
+            res.header["server"].should.match(new RegExp("postgrest", "g"));
+            done(err);
+          });
+      });
+      it("/rpc/stats_stays_fn, api_anonymous no jwt token, x-is-public header", function (done) {
+        // Reset agent so we do not save cookies
+        request = supertest.agent(test.cname);
+        request
+          .post(test.stats_stays.url)
+          .set(test.stats_stays.header.name, test.stats_stays.header.value)
+          .set("Accept", "application/json")
+          .end(function (err, res) {
+            console.log(res.text);
+            res.status.should.equal(404);
+            should.exist(res.header["content-type"]);
+            should.exist(res.header["server"]);
+            res.header["content-type"].should.match(new RegExp("json", "g"));
+            res.header["server"].should.match(new RegExp("postgrest", "g"));
+            done(err);
+          });
+      });
+      it("/rpc/stats_fn, api_anonymous no jwt token, x-is-public header", function (done) {
+        // Reset agent so we do not save cookies
+        request = supertest.agent(test.cname);
+        request
+          .post(test.stats.url)
+          .set(test.stats.header.name, test.stats.header.value)
+          .set("Accept", "application/json")
+          .end(function (err, res) {
+            console.log(res.text);
+            res.status.should.equal(200);
+            should.exist(res.header["content-type"]);
+            should.exist(res.header["server"]);
+            res.header["content-type"].should.match(new RegExp("json", "g"));
+            res.header["server"].should.match(new RegExp("postgrest", "g"));
+            done(err);
+          });
+      });
       it("/rpc/export_logbooks_geojson_linestring_trips_fn, api_anonymous no jwt token, x-is-public header", function (done) {
         // Reset agent so we do not save cookies
         request = supertest.agent(test.cname);
@@ -301,7 +396,7 @@ var moment = require("moment");
           .set("Accept", "text/xml")
           .end(function (err, res) {
             //console.log(res.text)
-            res.status.should.equal(401);
+            res.status.should.equal(404);
             should.exist(res.header["content-type"]);
             should.exist(res.header["server"]);
             res.header["content-type"].should.match(new RegExp("json", "g"));
@@ -319,7 +414,7 @@ var moment = require("moment");
           .set("Accept", "text/xml")
           .end(function (err, res) {
             //console.log(res.text)
-            res.status.should.equal(401);
+            res.status.should.equal(404);
             should.exist(res.header["content-type"]);
             should.exist(res.header["server"]);
             res.header["content-type"].should.match(new RegExp("json", "g"));

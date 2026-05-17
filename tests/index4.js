@@ -9,6 +9,8 @@
  * alias mocha="./node_modules/mocha/bin/_mocha"
  * mocha index4.js --reporter mochawesome --reporter-options reportDir=/mnt/postgsail/,reportFilename=report_api.html
  *
+ * Tests endpoint as a user and bot with JWT token, but without x-is-public header.
+ * Expected: 200 for authorized path.
  */
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -132,9 +134,48 @@ var moment = require("moment");
         obj_name: "profile",
       },
     },
+    metadata_update: [
+      {
+        url: "/rpc/update_metadata_userdata_fn",
+        payload: { userdata: { make_model: "my super boat" } },
+        res: {},
+      },
+      {
+        url: "/rpc/update_metadata_userdata_fn",
+        payload: { userdata: { polar: "twa/tws;4;6;8;10;12;14;16;20;24\n0;0;0;0;0;0;0;0;0;0" } },
+        res: {},
+      },
+    ],
+    metadata: [
+      {
+        url: "/metadata?select=configuration,available_keys",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/metadata?select=polar:user_data->>polar,polar_updated_at:user_data->>polar_updated_at",
+        payload: null,
+        res: {},
+      },
+    ],
     monitoring: [
       {
         url: "/monitoring_view",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/monitoring_live",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/rpc/monitoring_history_fn",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/metrics_explore_view",
         payload: null,
         res: {},
       },
@@ -182,6 +223,10 @@ var moment = require("moment");
         url: "/rpc/update_user_preferences_fn",
         payload: { key: "{public_timelapse}", value: true },
       },
+      {
+        url: "/rpc/update_user_preferences_fn",
+        payload: { key: "{public_stats}", value: true },
+      },
     ],
     views: [
       {
@@ -203,6 +248,85 @@ var moment = require("moment");
         url: "/moorage_view",
       },
     ],
+    stats: [
+      {
+        url: "/rpc/stats_fn",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/rpc/stats_logs_fn",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/rpc/stats_stays_fn",
+        payload: null,
+        res: {},
+      },
+    ],
+    graphs: [
+      {
+        url: "/rpc/graph_logs_by_day_fn",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/rpc/graph_logs_by_week_fn",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/rpc/graph_logs_by_month_fn",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/rpc/graph_logs_by_year_fn",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/rpc/graph_logs_by_year_month_fn",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/rpc/graph_logs_by_year_week_fn",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/rpc/graph_logs_by_month_day_fn",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/rpc/graph_logs_network_fn",
+        payload: null,
+        res: {},
+      },
+    ],
+    activity: {
+      url: "/rpc/vessel_activity_fn",
+    },
+    geojson_view: [
+      {
+        url: "/logs_geojson_view?select=geojson&geojson=not.is.null&order=starttimestamp.desc&limit=100&offset=0",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/stays_geojson_view?select=geojson&geojson=not.is.null&limit=100&offset=0",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/moorages_geojson_view?select=geojson&geojson=not.is.null&limit=100&offset=0",
+        payload: null,
+        res: {},
+      },
+    ]
   },
   {
     cname: process.env.PGSAIL_API_URI,
@@ -311,9 +435,48 @@ var moment = require("moment");
         obj_name: "profile",
       },
     },
+    metadata_update: [
+      {
+        url: "/rpc/update_metadata_userdata_fn",
+        payload: { userdata: { make_model: "my super boat" } },
+        res: {},
+      },
+      {
+        url: "/rpc/update_metadata_userdata_fn",
+        payload: { userdata: { polar: "twa/tws;4;6;8;10;12;14;16;20;24\n0;0;0;0;0;0;0;0;0;0" } },
+        res: {},
+      },
+    ],
+    metadata: [
+      {
+        url: "/metadata?select=configuration,available_keys",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/metadata?select=polar:user_data->>polar,polar_updated_at:user_data->>polar_updated_at",
+        payload: null,
+        res: {},
+      },
+    ],
     monitoring: [
       {
         url: "/monitoring_view",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/monitoring_live",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/rpc/monitoring_history_fn",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/metrics_explore_view",
         payload: null,
         res: {},
       },
@@ -378,6 +541,85 @@ var moment = require("moment");
         url: "/moorage_view",
       },
     ],
+    stats: [
+      {
+        url: "/rpc/stats_fn",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/rpc/stats_logs_fn",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/rpc/stats_stays_fn",
+        payload: null,
+        res: {},
+      },
+    ],
+    graphs: [
+      {
+        url: "/rpc/graph_logs_by_day_fn",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/rpc/graph_logs_by_week_fn",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/rpc/graph_logs_by_month_fn",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/rpc/graph_logs_by_year_fn",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/rpc/graph_logs_by_year_month_fn",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/rpc/graph_logs_by_year_week_fn",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/rpc/graph_logs_by_month_day_fn",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/rpc/graph_logs_network_fn",
+        payload: null,
+        res: {},
+      },
+    ],
+    activity: {
+      url: "/rpc/vessel_activity_fn",
+    },
+    geojson_view: [
+      {
+        url: "/logs_geojson_view?select=geojson&geojson=not.is.null&order=starttimestamp.desc&limit=100&offset=0",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/stays_geojson_view?select=geojson&geojson=not.is.null&limit=100&offset=0",
+        payload: null,
+        res: {},
+      },
+      {
+        url: "/moorages_geojson_view?select=geojson&geojson=not.is.null&limit=100&offset=0",
+        payload: null,
+        res: {},
+      },
+    ]
   },
 ].forEach(function (test) {
   //console.log(`${test.cname}`);
@@ -637,43 +879,6 @@ var moment = require("moment");
       });
     }); // Function endpoint
 
-    /*
-  describe("Function others endpoint, JWT user_role", function(){
-
-    let otp = null;
-    test.others_fn.forEach(function (subtest) {
-      it(`${subtest.url}`, function(done) {
-        try {
-          //console.log(`${subtest.url} ${subtest.res_body_length}`);
-          // Reset agent so we do not save cookies
-          request = supertest.agent(test.cname);
-          request
-            .post(subtest.url)
-            .send(subtest.payload)
-            .set('Authorization', `Bearer ${user_jwt}`)
-            .set('Accept', 'application/json')
-            .end(function(err,res){
-              res.status.should.equal(200);
-              should.exist(res.header['content-type']);
-              should.exist(res.header['server']);
-              res.header['content-type'].should.match(new RegExp('json','g'));
-              res.header['server'].should.match(new RegExp('postgrest','g'));
-              //console.log(res.body);
-              should.exist(res.body);
-              if (subtest.url == '/rpc/generate_otp_fn') {
-                otp = res.body.text();
-              }
-              done(err);
-            });
-        }
-        catch (error) {
-          done();
-        }
-      });
-    });
-  }); // Function endpoint
-*/
-
     describe("Settings, user jwt", function () {
       it("/rpc/settings_fn return user settings", function (done) {
         // Reset agent so we do not save cookies
@@ -731,7 +936,7 @@ var moment = require("moment");
             done(err);
           });
       });
-    }); // bot JWT
+    }); // Badges bot JWT
 
     describe("Profile, bot jwt", function () {
       it("/rpc/profile_fn return user profile", function (done) {
@@ -756,7 +961,7 @@ var moment = require("moment");
             done(err);
           });
       });
-    }); // bot JWT
+    }); // Profile bot JWT
 
     describe("Function monitoring endpoint, JWT user_role", function () {
       let otp = null;
@@ -791,7 +996,7 @@ var moment = require("moment");
           }
         });
       });
-    }); // Monitoring endpoint
+    }); // Monitoring endpoint user jwt
 
     describe("Event Logs, user jwt", function () {
       it("/eventlogs_view endpoint, list process_queue, JWT user_role", function (done) {
@@ -817,7 +1022,7 @@ var moment = require("moment");
             done(err);
           });
       });
-    }); // user JWT
+    }); // Event Logs endpoint user jwt
 
     describe("Function update preference for public access endpoint, JWT user_role", function () {
       test.public.forEach(function (subtest) {
@@ -851,6 +1056,59 @@ var moment = require("moment");
       });
     }); // Public endpoint
 
+    describe("Function update vessel settings endpoint, JWT user_role", function () {
+      test.metadata_update.forEach(function (subtest) {
+        it(`${subtest.url}`, function (done) {
+          try {
+            // Reset agent so we do not save cookies
+            request = supertest.agent(test.cname);
+            request
+              .post(subtest.url)
+              .send(subtest.payload)
+              .set("Authorization", `Bearer ${user_jwt}`)
+              .set("Accept", "application/json")
+              .end(function (err, res) {
+                res.status.should.equal(200);
+                should.exist(res.header["content-type"]);
+                should.exist(res.header["server"]);
+                res.header["server"].should.match(new RegExp("postgrest", "g"));
+                //console.log(res.body);
+                should.exist(res.body);
+                done(err);
+              });
+          } catch (error) {
+            done();
+          }
+        });
+      });
+    }); // Update Metadata endpoint
+
+    describe("table vessel settings endpoint, JWT user_role", function () {
+      test.metadata.forEach(function (subtest) {
+        it(`${subtest.url}`, function (done) {
+          try {
+            // Reset agent so we do not save cookies
+            request = supertest.agent(test.cname);
+            request
+              .get(subtest.url)
+              .set("Authorization", `Bearer ${user_jwt}`)
+              .set("Accept", "application/json")
+              .end(function (err, res) {
+                res.status.should.equal(200);
+                should.exist(res.header["content-type"]);
+                should.exist(res.header["server"]);
+                res.header["server"].should.match(new RegExp("postgrest", "g"));
+                //console.log(res.body);
+                should.exist(res.body);
+                done(err);
+              });
+          } catch (error) {
+            done();
+          }
+        });
+      });
+    }); // Metadata endpoint
+
     describe("tests views endpoint, JWT bot_role", function () {
       test.views.forEach(function (subtest) {
         it(`${subtest.url}`, function (done) {
@@ -878,6 +1136,121 @@ var moment = require("moment");
         });
       });
     }); // Views endpoint
+
+    describe("tests stats endpoint, JWT user_role", function () {
+      test.stats.forEach(function (subtest) {
+        it(`${subtest.url}`, function (done) {
+          try {
+            // Reset agent so we do not save cookies
+            request = supertest.agent(test.cname);
+            request
+              .get(subtest.url)
+              .set("Authorization", `Bearer ${user_jwt}`)
+              .set("Accept", "application/json")
+              .end(function (err, res) {
+                res.status.should.equal(200);
+                should.exist(res.header["content-type"]);
+                should.exist(res.header["server"]);
+                res.header["server"].should.match(new RegExp("postgrest", "g"));
+                console.log(res.body);
+                should.exist(res.body);
+                should.exist(res.body.stats);
+                res.body.should.be.an.Object();
+                done(err);
+              });
+          } catch (error) {
+            done();
+          }
+        });
+      });
+    }); // Stats endpoint
+
+    describe("tests log graph endpoint, JWT user_role", function () {
+      test.graphs.forEach(function (subtest) {
+        it(`${subtest.url}`, function (done) {
+          try {
+            // Reset agent so we do not save cookies
+            request = supertest.agent(test.cname);
+            request
+              .get(subtest.url)
+              .set("Authorization", `Bearer ${user_jwt}`)
+              .set("Accept", "application/json")
+              .end(function (err, res) {
+                res.status.should.equal(200);
+                should.exist(res.header["content-type"]);
+                should.exist(res.header["server"]);
+                res.header["server"].should.match(new RegExp("postgrest", "g"));
+                console.log(res.body);
+                should.exist(res.body);
+                should.exist(res.body.charts);
+                res.body.should.be.an.Object();
+                done(err);
+              });
+          } catch (error) {
+            done();
+          }
+        });
+      });
+    }); // Graph endpoint
+
+    describe("vessel_activity_fn, user jwt", function () {
+      it("/rpc/vessel_activity_fn endpoint, activity entries, JWT user_role", function (done) {
+        // Reset agent so we do not save cookies
+        request = supertest.agent(test.cname);
+        request
+          .get("/rpc/vessel_activity_fn")
+          .set("Authorization", `Bearer ${user_jwt}`)
+          .set("Accept", "application/json")
+          .end(function (err, res) {
+            res.status.should.equal(200);
+            should.exist(res.header["content-type"]);
+            should.exist(res.header["server"]);
+            res.header["content-type"].should.match(new RegExp("json", "g"));
+            res.header["server"].should.match(new RegExp("postgrest", "g"));
+            console.log(res.body);
+            should.exist(res.body);
+            res.body.should.be.an.Object();
+            should.exist(res.body.logs);
+            should.exist(res.body.logs.total);
+            should.exist(res.body.logs.last_30d);
+            should.exist(res.body.moorages.visits_last_30d);
+            should.exist(res.body.moorages.countries_total);
+            should.exist(res.body.stays);
+            should.exist(res.body.moorages);
+            done(err);
+          });
+      });
+    }); // user JWT
+
+    describe("GeoJSON views, JWT user_role", function () {
+      test.geojson_view.forEach(function (subtest) {
+        it(`${subtest.url}`, function (done) {
+          try {
+            // Reset agent so we do not save cookies
+            request = supertest.agent(test.cname);
+            request
+              .get(`${subtest.url}`)
+              .set("Authorization", `Bearer ${user_jwt}`)
+              .set("Accept", "application/json")
+              .set("Prefer", "count=exact")
+              .end(function (err, res) {
+                res.status.should.equal(200);
+                should.exist(res.header["content-type"]);
+                should.exist(res.header["server"]);
+                res.header["server"].should.match(new RegExp("postgrest", "g"));
+                should.exist(res.header['content-range']);
+                console.log(res.body);
+                should.exist(res.body);
+                res.body.should.be.an.Array();
+                res.body.length.should.be.aboveOrEqual(2);
+                done(err);
+              });
+          } catch (error) {
+            done();
+          }
+        });
+      });
+    }); // GeoJSON views
 
   }); // OpenAPI description
 }); // Users Array

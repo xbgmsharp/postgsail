@@ -141,44 +141,6 @@ let configtime = new Date().toISOString();
         }
       }
     ],
-    otp_fn: [
-      { url: '/rpc/generate_otp_fn',
-        payload: { email: 'demo+kapla@openplotter.cloud' },
-        res: {
-          otp: 0
-        }
-      },
-      { url: '/rpc/email_fn',
-        payload: { token: null },
-        res: {
-          obj_name: 'settings'
-        }
-      },
-      { url: '/rpc/generate_otp_fn',
-        payload: { email: 'demo+kapla@openplotter.cloud' },
-        res: {
-          otp: 0
-        }
-      },
-      { url: '/rpc/pushover_fn',
-        payload: { token: null, pushover_user_key: '1234567890azerty!'},
-        res: {
-          obj_name: 'settings'
-        }
-      },
-      { url: '/rpc/generate_otp_fn',
-        payload: { email: 'demo+kapla@openplotter.cloud' },
-        res: {
-          otp: 0
-        }
-      },
-      { url: '/rpc/telegram_fn',
-        payload: { token: null, telegram_obj: {"chat": {"id": 1234567890, "type": "private", "title": null, "all_members_are_administrators": null}, "date": "NOW", "from": {"id": 1234567890, "is_bot": false, "first_name": "Kapla", "language_code": "en"}} },
-        res: {
-            obj_name: 'settings'
-          }
-      }
-    ],
     config_fn: [
       { url: '/metadata?select=configuration',
         res: {
@@ -294,44 +256,6 @@ let configtime = new Date().toISOString();
         }
       }
     ],
-    otp_fn: [
-      { url: '/rpc/generate_otp_fn',
-        payload: { email: 'demo+aava@openplotter.cloud' },
-        res: {
-          otp: 0
-        }
-      },
-      { url: '/rpc/email_fn',
-        payload: { token: null },
-        res: {
-          obj_name: 'settings'
-        }
-      },
-      { url: '/rpc/generate_otp_fn',
-        payload: { email: 'demo+aava@openplotter.cloud' },
-        res: {
-          otp: 0
-        }
-      },
-      { url: '/rpc/pushover_fn',
-        payload: { token: null, pushover_user_key: '0987654321qwerty!'},
-        res: {
-          obj_name: 'settings'
-        }
-      },
-      { url: '/rpc/generate_otp_fn',
-        payload: { email: 'demo+aava@openplotter.cloud' },
-        res: {
-          otp: 0
-        }
-      },
-      { url: '/rpc/telegram_fn',
-        payload: { token: null, telegram_obj: {"chat": {"id": 9876543210, "type": "private", "title": null, "all_members_are_administrators": null}, "date": "NOW", "from": {"id": 9876543210, "is_bot": false, "first_name": "Aava", "language_code": "en"}} },
-        res: {
-          obj_name: 'settings'
-        }
-      },
-    ],
     config_fn: [
       { url: '/metadata?select=configuration',
         res: {
@@ -344,18 +268,6 @@ let configtime = new Date().toISOString();
         }
       },
     ],
-    meta_ext_fn: [
-      { url: '/metadata_ext?',
-        res: {
-          obj_name: 'configuration'
-        }
-      },
-      { url: `/metadata_ext?`,
-        res: {
-          obj_name: 'image'
-        }
-      },
-    ]
   }
 ].forEach( function(test){
 
@@ -451,8 +363,12 @@ request.set('User-Agent', 'PostgSail unit tests');
           // Functions
           should.exist(res.body.paths['/rpc/register_vessel']);
           should.exist(res.body.paths['/rpc/update_user_preferences_fn']);
+          should.exist(res.body.paths['/rpc/update_metadata_userdata_fn']);
           should.exist(res.body.paths['/rpc/settings_fn']);
           should.exist(res.body.paths['/rpc/versions_fn']);
+          should.exist(res.body.paths['/rpc/vessel_fn']);
+          should.exist(res.body.paths['/rpc/monitoring_history_fn']);
+          should.exist(res.body.paths['/rpc/stats_fn']);
           // Tables
           should.exist(res.body.paths['/metadata']);
           should.exist(res.body.paths['/metrics']);
@@ -463,9 +379,12 @@ request.set('User-Agent', 'PostgSail unit tests');
           should.exist(res.body.paths['/logs_view']);
           should.exist(res.body.paths['/moorages_view']);
           should.exist(res.body.paths['/stays_view']);
+          should.exist(res.body.paths['/log_view']);
+          should.exist(res.body.paths['/moorage_view']);
+          should.exist(res.body.paths['/stay_view']);
           should.exist(res.body.paths['/vessels_view']);
-          //should.exist(res.body.paths['/stats_view']);
           should.exist(res.body.paths['/monitoring_view']);
+          should.exist(res.body.paths['/monitoring_live']);
           done(err);
         });
     });
@@ -696,29 +615,6 @@ request.set('User-Agent', 'PostgSail unit tests');
 
   }); // Vessel POST metrics JWT vessel_role
 
-/*
-  describe("run_cron_jobs() JWT vessel_role", function(){
-
-    it('/rpc/run_cron_jobs', function(done) {
-      request = supertest.agent(test.cname);
-      request
-        .get('/rpc/run_cron_jobs')
-        .set('Authorization', `Bearer ${vessel_jwt}`)
-        .set('Accept', 'application/json')
-        .set('Content-Type', 'application/json')
-        .end(function(err,res){
-          res.status.should.equal(200);
-          should.exist(res.header['content-type']);
-          should.exist(res.header['server']);
-          res.header['content-type'].should.match(new RegExp('json','g'));
-          res.header['server'].should.match(new RegExp('postgrest','g'));
-          done();
-        });
-    });
-
-  }); // run_cron_jobs() JWT vessel_role
-*/
-
   describe("Table endpoint, JWT user_role", function(){
 
     test.user_tables.forEach(function (subtest) {
@@ -836,50 +732,6 @@ request.set('User-Agent', 'PostgSail unit tests');
       });
     });
   }); // Function endpoint
-
-  /*
-  describe("Function OTP endpoint, JWT user_role", function(){
-
-    let otp = null;
-    test.otp_fn.forEach(function (subtest) {
-      otp = null;
-      it(`${subtest.url}`, function(done) {
-        try {
-          //console.log(`${subtest.url} ${subtest.res}`);
-          if (otp) {
-            subtest.payload.token = otp;
-          }
-          // Reset agent so we do not save cookies
-          request = supertest.agent(test.cname);
-          request
-            .post(subtest.url)
-            .send(subtest.payload)
-            .set('Authorization', `Bearer ${user_jwt}`)
-            .set('Accept', 'application/json')
-            .end(function(err,res){
-              res.status.should.equal(200);
-              should.exist(res.header['content-type']);
-              should.exist(res.header['server']);
-              res.header['content-type'].should.match(new RegExp('json','g'));
-              res.header['server'].should.match(new RegExp('postgrest','g'));
-              console.log(res.body);
-              should.exist(res.body);
-              if (subtest.url == '/rpc/generate_otp_fn') {
-                otp = res.body;
-              } else {
-                res.text.should.match('true');
-                otp = null;
-              }              
-              done(err);
-            });
-        }
-        catch (error) {
-          done();
-        }
-      });
-    });
-  }); // Function OTP endpoint
-  */
 
   describe("Function Metadata configuration endpoint, JWT vessel_role", function(){
 
