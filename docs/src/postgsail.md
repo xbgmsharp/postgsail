@@ -13,6 +13,7 @@ erDiagram
         timestamp_with_time_zone _to_time 
         boolean active "{NOT_NULL}"
         double_precision avg_speed "avg speed in knots"
+        timestamp_with_time_zone created_at "{NOT_NULL}"
         numeric distance "Distance in Nautical Miles converted mobilitydb meters to NM"
         interval duration "Duration in ISO 8601 format"
         jsonb extra "Computed SignalK metrics such as runtime, current level, etc."
@@ -56,10 +57,14 @@ erDiagram
         jsonb configuration 
         timestamp_with_time_zone created_at "{NOT_NULL}"
         double_precision height 
-        text ip "Store vessel ip address"
-        text ip 
+        inet ip "Store vessel ip address"
+        inet ip 
         double_precision length 
-        text mmsi "Maritime Mobile Service Identity (MMSI) number associated with the vessel, link to public.mid"
+        text mmsi "MMSI as reported by the SignalK plugin. Stored as text because raw user input
+   may be non-numeric or malformed. Silently nulled by metadata_upsert_trigger_fn
+   if it does not match the 9-digit pattern ^\d{9}$.
+   Intentionally differs from auth.vessels.mmsi (numeric, validated).
+   Never JOIN this column to auth.vessels.mmsi — use vessel_id instead."
         text mmsi 
         text name 
         text platform 
@@ -91,6 +96,7 @@ erDiagram
 
     api_moorages {
         text country 
+        timestamp_with_time_zone created_at "{NOT_NULL}"
         geography geog "postgis geography type default SRID 4326 Unit: degres"
         boolean home_flag 
         integer id "{NOT_NULL}"
@@ -109,8 +115,9 @@ erDiagram
     api_stays {
         boolean active "{NOT_NULL}"
         timestamp_with_time_zone arrived "{NOT_NULL}"
+        timestamp_with_time_zone created_at "{NOT_NULL}"
         timestamp_with_time_zone departed 
-        interval duration "Best to use standard ISO 8601"
+        interval duration "Computed stay duration (departed - arrived). GENERATED ALWAYS AS STORED — replaces inline expression in stats views."
         geography geog "postgis geography type default SRID 4326 Unit: degres"
         integer id "{NOT_NULL}"
         double_precision latitude 
@@ -134,7 +141,6 @@ erDiagram
         timestamp_with_time_zone created_at "{NOT_NULL}"
         citext email "{NOT_NULL}"
         text first "User first name with CONSTRAINT CHECK {NOT_NULL}"
-        integer id "{NOT_NULL}"
         text last "User last name with CONSTRAINT CHECK {NOT_NULL}"
         text pass "{NOT_NULL}"
         jsonb preferences 
@@ -152,7 +158,9 @@ erDiagram
 
     auth_vessels {
         timestamp_with_time_zone created_at "{NOT_NULL}"
-        numeric mmsi "MMSI can be optional but if present must be a valid one and unique but must be in numeric range between 100000000 and 800000000"
+        numeric mmsi "MMSI as a validated numeric value with CHECK constraint enforcing range.
+   Intentionally differs from api.metadata.mmsi (text, permissive).
+   This is the authoritative MMSI — api.metadata.mmsi is the raw SignalK input."
         text name "{NOT_NULL}"
         citext owner_email "{NOT_NULL}"
         name role "{NOT_NULL}"
@@ -184,7 +192,7 @@ erDiagram
     }
 
     public_geocoders {
-        text name 
+        text name "{NOT_NULL}"
         text reverse_url 
         text url 
     }
@@ -215,7 +223,7 @@ erDiagram
     public_mid {
         text country 
         integer country_id 
-        numeric id 
+        numeric id "{NOT_NULL}"
     }
 
     public_mobilitydb_opcache {
