@@ -1,0 +1,32 @@
+ current_database 
+------------------
+ signalk
+(1 row)
+
+You are now connected to database "signalk" as user "username".
+Expanded display is on.
+-[ RECORD 1 ]-+--
+otp_generated | t
+
+-[ RECORD 1 ]---+--
+correct_email   | t
+otp_stored      | t
+freshly_created | t
+tries_zero      | t
+
+-[ RECORD 1 ]----+--
+verify_otp_valid | t
+
+-[ RECORD 1 ]--+--
+reset_succeeds | t
+
+-[ RECORD 1 ]--+--
+new_pass_valid | t
+
+-[ RECORD 1 ]+--
+otp_consumed | t
+
+UPDATE 1
+-[ RECORD 1 ]-+--
+pass_restored | t
+

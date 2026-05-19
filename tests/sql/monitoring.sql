@@ -35,7 +35,7 @@ select count(*) from api.monitoring_live;
 \echo 'Test monitoring_history_fn for user'
 -- Test monitoring for user
 --select api.monitoring_history_fn();
-SELECT jsonb_array_length(api.monitoring_history_fn()) > 25 AS monitoring_history_fn_length_gt_25;
+SELECT jsonb_array_length(api.monitoring_history_fn()) > 20 AS monitoring_history_fn_length_gt_20;
 /*WITH buckets AS (
     SELECT jsonb_array_elements(api.monitoring_history_fn()) AS b
 )

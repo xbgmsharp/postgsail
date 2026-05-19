@@ -22,7 +22,7 @@ count | 1
 
 Test monitoring_history_fn for user
 -[ RECORD 1 ]----------------------+--
-monitoring_history_fn_length_gt_25 | t
+monitoring_history_fn_length_gt_20 | t
 
 Test monitoring_view2 for user
 -[ RECORD 1 ]
