@@ -241,6 +241,8 @@ var moment = require("moment");
             res.header["content-type"].should.match(new RegExp("json", "g"));
             res.header["server"].should.match(new RegExp("postgrest", "g"));
             should.exist(res.body.geojson);
+            res.body.geojson.type === 'FeatureCollection';
+            res.body.geojson.features === null;
             done(err);
           });
       });
