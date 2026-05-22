@@ -459,11 +459,12 @@ request.set('User-Agent', 'PostgSail unit tests');
               vessel_jwt = res.body.token;
               console.log(vessel_jwt);
               should.exist(vessel_jwt);
-              // Save vessel JWT token for later use.
+              /* Save vessel JWT token for later use.
               fs.writeFile(`vessel_jwt_${test.vessel.vessel_name}.txt`, vessel_jwt, (err) => {
                 // In case of a error throw err.
                 if (err) throw err;
               })
+              */
               done(err);
             });
       });
