@@ -72,10 +72,10 @@ select count(*) from api.monitoring_temperatures;
 select count(*) from api.monitoring_humidity;
 
 \echo 'Test metersToKnots'
-select public.metersToKnots(1);
+select public.meterstoknots(1);
 
 \echo 'Test radiantToDegrees'
-select public.radiantToDegrees(1);
+select public.radianttodegrees(1);
 
 \echo 'Test valToPercent'
-select public.valToPercent(1);
+select public.valtopercent(1);
