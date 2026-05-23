@@ -1,5 +1,5 @@
 # Build stage: compile goose
-FROM golang:1.24-alpine AS builder
+FROM golang:1.26-alpine AS builder
 ENV CGO_ENABLED=0
 RUN go install github.com/pressly/goose/v3/cmd/goose@v3.26.0
 
