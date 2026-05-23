@@ -112,7 +112,13 @@ var moment = require("moment");
       },
     ],
     telegram: { payload: { user_id: 1234567890 } },
-    telegram_fn: [{ url: "/rpc/vessel_fn" }, { url: "/monitoring_view" }],
+    telegram_fn: [
+      { url: "/rpc/vessel_fn" },
+      { url: "/monitoring_view" },
+      { url: "/logs_view" },
+      { url: "/rpc/stats_fn" },
+      { url: "/rpc/graph_logs_by_day_fn" }
+    ],
     settings: {
       url: "/rpc/settings_fn",
       payload: null,
