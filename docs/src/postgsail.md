@@ -197,6 +197,13 @@ erDiagram
         text url 
     }
 
+    public_goose_db_version {
+        integer id "{NOT_NULL}"
+        boolean is_applied "{NOT_NULL}"
+        timestamp_without_time_zone tstamp "{NOT_NULL}"
+        bigint version_id "{NOT_NULL}"
+    }
+
     public_iso3166 {
         text alpha_2 
         text alpha_3 
