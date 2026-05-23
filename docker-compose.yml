@@ -144,11 +144,13 @@ services:
     restart: unless-stopped
     links:
       - "api:postgrest"
+    env_file: .env
     environment:
-      - BOT_TOKEN=${PGSAIL_TELEGRAM_BOT_TOKEN}
-      - PGSAIL_URL=http://api:3000
+      - TELEGRAM_BOT_TOKEN=${PGSAIL_TELEGRAM_BOT_TOKEN}
+      - POSTGSAIL_API_URL=${PGSAIL_API_URL}
+      - POSTGSAIL_MCP_URL=${PGSAIL_MCP_URL}
+      - POSTGSAIL_WEB_URL=${PGSAIL_APP_URL}
     depends_on:
-      - db
       - api
     logging:
       options:
