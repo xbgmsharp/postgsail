@@ -4,7 +4,7 @@ ENV CGO_ENABLED=0
 RUN go install github.com/pressly/goose/v3/cmd/goose@v3.26.0
 
 # Final stage: minimal image with only postgresql-client + goose binary
-FROM alpine:3.21
+FROM alpine:3.23
 RUN apk add --no-cache postgresql-client curl
 COPY --from=builder /go/bin/goose /usr/local/bin/goose
 
