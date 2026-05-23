@@ -3,6 +3,13 @@
 
 set timezone to 'UTC';
 
+COMMENT ON TRIGGER metrics_trigger ON api.metrics IS 'BEFORE INSERT ON api.metrics run function metrics_trigger_fn
+Validates:
+- Temporal anomalies (future timestamps, time jumps)
+- Coordinate validity
+- speedOverGround < 40 or windSpeedApparent < 200
+- Generates pre_logbook and new_stay events';
+
 -- EXPLAIN confirms stays_vessel_arrived_idx handles the query in 1ms / 46 buffers. Drop it.
 DROP INDEX IF EXISTS api.stays_timeline_covering_idx;
 -- the only query using stored has 24 calls and the planner will prefer the processed IS NULL partial indexes regardless. Drop it.
