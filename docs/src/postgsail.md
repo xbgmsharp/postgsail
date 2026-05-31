@@ -74,7 +74,10 @@ erDiagram
         text signalk_version "{NOT_NULL}"
         timestamp_with_time_zone time "{NOT_NULL}"
         timestamp_with_time_zone updated_at "{NOT_NULL}"
-        jsonb user_data "User-defined data including vessel polar (theoretical performance), make/model, and preferences"
+        jsonb user_data "User-defined data for the vessel.
+    Include vessel polar (theoretical performance), make/model, and 
+    Vessel-scoped operational state (alarms, alert_last_metric, alerting,
+     windy.*)"
         jsonb user_data 
         text vessel_id "Link auth.vessels with api.metadata via FOREIGN KEY and REFERENCES {NOT_NULL}"
         text vessel_id "{NOT_NULL}"
@@ -143,7 +146,13 @@ erDiagram
         text first "User first name with CONSTRAINT CHECK {NOT_NULL}"
         text last "User last name with CONSTRAINT CHECK {NOT_NULL}"
         text pass "{NOT_NULL}"
-        jsonb preferences 
+        jsonb preferences "User-identity preferences. Always-present keys: email_notifications (bool),
+     language (ISO 639-1, default #quot;gb#quot;).
+     public_windy (bool) as user-controlled toggle.
+     public_* visibility fields kept temporarily pending web UI rework.
+     badges per account
+     telegram, pushover_user_key, phone_notifications: user-identity notification
+     credentials."
         name role "{NOT_NULL}"
         timestamp_with_time_zone updated_at "{NOT_NULL}"
         text user_id "{NOT_NULL}"
@@ -195,13 +204,6 @@ erDiagram
         text name "{NOT_NULL}"
         text reverse_url 
         text url 
-    }
-
-    public_goose_db_version {
-        integer id "{NOT_NULL}"
-        boolean is_applied "{NOT_NULL}"
-        timestamp_without_time_zone tstamp "{NOT_NULL}"
-        bigint version_id "{NOT_NULL}"
     }
 
     public_iso3166 {

@@ -52,6 +52,7 @@
   - [api.stays_geojson_view](db/api.stays_geojson_view.md)
   - [api.stays_view](db/api.stays_view.md)
   - [api.vessels_view](db/api.vessels_view.md)
+  - [api.vessel_view](db/api.vessel_view.md)
   - [auth.accounts](db/auth.accounts.md)
   - [auth.otp](db/auth.otp.md)
   - [auth.vessels](db/auth.vessels.md)
