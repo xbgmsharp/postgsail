@@ -78,16 +78,16 @@ count | 11
 
 stats_fn
 SELECT 1
--[ RECORD 1 ]--------------+------------------------------------------------------------------------
+-[ RECORD 1 ]--------------+-----------------------------------------------------------------------------------------------------------------------------------------------
 stats_logs_name            | "kapla"
-logs_top_speed             | [{"id": 2, "max_speed": 6.5}, {"id": 1, "max_speed": 6.1}]
+logs_top_speed             | [{"id": 2, "name": "Norra hamnen to Ekenäs", "max_speed": 6.5}, {"id": 1, "name": "Pojoviken to Norra hamnen", "max_speed": 6.1}]
 stats_moorages_not_null    | t
-logs_top_distance          | [2, 1]
-logs_top_duration          | [1, 2]
-logs_top_avg_speed         | [{"id": 2, "avg_speed": 26.76}, {"id": 1, "avg_speed": 17.03}]
-logs_top_wind_speed        | [{"id": 2, "max_wind_speed": 37.92}, {"id": 1, "max_wind_speed": 19.3}]
-moorages_top_arrivals      | [{"id": 5, "ref_count": 1}, {"id": 6, "ref_count": 1}]
-moorages_top_duration      | [{"id": 6, "dur": "PT2M"}, {"id": 5, "dur": "PT1M"}]
+logs_top_distance          | [{"id": 2, "name": "Norra hamnen to Ekenäs", "distance": 8.92}, {"id": 1, "name": "Pojoviken to Norra hamnen", "distance": 7.66}]
+logs_top_duration          | [{"id": 1, "name": "Pojoviken to Norra hamnen", "duration": "PT27M"}, {"id": 2, "name": "Norra hamnen to Ekenäs", "duration": "PT20M"}]
+logs_top_avg_speed         | [{"id": 2, "name": "Norra hamnen to Ekenäs", "avg_speed": 26.76}, {"id": 1, "name": "Pojoviken to Norra hamnen", "avg_speed": 17.03}]
+logs_top_wind_speed        | [{"id": 2, "name": "Norra hamnen to Ekenäs", "max_wind_speed": 37.92}, {"id": 1, "name": "Pojoviken to Norra hamnen", "max_wind_speed": 19.3}]
+moorages_top_arrivals      | [{"id": 5, "moorage": "Pojoviken", "ref_count": 1}, {"id": 6, "moorage": "Norra hamnen", "ref_count": 1}]
+moorages_top_duration      | [{"id": 6, "dur": "PT2M", "moorage": "Norra hamnen"}, {"id": 5, "dur": "PT1M", "moorage": "Pojoviken"}]
 moorages_top_countries     | ["fi"]
 time_spent_away_by_is_gt_1 | t
 time_at_home_ports         | "PT0S"
@@ -224,4 +224,7 @@ gpx_trip | t
 
 -[ RECORD 1 ]
 kml_trip | t
+
+-[ RECORD 1 ]
+polar_csv | t
 

@@ -17,6 +17,9 @@ SELECT a.user_id as "user_id" FROM auth.accounts a WHERE a.email = 'demo+aava@op
 --\echo :"user_id"
 SELECT set_config('user.id', :'user_id', false) IS NOT NULL as user_id;
 
+--\echo :"email"
+SELECT set_config('user.email', 'demo+aava@openplotter.cloud', false) IS NOT NULL as email;
+
 -- set vessel_id
 SELECT v.vessel_id as "vessel_id" FROM auth.vessels v WHERE v.owner_email = 'demo+aava@openplotter.cloud' \gset
 --\echo :"vessel_id"
@@ -28,9 +31,15 @@ SET ROLE user_role;
 \echo 'ROLE user_role current_setting'
 
 SELECT set_config('vessel.id', :'vessel_id', false) IS NOT NULL as vessel_id;
+SELECT set_config('user.email', 'demo+aava@openplotter.cloud', false) IS NOT NULL as email;
 
-\echo 'logs view'
-SELECT name,"from","to",started IS NOT NULL AS started_not_null, ended IS NOT NULL AS ended_not_null,distance,date_trunc('minute', duration::INTERVAL),_from_moorage_id,_to_moorage_id,tags FROM api.logs_view ORDER BY name ASC;
+\echo 'vessels view'
+--SELECT * FROM api.vessels_view;
+SELECT name, mmsi, created_at IS NOT NULL AS created_at_not_null, last_contact IS NOT NULL AS last_contact_not_null, last_metric_time IS NOT NULL AS last_metric_time_not_null FROM api.vessels_view;
+
+\echo 'vessel view'
+--SELECT * FROM api.vessel_view;
+SELECT name, mmsi, created_at IS NOT NULL AS created_at_not_null, last_contact IS NOT NULL AS last_contact_not_null, first_contact IS NOT NULL AS first_contact_not_null, geojson IS NOT NULL AS geojson_not_null FROM api.vessel_view;
 
 \echo 'log view'
 SELECT name,"from","to",started IS NOT NULL AS started_not_null, ended IS NOT NULL AS ended_not_null,geojson->'features' IS NOT NULL AS geojson_features_not_null,distance,date_trunc('minute', duration::INTERVAL),avg_speed,max_speed,max_wind_speed,extra->>'avg_wind_speed' IS NOT NULL as avg_wind_speed_not_null,notes,polar IS NOT NULL as polar_is_not_null,tags,observations FROM api.log_view ORDER BY name ASC;
@@ -62,3 +71,7 @@ SELECT id,name,geojson->'geometry' IS NOT NULL AS geojson_geometry_not_null, geo
 \echo 'moorages stays view'
 --SELECT * FROM api.moorages_stays_view;
 SELECT id,name,stay_code,_to_id,_to_name,_to_time IS NOT NULL AS _to_time_not_null,_from_id,_from_name,_from_time IS NOT NULL AS _from_time_not_null FROM api.moorages_stays_view ORDER BY name ASC;
+
+\echo 'stays explore view'
+--SELECT * FROM api.stays_explore_view;
+SELECT stay_id,moorage_id,moorage_name,stay_name,arrived IS NOT NULL AS arrived_not_null,stay_code FROM api.stays_explore_view ORDER BY moorage_name ASC;

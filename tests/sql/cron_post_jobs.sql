@@ -126,6 +126,7 @@ SELECT jsonb_object_keys(jsonb_path_query(geojson, '$.features[1].properties'))
 --SELECT api.export_logbook_kml_fn(1);
 SELECT api.export_logbook_gpx_trip_fn(1) IS NOT NULL AS gpx_trip;
 SELECT api.export_logbook_kml_trip_fn(1) IS NOT NULL AS kml_trip;
+SELECT api.export_logbook_polar_csv_fn(1) IS NOT NULL AS polar_csv;
 
 -- Check history
 --\echo 'monitoring history fn'

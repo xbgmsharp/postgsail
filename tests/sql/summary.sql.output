@@ -436,68 +436,82 @@ qual       | true
 with_check | true
 -[ RECORD 37 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | accounts
+policyname | api_bot_role
+roles      | {bot_role}
+cmd        | ALL
+qual       | ((email)::text = current_setting('user.email'::text, true))
+with_check | false
+-[ RECORD 38 ]-----------------------------------------------------------------------------------------------------------------------------
+tablename  | accounts
 policyname | api_scheduler_role
 roles      | {scheduler}
 cmd        | ALL
 qual       | ((email)::text = current_setting('user.email'::text, true))
 with_check | ((email)::text = current_setting('user.email'::text, false))
--[ RECORD 38 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 39 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | accounts
 policyname | api_user_role
 roles      | {user_role}
 cmd        | ALL
 qual       | ((email)::text = current_setting('user.email'::text, true))
 with_check | ((email)::text = current_setting('user.email'::text, true))
--[ RECORD 39 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 40 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | otp
 policyname | otp_user_role
 roles      | {user_role}
 cmd        | ALL
 qual       | ((user_email)::text = current_setting('user.email'::text, true))
 with_check | ((user_email)::text = current_setting('user.email'::text, true))
--[ RECORD 40 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 41 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | vessels
 policyname | admin_all
 roles      | {username}
 cmd        | ALL
 qual       | true
 with_check | true
--[ RECORD 41 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 42 ]-----------------------------------------------------------------------------------------------------------------------------
+tablename  | vessels
+policyname | api_bot_role
+roles      | {bot_role}
+cmd        | ALL
+qual       | ((owner_email)::text = current_setting('user.email'::text, true))
+with_check | false
+-[ RECORD 43 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | vessels
 policyname | api_user_role
 roles      | {user_role}
 cmd        | ALL
 qual       | ((vessel_id = current_setting('vessel.id'::text, true)) AND ((owner_email)::text = current_setting('user.email'::text, true)))
 with_check | ((vessel_id = current_setting('vessel.id'::text, true)) AND ((owner_email)::text = current_setting('user.email'::text, true)))
--[ RECORD 42 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 44 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | vessels
 policyname | grafana_role
 roles      | {grafana}
 cmd        | ALL
 qual       | ((owner_email)::text = current_setting('user.email'::text, true))
 with_check | false
--[ RECORD 43 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 45 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | process_queue
 policyname | admin_all
 roles      | {username}
 cmd        | ALL
 qual       | true
 with_check | true
--[ RECORD 44 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 46 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | process_queue
 policyname | api_scheduler_role
 roles      | {scheduler}
 cmd        | ALL
 qual       | true
 with_check | false
--[ RECORD 45 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 47 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | process_queue
 policyname | api_user_role
 roles      | {user_role}
 cmd        | ALL
 qual       | ((ref_id = current_setting('user.id'::text, true)) OR (ref_id = current_setting('vessel.id'::text, true)))
 with_check | ((ref_id = current_setting('user.id'::text, false)) OR (ref_id = current_setting('vessel.id'::text, false)))
--[ RECORD 46 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 48 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | process_queue
 policyname | api_vessel_role
 roles      | {vessel_role}

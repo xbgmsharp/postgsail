@@ -63,6 +63,19 @@ api.metadata get polar_updated_at
 polar                     | "twa/tws;4;6;8;10;12;14;16;20;24\n0;0;0;0;0;0;0;0;0;0"
 polar_updated_at_not_null | t
 
+api.metadata update alerting enabled and alarms low_water_depth_threshold
+-[ RECORD 1 ]---------------+--
+update_metadata_userdata_fn | t
+
+-[ RECORD 1 ]---------------+--
+update_metadata_userdata_fn | t
+
+-[ RECORD 1 ]---------------+--
+update_metadata_userdata_fn | t
+
+-[ RECORD 1 ]---------------+--
+update_metadata_userdata_fn | t
+
 SET
 api.metadata get configuration with new value as vessel
 -[ RECORD 1 ]------+------------------------------------

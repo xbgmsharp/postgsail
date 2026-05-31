@@ -10,6 +10,9 @@ Validate views operation
 user_id | t
 
 -[ RECORD 1 ]
+email | t
+
+-[ RECORD 1 ]
 vessel_id | t
 
 SET
@@ -17,29 +20,25 @@ ROLE user_role current_setting
 -[ RECORD 1 ]
 vessel_id | t
 
-logs view
--[ RECORD 1 ]----+-----------------------------------------
-name             | Harju County to Tallinnamadal lighthouse
-from             | Harju County
-to               | patch moorage name
-started_not_null | t
-ended_not_null   | t
-distance         | 8.40
-date_trunc       | PT46M
-_from_moorage_id | 3
-_to_moorage_id   | 4
-tags             | "new_tag"
--[ RECORD 2 ]----+-----------------------------------------
-name             | patch log name 4
-from             | Spain
-to               | Montsolís
-started_not_null | t
-ended_not_null   | t
-distance         | 5.19
-date_trunc       | PT1H11M
-_from_moorage_id | 1
-_to_moorage_id   | 2
-tags             | 
+-[ RECORD 1 ]
+email | t
+
+vessels view
+-[ RECORD 1 ]-------------+----------
+name                      | aava
+mmsi                      | 787654321
+created_at_not_null       | t
+last_contact_not_null     | t
+last_metric_time_not_null | t
+
+vessel view
+-[ RECORD 1 ]----------+----------
+name                   | aava
+mmsi                   | 787654321
+created_at_not_null    | t
+last_contact_not_null  | t
+first_contact_not_null | t
+geojson_not_null       | t
 
 log view
 -[ RECORD 1 ]-------------+--------------------------------------------------------
@@ -284,4 +283,27 @@ _to_time_not_null   | t
 _from_id            | 4
 _from_name          | patch log name 4
 _from_time_not_null | t
+
+stays explore view
+-[ RECORD 1 ]----+----------------------------------------------------
+stay_id          | 4
+moorage_id       | 3
+moorage_name     | Harju County
+stay_name        | patch stay name 4
+arrived_not_null | t
+stay_code        | 2
+-[ RECORD 2 ]----+----------------------------------------------------
+stay_id          | 6
+moorage_id       | 2
+moorage_name     | Montsolís
+stay_name        | 
+arrived_not_null | t
+stay_code        | 1
+-[ RECORD 3 ]----+----------------------------------------------------
+stay_id          | 5
+moorage_id       | 4
+moorage_name     | patch moorage name
+stay_name        | 1 days stay at Tallinnamadal lighthouse in May 2026
+arrived_not_null | t
+stay_code        | 2
 

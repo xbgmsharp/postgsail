@@ -15,6 +15,7 @@ select current_database();
 \echo 'Check the number of process pending'
 -- Should be 24
 SELECT count(*) as jobs from public.process_queue pq where pq.processed is null;
+
 -- Switch to the scheduler role
 --\echo 'Switch to the scheduler role'
 --SET ROLE scheduler;
@@ -28,3 +29,6 @@ SELECT count(*) as any_pending_jobs from public.process_queue pq where pq.proces
 -- Check the number of metrics entries
 \echo 'Check the number of metrics entries'
 SELECT count(*) as metrics_count from api.metrics;
+
+-- Run cron alerts
+SELECT public.cron_alerts_fn();

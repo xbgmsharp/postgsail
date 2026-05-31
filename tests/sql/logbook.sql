@@ -50,6 +50,10 @@ SELECT count(*) FROM api.logbook;
 -- track_geom and track_geojson are now dynamic from mobilitydb
 SELECT name,_from_time IS NOT NULL AS _from_time_not_null, _to_time IS NOT NULL AS _to_time_not_null, trajectory(trip) AS track_geom, distance,duration,avg_speed,max_speed,max_wind_speed,notes,extra->>'polar' IS NOT NULL as polar_is_not_null,extra->>'avg_wind_speed' as avg_wind_speed,user_data FROM api.logbook ORDER BY id ASC;
 
+-- tags logbook for user
+\echo 'tags logbook for user kapla'
+SELECT api.logs_tags_fn() AS tags;
+
 -- Delete logbook for user
 \echo 'Delete logbook for user kapla'
 SELECT api.delete_logbook_fn(5); -- delete Tropics Zone
