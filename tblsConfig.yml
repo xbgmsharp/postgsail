@@ -107,6 +107,7 @@ lint:
       - api.logbook
       - api.metadata
       - api.stays_explore_view
+      - api.vessel_view
   # require index comment
   requireIndexComment:
     enabled: false
@@ -179,9 +180,6 @@ lint:
     columns:
       - name: created_at
         exclude:
-          - api.moorages
-          - api.stays
-          - api.logbook
           - api.metrics
           - api.stays_at
           - auth.otp
@@ -195,11 +193,9 @@ lint:
           - public.aistypes
       - name: updated_at
         exclude:
-          - api.moorages
-          - api.stays
-          - api.logbook
           - api.metrics
           - api.stays_at
+          - api.vessel_view
           - auth.otp
           - public.process_queue
           - public.mid
