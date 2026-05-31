@@ -664,7 +664,7 @@ COMMENT ON FUNCTION api.vessel_settings_fn(out jsonb) IS
      Companion to api.settings_fn which returns account-level identity.
      Web UI reads alerting thresholds from user_data.alerting via this function.';
 
--- Add api.update_vessel_settings_fn, Mirrors the key/value pattern of api.update_user_preferences_fn but
+-- Add api.update_vessel_settings_fn, Mirrors the key/value pattern of api.update_user_preferences_fn
 CREATE OR REPLACE FUNCTION api.update_vessel_settings_fn(key text, value text)
 RETURNS boolean
 LANGUAGE plpgsql
@@ -773,7 +773,7 @@ DROP FUNCTION IF EXISTS api.export_logbook_geojson_fn;
 --DROP FUNCTION IF EXISTS api.vessel_extended_fn;
 --DROP FUNCTION IF EXISTS api.vessel_details_fn;
 
--- Add api.vessel_view, replace multiple vessel function and align design.
+-- Add api.vessel_view, replace multiple vessel function and align design
 CREATE VIEW api.vessel_view
 WITH (security_invoker = 'true', security_barrier = 'true')
 AS
@@ -1249,6 +1249,7 @@ GRANT EXECUTE ON FUNCTION api.settings_fn() TO user_role;
 -- Restrict app_settings access to sql users
 REVOKE SELECT ON public.app_settings FROM grafana;
 REVOKE SELECT ON public.app_settings FROM scheduler;
+REVOKE SELECT ON public.app_settings FROM bot_role;
 
 CREATE POLICY api_bot_role ON auth.accounts TO bot_role
     USING ((email)::text = current_setting('user.email'::text, true))
