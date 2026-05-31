@@ -370,7 +370,7 @@ request.set('User-Agent', 'PostgSail unit tests');
           // Reset agent so we do not save cookies
           request = supertest.agent(test.cname);
           request
-            .post('/rpc/vessel_fn')
+            .get('/rpc/vessel_fn')
             .set('Authorization', `Bearer ${user_jwt}`)
             .set('Accept', 'application/json')
             .set('Content-Type', 'application/json')
@@ -380,9 +380,10 @@ request.set('User-Agent', 'PostgSail unit tests');
               should.exist(res.header['server']);
               res.header['content-type'].should.match(new RegExp('json','g'));
               res.header['server'].should.match(new RegExp('postgrest','g'));
-              //should.exist(res.body);
-              //body = res.body;
-              console.log(res.text);
+              console.log(res.body);
+              should.exist(res.body);
+              should.exist(res.body.vessel);
+              should.exist(res.body.vessel.last_contact);
               done(err);
             });
       });

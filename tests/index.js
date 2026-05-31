@@ -31,53 +31,56 @@ let configtime = new Date().toISOString();
 
 // CNAMEs Array
 [
-  
-  { cname: process.env.PGSAIL_API_URI, name: "PostgSail unit test kapla",
-    signin: { email: 'demo+kapla@openplotter.cloud', pass: 'test', firstname:'First_kapla', lastname:'Last_kapla'},
-    login: { email: 'demo+kapla@openplotter.cloud', pass: 'test'},
-    vessel: { vessel_email: "demo+kapla@openplotter.cloud", vessel_mmsi: "test", vessel_name: " kapla "},
+
+  {
+    cname: process.env.PGSAIL_API_URI, name: "PostgSail unit test kapla",
+    signin: { email: 'demo+kapla@openplotter.cloud', pass: 'test', firstname: 'First_kapla', lastname: 'Last_kapla' },
+    login: { email: 'demo+kapla@openplotter.cloud', pass: 'test' },
+    vessel: { vessel_email: "demo+kapla@openplotter.cloud", vessel_mmsi: "test", vessel_name: " kapla " },
     preferences: { key: '{email_notifications}', value: false }, /* Disable email_notifications */
     vessel_metadata: {
-            name: "kapla",
-            mmsi: "123456789",
-            //client_id: "vessels.urn:mrn:signalk:uuid:5b4f7543-7153-4840-b139-761310b242fd",
-            length: "12",
-            beam: "10",
-            height: "24",
-            ship_type: "36",
-            plugin_version: "0.0.1",
-            signalk_version: "signalk_version",
-            time: moment.utc().subtract(69, 'minutes').format()
-            /* To trigger monitor_offline quickly */
-          },
+      name: "kapla",
+      mmsi: "123456789",
+      //client_id: "vessels.urn:mrn:signalk:uuid:5b4f7543-7153-4840-b139-761310b242fd",
+      length: "12",
+      beam: "10",
+      height: "24",
+      ship_type: "36",
+      plugin_version: "0.0.1",
+      signalk_version: "signalk_version",
+      time: moment.utc().subtract(69, 'minutes').format()
+      /* To trigger monitor_offline quickly */
+    },
     vessel_metrics: metrics_kapla,
     user_tables: [
-        { url: '/stays', res_body_length: 3},
-        // not processed yet, { url: '/moorages', res_body_length: 2},
-        { url: '/logbook', res_body_length: 2},
-        { url: '/metadata', res_body_length: 1}
+      { url: '/stays', res_body_length: 3 },
+      // not processed yet, { url: '/moorages', res_body_length: 2},
+      { url: '/logbook', res_body_length: 2 },
+      { url: '/metadata', res_body_length: 1 }
     ],
     user_views: [
-        // not processed yet, { url: '/stays_view', res_body_length: 1},
-        // not processed yet, { url: '/moorages_view', res_body_length: 1},
-        { url: '/logs_view', res_body_length: 0}, // not processed yet so empty
-        { url: '/log_view', res_body_length: 0}, // not processed yet so empty
-        //{ url: '/stats_view', res_body_length: 1},
-        { url: '/vessels_view', res_body_length: 1},
+      // not processed yet, { url: '/stays_view', res_body_length: 1},
+      // not processed yet, { url: '/moorages_view', res_body_length: 1},
+      { url: '/logs_view', res_body_length: 0 }, // not processed yet so empty
+      { url: '/log_view', res_body_length: 0 }, // not processed yet so empty
+      //{ url: '/stats_view', res_body_length: 1},
+      { url: '/vessels_view', res_body_length: 1 },
     ],
     user_patchs: [
-      { url: '/logbook?id=eq.1',
+      {
+        url: '/logbook?id=eq.1',
         patch: {
-              name: "patch log name",
-              notes: "new log note"
-            },
+          name: "patch log name",
+          notes: "new log note"
+        },
       },
-      { url: '/stays?id=eq.1',
+      {
+        url: '/stays?id=eq.1',
         patch: {
-              name: "patch stay name",
-              stay_code: 2,
-              notes: "new stay note"
-            },
+          name: "patch stay name",
+          stay_code: 2,
+          notes: "new stay note"
+        },
       },
       /* not processed yet, { url: '/moorages?id=eq.1',
         patch: {
@@ -90,51 +93,58 @@ let configtime = new Date().toISOString();
       */
     ],
     user_fn: [
-      { url: '/rpc/export_logbooks_geojson_point_trips_fn',
+      {
+        url: '/rpc/export_logbooks_geojson_point_trips_fn',
         payload: {
-              start_log: 1
-            },
+          start_log: 1
+        },
         res: {
           obj_name: 'geojson'
         }
       },
-      { url: '/rpc/export_logbook_geojson_trip_fn',
+      {
+        url: '/rpc/export_logbook_geojson_trip_fn',
         payload: {
-              _id: 1
-            },
+          _id: 1
+        },
         res: {
           obj_name: 'geojson'
         }
       },
-      { url: '/rpc/export_logbook_gpx_trip_fn',
+      {
+        url: '/rpc/export_logbook_gpx_trip_fn',
         payload: {
-              _id: 1
-            },
+          _id: 1
+        },
         res: {
           obj_name: null
         }
       },
-      { url: '/rpc/export_logbook_kml_trip_fn',
+      {
+        url: '/rpc/export_logbook_kml_trip_fn',
         payload: {
-              _id: 1
-            },
+          _id: 1
+        },
         res: {
           obj_name: null
         }
       },
-      { url: '/rpc/vessel_fn',
+      {
+        url: '/rpc/vessel_fn',
         payload: null,
         res: {
           obj_name: 'vessel'
         }
       },
-      { url: '/rpc/settings_fn',
+      {
+        url: '/rpc/settings_fn',
         payload: null,
         res: {
           obj_name: 'settings'
         }
       },
-      { url: '/rpc/versions_fn',
+      {
+        url: '/rpc/versions_fn',
         payload: null,
         res: {
           obj_name: 'versions'
@@ -142,63 +152,90 @@ let configtime = new Date().toISOString();
       }
     ],
     config_fn: [
-      { url: '/metadata?select=configuration',
+      {
+        url: '/metadata?select=configuration',
         res: {
           obj_name: 'configuration'
         }
       },
-      { url: `/metadata?select=configuration&configuration->>update_at=gt.${configtime}`,
+      {
+        url: `/metadata?select=configuration&configuration->>update_at=gt.${configtime}`,
         res: {
           obj_name: 'settings'
         }
       },
-    ]
+    ],
+    metadata_update: [
+      {
+        url: "/rpc/update_metadata_userdata_fn",
+        payload: { userdata: { make_model: "my super boat aava" } },
+        res: {},
+      },
+      {
+        url: "/rpc/update_metadata_userdata_fn",
+        payload: { userdata: { polar: "twa/tws;4;6;8;10;12;14;16;20;24\n0;0;0;0;0;0;0;0;0;0" } },
+        res: {},
+      },
+      {
+        url: "/rpc/update_metadata_userdata_fn",
+        payload: { userdata: { 'alerting': { 'enabled': false } } },
+        res: {}
+      },
+      {
+        url: "/rpc/update_metadata_userdata_fn",
+        payload: { userdata: { 'alerting': { 'low_water_depth_threshold': 999 } } },
+        res: {}
+      },
+    ],
   },
-  { cname: process.env.PGSAIL_API_URI, name: "PostgSail unit test, aava",
-    signin: { email: 'demo+aava@openplotter.cloud', pass: 'test', firstname:'first_aava', lastname:'last_aava'},
-    login: { email: 'demo+aava@openplotter.cloud', pass: 'test'},
-    vessel: { vessel_email: "demo+aava@openplotter.cloud", vessel_mmsi: "787654321", vessel_name: " aava "},
+  {
+    cname: process.env.PGSAIL_API_URI, name: "PostgSail unit test, aava",
+    signin: { email: 'demo+aava@openplotter.cloud', pass: 'test', firstname: 'first_aava', lastname: 'last_aava' },
+    login: { email: 'demo+aava@openplotter.cloud', pass: 'test' },
+    vessel: { vessel_email: "demo+aava@openplotter.cloud", vessel_mmsi: "787654321", vessel_name: " aava " },
     preferences: { key: '{email_notifications}', value: false }, /* Disable email_notifications */
     vessel_metadata: {
-            name: "aava",
-            mmsi: "n/a",
-            //client_id: "vessels.urn:mrn:imo:mmsi:787654321",
-            length: "12",
-            beam: "10",
-            height: "24",
-            ship_type: "37",
-            plugin_version: "1.0.2",
-            signalk_version: "1.20.0",
-            time: moment().subtract(69, 'minutes').format()
-          },
+      name: "aava",
+      mmsi: "n/a",
+      //client_id: "vessels.urn:mrn:imo:mmsi:787654321",
+      length: "12",
+      beam: "10",
+      height: "24",
+      ship_type: "37",
+      plugin_version: "1.0.2",
+      signalk_version: "1.20.0",
+      time: moment().subtract(69, 'minutes').format()
+    },
     vessel_metrics: metrics_aava,
     user_tables: [
-        { url: '/stays', res_body_length: 2},
-        // not processed yet, { url: '/moorages', res_body_length: 2},
-        { url: '/logbook', res_body_length: 1},
-        { url: '/metadata', res_body_length: 1}
+      { url: '/stays', res_body_length: 2 },
+      // not processed yet, { url: '/moorages', res_body_length: 2},
+      { url: '/logbook', res_body_length: 1 },
+      { url: '/metadata', res_body_length: 1 }
     ],
     user_views: [
-        // not processed yet, { url: '/stays_view', res_body_length: 1},
-        // not processed yet, { url: '/moorages_view', res_body_length: 1},
-        { url: '/logs_view', res_body_length: 0}, // not processed yet so empty
-        { url: '/log_view', res_body_length: 0}, // not processed yet so empty
-        //{ url: '/stats_view', res_body_length: 1},
-        { url: '/vessels_view', res_body_length: 1},
+      // not processed yet, { url: '/stays_view', res_body_length: 1},
+      // not processed yet, { url: '/moorages_view', res_body_length: 1},
+      { url: '/logs_view', res_body_length: 0 }, // not processed yet so empty
+      { url: '/log_view', res_body_length: 0 }, // not processed yet so empty
+      //{ url: '/stats_view', res_body_length: 1},
+      { url: '/vessels_view', res_body_length: 1 },
     ],
     user_patchs: [
-      { url: '/logbook?id=eq.3',
+      {
+        url: '/logbook?id=eq.3',
         patch: {
-              name: "patch log name",
-              notes: "new log note"
-            },
+          name: "patch log name",
+          notes: "new log note"
+        },
       },
-      { url: '/stays?id=eq.4',
+      {
+        url: '/stays?id=eq.4',
         patch: {
-              name: "patch stay name",
-              stay_code: 2,
-              notes: "new stay note"
-            },
+          name: "patch stay name",
+          stay_code: 2,
+          notes: "new stay note"
+        },
       },
       /* not processed yet, { url: '/moorages?id=eq.1',
         patch: {
@@ -211,45 +248,51 @@ let configtime = new Date().toISOString();
       */
     ],
     user_fn: [
-      { url: '/rpc/export_logbooks_geojson_point_trips_fn',
+      {
+        url: '/rpc/export_logbooks_geojson_point_trips_fn',
         payload: {
-              start_log: 1
-            },
+          start_log: 1
+        },
         res: {
           obj_name: 'geojson'
         }
       },
-      { url: '/rpc/export_logbook_geojson_trip_fn',
+      {
+        url: '/rpc/export_logbook_geojson_trip_fn',
         payload: {
-              _id: 3
-            },
+          _id: 3
+        },
         res: {
           obj_name: 'geojson'
         }
       },
-      { url: '/rpc/export_logbook_gpx_trip_fn',
+      {
+        url: '/rpc/export_logbook_gpx_trip_fn',
         payload: {
-              _id: 3
-            },
+          _id: 3
+        },
         res: {
           obj_name: null
         }
       },
-      { url: '/rpc/export_logbook_kml_trip_fn',
+      {
+        url: '/rpc/export_logbook_kml_trip_fn',
         payload: {
-              _id: 3
-            },
+          _id: 3
+        },
         res: {
           obj_name: null
         }
       },
-      { url: '/rpc/vessel_fn',
+      {
+        url: '/rpc/vessel_fn',
         payload: null,
         res: {
           obj_name: 'vessel'
         }
       },
-      { url: '/rpc/settings_fn',
+      {
+        url: '/rpc/settings_fn',
         payload: null,
         res: {
           obj_name: 'settings'
@@ -257,514 +300,566 @@ let configtime = new Date().toISOString();
       }
     ],
     config_fn: [
-      { url: '/metadata?select=configuration',
+      {
+        url: '/metadata?select=configuration',
         res: {
           obj_name: 'configuration'
         }
       },
-      { url: `/metadata?select=configuration&configuration->>update_at=gt.${configtime}`,
+      {
+        url: `/metadata?select=configuration&configuration->>update_at=gt.${configtime}`,
         res: {
           obj_name: 'settings'
         }
       },
     ],
+    metadata_update: [
+      {
+        url: "/rpc/update_metadata_userdata_fn",
+        payload: { userdata: { make_model: "my super boat kapla" } },
+        res: {},
+      },
+      {
+        url: "/rpc/update_metadata_userdata_fn",
+        payload: { userdata: { polar: "twa/tws;4;6;8;10;12;14;16;20;24\n0;0;0;0;0;0;0;0;0;0" } },
+        res: {},
+      },
+      {
+        url: "/rpc/update_metadata_userdata_fn",
+        payload: { userdata: { 'alerting': { 'enabled': true } } },
+        res: {}
+      },
+      {
+        url: "/rpc/update_metadata_userdata_fn",
+        payload: { userdata: { 'alerting': { 'low_water_temperature_threshold': 0 } } },
+        res: {}
+      }
+    ],
   }
-].forEach( function(test){
+].forEach(function (test) {
 
-//console.log(`${test.cname}`);
-describe(`${test.name}`, function(){
-request = supertest.agent(test.cname);
-request.set('User-Agent', 'PostgSail unit tests');
+  //console.log(`${test.cname}`);
+  describe(`${test.name}`, function () {
+    request = supertest.agent(test.cname);
+    request.set('User-Agent', 'PostgSail unit tests');
 
-  describe("OpenAPI description", function(){
+    describe("OpenAPI description", function () {
 
-    it('/', function(done) {
-      request = supertest.agent(test.cname);
-      request
-        .get('/')
-        .end(function(err,res){
-          res.status.should.equal(200);
-          should.exist(res.header['content-type']);
-          should.exist(res.header['server']);
-          res.header['content-type'].should.match(new RegExp('json','g'));
-          res.header['server'].should.match(new RegExp('postgrest','g'));
-          should.exist(res.body.paths['/rpc/signup']);
-          should.exist(res.body.paths['/rpc/login']);
-          should.exist(res.body.paths['/rpc/reset']);
-          should.exist(res.body.paths['/rpc/recover']);
-          //should.exist(res.body.paths['/rpc/generate_otp_fn']);
-          should.exist(res.body.paths['/rpc/pushover_fn']);
-          should.exist(res.body.paths['/rpc/telegram_fn']);
-          should.exist(res.body.paths['/rpc/telegram']);
-          done(err);
+      it('/', function (done) {
+        request = supertest.agent(test.cname);
+        request
+          .get('/')
+          .end(function (err, res) {
+            res.status.should.equal(200);
+            should.exist(res.header['content-type']);
+            should.exist(res.header['server']);
+            res.header['content-type'].should.match(new RegExp('json', 'g'));
+            res.header['server'].should.match(new RegExp('postgrest', 'g'));
+            should.exist(res.body.paths['/rpc/signup']);
+            should.exist(res.body.paths['/rpc/login']);
+            should.exist(res.body.paths['/rpc/reset']);
+            should.exist(res.body.paths['/rpc/recover']);
+            //should.exist(res.body.paths['/rpc/generate_otp_fn']);
+            should.exist(res.body.paths['/rpc/pushover_fn']);
+            should.exist(res.body.paths['/rpc/telegram_fn']);
+            should.exist(res.body.paths['/rpc/telegram']);
+            done(err);
+          });
+      });
+
+    }); // OpenAPI description
+
+    describe("Get JWT user_role", function () {
+
+      it('/rpc/signup return user_role jwt token', function (done) {
+        // Reset agent so we do not save cookies
+        request = supertest.agent(test.cname);
+        request
+          .post('/rpc/signup')
+          .send(test.signin)
+          .set('Accept', 'application/json')
+          .end(function (err, res) {
+            res.status.should.equal(200);
+            should.exist(res.header['content-type']);
+            should.exist(res.header['server']);
+            res.header['content-type'].should.match(new RegExp('json', 'g'));
+            res.header['server'].should.match(new RegExp('postgrest', 'g'));
+            should.exist(res.body.token);
+            user_jwt = res.body.token;
+            should.exist(user_jwt);
+            done(err);
+          });
+      });
+
+      it('/rpc/login return user_role jwt token', function (done) {
+        // Reset agent so we do not save cookies
+        request = supertest.agent(test.cname);
+        request
+          .post('/rpc/login')
+          .send(test.login)
+          .set('Accept', 'application/json')
+          .end(function (err, res) {
+            res.status.should.equal(200);
+            should.exist(res.header['content-type']);
+            should.exist(res.header['server']);
+            res.header['content-type'].should.match(new RegExp('json', 'g'));
+            res.header['server'].should.match(new RegExp('postgrest', 'g'));
+            should.exist(res.body.token);
+            //res.body.token.should.match(user_jwt);
+            console.log(user_jwt);
+            should.exist(user_jwt);
+            done(err);
+          });
+      });
+
+    }); // JWT user_role
+
+    describe("OpenAPI with JWT user_role", function () {
+      this.timeout(5000);
+      it('/', function (done) {
+        request = supertest.agent(test.cname);
+        request
+          .get('/')
+          .set('Authorization', `Bearer ${user_jwt}`)
+          .end(function (err, res) {
+            res.status.should.equal(200);
+            should.exist(res.header['content-type']);
+            should.exist(res.header['server']);
+            res.header['content-type'].should.match(new RegExp('json', 'g'));
+            res.header['server'].should.match(new RegExp('postgrest', 'g'));
+            // Functions
+            should.exist(res.body.paths['/rpc/register_vessel']);
+            should.exist(res.body.paths['/rpc/update_user_preferences_fn']);
+            should.exist(res.body.paths['/rpc/update_metadata_userdata_fn']);
+            should.exist(res.body.paths['/rpc/settings_fn']);
+            should.exist(res.body.paths['/rpc/versions_fn']);
+            should.exist(res.body.paths['/rpc/vessel_fn']);
+            should.exist(res.body.paths['/rpc/monitoring_history_fn']);
+            should.exist(res.body.paths['/rpc/stats_fn']);
+            // Tables
+            should.exist(res.body.paths['/metadata']);
+            should.exist(res.body.paths['/metrics']);
+            should.exist(res.body.paths['/logbook']);
+            should.exist(res.body.paths['/stays']);
+            should.exist(res.body.paths['/moorages']);
+            // Views
+            should.exist(res.body.paths['/logs_view']);
+            should.exist(res.body.paths['/moorages_view']);
+            should.exist(res.body.paths['/stays_view']);
+            should.exist(res.body.paths['/log_view']);
+            should.exist(res.body.paths['/moorage_view']);
+            should.exist(res.body.paths['/stay_view']);
+            should.exist(res.body.paths['/vessels_view']);
+            should.exist(res.body.paths['/monitoring_view']);
+            should.exist(res.body.paths['/monitoring_live']);
+            done(err);
+          });
+      });
+
+    }); // OpenAPI JWT user_role
+
+    describe("Set preferences email_notifications, JWT user_role", function () {
+
+      it('/rpc/update_user_preferences_fn return true', function (done) {
+        // Reset agent so we do not save cookies
+        request = supertest.agent(test.cname);
+        request
+          .post('/rpc/update_user_preferences_fn')
+          .send(test.preferences)
+          .set('Authorization', `Bearer ${user_jwt}`)
+          .set('Accept', 'application/json')
+          .set('Content-Type', 'application/json')
+          .end(function (err, res) {
+            res.status.should.equal(200);
+            should.exist(res.header['content-type']);
+            should.exist(res.header['server']);
+            res.header['content-type'].should.match(new RegExp('json', 'g'));
+            res.header['server'].should.match(new RegExp('postgrest', 'g'));
+            //console.log(res.text);
+            should.exist(res.text);
+            res.text.should.match('true');
+            done(err);
+          });
+      });
+    }); // JWT user_role
+
+    describe("Get versions, JWT user_role", function () {
+
+      it('/rpc/versions_fn return json', function (done) {
+        // Reset agent so we do not save cookies
+        request = supertest.agent(test.cname);
+        request
+          .get('/rpc/versions_fn')
+          .set('Authorization', `Bearer ${user_jwt}`)
+          .set('Accept', 'application/json')
+          .end(function (err, res) {
+            res.status.should.equal(200);
+            should.exist(res.header['content-type']);
+            should.exist(res.header['server']);
+            res.header['content-type'].should.match(new RegExp('json', 'g'));
+            res.header['server'].should.match(new RegExp('postgrest', 'g'));
+            //console.log(res.text);
+            should.exist(res.body.api_version);
+            should.exist(res.body.sys_version);
+            done(err);
+          });
+      });
+    }); // JWT user_role
+
+    describe("Get JWT vessel_role from user_role", function () {
+
+      it('/rpc/register_vessel return vessel_role jwt token', function (done) {
+        // Reset agent so we do not save cookies
+        request = supertest.agent(test.cname);
+        request
+          .post('/rpc/register_vessel')
+          .send(test.vessel)
+          .set('Authorization', `Bearer ${user_jwt}`)
+          .set('Accept', 'application/json')
+          .end(function (err, res) {
+            res.status.should.equal(200);
+            should.exist(res.header['content-type']);
+            should.exist(res.header['server']);
+            res.header['content-type'].should.match(new RegExp('json', 'g'));
+            res.header['server'].should.match(new RegExp('postgrest', 'g'));
+            should.exist(res.body.token);
+            vessel_jwt = res.body.token;
+            console.log(vessel_jwt);
+            should.exist(vessel_jwt);
+            /* Save vessel JWT token for later use.
+            fs.writeFile(`vessel_jwt_${test.vessel.vessel_name}.txt`, vessel_jwt, (err) => {
+              // In case of a error throw err.
+              if (err) throw err;
+            })
+            */
+            done(err);
+          });
+      });
+    }); // JWT user_role
+
+    describe("OpenAPI with JWT vessel_role", function () {
+
+      it('/', function (done) {
+        request = supertest.agent(test.cname);
+        request
+          .get('/')
+          .set('Authorization', `Bearer ${vessel_jwt}`)
+          .end(function (err, res) {
+            res.status.should.equal(200);
+            should.exist(res.header['content-type']);
+            should.exist(res.header['server']);
+            res.header['content-type'].should.match(new RegExp('json', 'g'));
+            res.header['server'].should.match(new RegExp('postgrest', 'g'));
+            should.exist(res.body.paths['/metadata']);
+            should.exist(res.body.paths['/metrics']);
+            should.exist(res.body.paths['/logbook']);
+            should.exist(res.body.paths['/stays']);
+            should.exist(res.body.paths['/moorages']);
+            done(err);
+          });
+      });
+
+    }); // OpenAPI JWT vessel_role
+
+    describe("Get vessel details view, JWT user_role", function () {
+
+      it('/vessels_view return json', function (done) {
+        // Reset agent so we do not save cookies
+        request = supertest.agent(test.cname);
+        request
+          .get('/vessels_view')
+          .set('Authorization', `Bearer ${user_jwt}`)
+          .end(function (err, res) {
+            res.status.should.equal(200);
+            should.exist(res.header['content-type']);
+            should.exist(res.header['server']);
+            res.header['content-type'].should.match(new RegExp('json', 'g'));
+            res.header['server'].should.match(new RegExp('postgrest', 'g'));
+            console.log(res.body);
+            //res.body.length.should.match(0);
+            res.body.length.should.match(1);
+            //res.body[0].last_contact.should.match('Never');
+            should.equal(res.body[0].last_contact, null);
+            done(err);
+          });
+      });
+    }); // JWT user_role
+
+    describe("Get vessel details function, JWT user_role", function () {
+      // no metadata from vessel so error - unrecognized configuration parameter "vessel.client_id"
+      it('/rpc/vessel_fn return json', function (done) {
+        // Reset agent so we do not save cookies
+        request = supertest.agent(test.cname);
+        request
+          .get('/rpc/vessel_fn')
+          .set('Authorization', `Bearer ${user_jwt}`)
+          .set('Accept', 'application/json')
+          .set('Content-Type', 'application/json')
+          .end(function (err, res) {
+            console.log(res.body)
+            res.status.should.equal(200);
+            should.exist(res.header['content-type']);
+            should.exist(res.header['server']);
+            res.header['content-type'].should.match(new RegExp('json', 'g'));
+            res.header['server'].should.match(new RegExp('postgrest', 'g'));
+            console.log(res.body);
+            should.exist(res.body);
+            res.body.vessel === null; // no metrics yet so vessel is null
+            done(err);
+          });
+      });
+    }); // JWT user_role
+
+    describe("Vessel POST metadata, JWT vessel_role", function () {
+
+      it('/metadata?on_conflict=vessel_id', function (done) {
+        request = supertest.agent(test.cname);
+        request
+          .post('/metadata?on_conflict=vessel_id')
+          .send(test.vessel_metadata)
+          .set('Authorization', `Bearer ${vessel_jwt}`)
+          .set('Accept', 'application/json')
+          .set('Content-Type', 'application/json')
+          .set('Prefer', 'missing=default,return=headers-only,resolution=merge-duplicates')
+          .end(function (err, res) {
+            res.status.should.equal(201);
+            //console.log(res.header);
+            should.exist(res.header['server']);
+            res.header['server'].should.match(new RegExp('postgrest', 'g'));
+            done(err);
+          });
+      });
+
+    }); // Vessel metadata JWT vessel_role
+
+    describe("Vessel POST metrics, JWT vessel_role", function () {
+
+      let data = [];
+      //console.log(test.vessel_metrics['metrics'][0]);
+      let i;
+      for (i = 0; i < test.vessel_metrics['metrics'].length; i++) {
+        data[i] = test.vessel_metrics['metrics'][i];
+        // Override time, -2h to allow to new data later without delay.
+        data[i]['time'] = moment.utc().subtract(1, 'day').add(i, 'minutes').format();
+        // Override client_id
+        //data[i]['client_id'] = test.vessel_metadata.client_id;
+        data[i]['client_id'] = null;
+      }
+      // The last entry are invalid and should be ignore.
+      // - Invalid status
+      // - Invalid speedoverground
+      // - Invalid time previous time is duplicate
+      // Force last valid entry to be back in time from previous, it should be ignore silently
+      data.at(-1).time = moment.utc(data.at(-3).time).subtract(1, 'minutes').format();
+      //console.log(data[0]);
+      // Force the -2 entry to be in the future add 1 year, it should be ignore silently
+      data.splice(i - 2, 1, data.at(-2))
+      data.at(-3).time = moment.utc(data.at(-3).time).add(1, 'year').format();
+      //console.log(data.at(-2));
+      //console.log(data.at(-1));
+
+      it('/metrics?select=time', function (done) {
+        request = supertest.agent(test.cname);
+        request
+          .post('/metrics?select=time')
+          .send(data)
+          .set('Authorization', `Bearer ${vessel_jwt}`)
+          .set('Accept', 'application/json')
+          .set('Content-Type', 'application/json')
+          .set('Prefer', 'return=representation')
+          .end(function (err, res) {
+            //console.log(res.body);
+            res.status.should.equal(201);
+            should.exist(res.header['content-type']);
+            should.exist(res.header['server']);
+            res.header['content-type'].should.match(new RegExp('json', 'g'));
+            res.header['server'].should.match(new RegExp('postgrest', 'g'));
+            should.exist(res.body);
+            //console.log(res.body);
+            res.body.length.should.match(test.vessel_metrics['metrics'].length - 3);
+            done(err);
+          });
+      });
+
+    }); // Vessel POST metrics JWT vessel_role
+
+    describe("Table endpoint, JWT user_role", function () {
+
+      test.user_tables.forEach(function (subtest) {
+        it(`${subtest.url}`, function (done) {
+          try {
+            //console.log(`${subtest.url} ${subtest.res_body_length}`);
+            // Reset agent so we do not save cookies
+            request = supertest.agent(test.cname);
+            request
+              .get(`${subtest.url}`)
+              .set('Authorization', `Bearer ${user_jwt}`)
+              .set('Accept', 'application/json')
+              .end(function (err, res) {
+                res.status.should.equal(200);
+                should.exist(res.header['content-type']);
+                should.exist(res.header['server']);
+                res.header['content-type'].should.match(new RegExp('json', 'g'));
+                res.header['server'].should.match(new RegExp('postgrest', 'g'));
+                should.exist(res.body);
+                res.body.length.should.match(subtest.res_body_length);
+                done(err);
+              });
+          }
+          catch (error) {
+            done();
+          }
         });
       });
+    }); // Table endpoint
+
+    describe("Views endpoint, JWT user_role", function () {
+
+      test.user_views.forEach(function (subtest) {
+        it(`${subtest.url}`, function (done) {
+          try {
+            //console.log(`${subtest.url} ${subtest.res_body_length}`);
+            // Reset agent so we do not save cookies
+            request = supertest.agent(test.cname);
+            request
+              .get(`${subtest.url}`)
+              .set('Authorization', `Bearer ${user_jwt}`)
+              .set('Accept', 'application/json')
+              .end(function (err, res) {
+                res.status.should.equal(200);
+                should.exist(res.header['content-type']);
+                should.exist(res.header['server']);
+                res.header['content-type'].should.match(new RegExp('json', 'g'));
+                res.header['server'].should.match(new RegExp('postgrest', 'g'));
+                should.exist(res.body);
+                res.body.length.should.match(subtest.res_body_length);
+                done(err);
+              });
+          }
+          catch (error) {
+            done();
+          }
+        });
+      });
+    }); // Views endpoint
+
+    describe("Patch endpoint, JWT user_role", function () {
+
+      test.user_patchs.forEach(function (subtest) {
+        it(`${subtest.url}`, function (done) {
+          try {
+            //console.log(`${subtest.url} ${subtest.res_body_length}`);
+            // Reset agent so we do not save cookies
+            request = supertest.agent(test.cname);
+            request
+              .patch(subtest.url)
+              .send(subtest.patch)
+              .set('Content-Type', 'application/json')
+              .set('Authorization', `Bearer ${user_jwt}`)
+              .set('Accept', 'application/json')
+              .end(function (err, res) {
+                res.status.should.equal(204);
+                should.exist(res.header['server']);
+                res.header['server'].should.match(new RegExp('postgrest', 'g'));
+                done(err);
+              });
+          }
+          catch (error) {
+            done();
+          }
+        });
+      });
+    }); // Patch endpoint
+
+    describe("Function endpoint, JWT user_role", function () {
+
+      test.user_fn.forEach(function (subtest) {
+        it(`${subtest.url}`, function (done) {
+          try {
+            //console.log(`${subtest.url} ${subtest.res_body_length}`);
+            // Reset agent so we do not save cookies
+            request = supertest.agent(test.cname);
+            request
+              .post(subtest.url)
+              .send(subtest.payload)
+              .set('Authorization', `Bearer ${user_jwt}`)
+              .set('Accept', 'application/json')
+              .end(function (err, res) {
+                res.status.should.equal(200);
+                should.exist(res.header['content-type']);
+                should.exist(res.header['server']);
+                res.header['content-type'].should.match(new RegExp('json', 'g'));
+                res.header['server'].should.match(new RegExp('postgrest', 'g'));
+                //should.exist(res.body);
+                done(err);
+              });
+          }
+          catch (error) {
+            done();
+          }
+        });
+      });
+    }); // Function endpoint
+
+    describe("Function Metadata configuration endpoint, JWT vessel_role", function () {
+
+      let otp = null;
+      test.config_fn.forEach(function (subtest) {
+        it(`${subtest.url}`, function (done) {
+          try {
+            //console.log(`${subtest.url} ${subtest.res}`);
+            // Reset agent so we do not save cookies
+            request = supertest.agent(test.cname);
+            request
+              .get(subtest.url)
+              .set('Authorization', `Bearer ${vessel_jwt}`)
+              .set('Accept', 'application/json')
+              .end(function (err, res) {
+                res.status.should.equal(200);
+                should.exist(res.header['content-type']);
+                should.exist(res.header['server']);
+                res.header['content-type'].should.match(new RegExp('json', 'g'));
+                res.header['server'].should.match(new RegExp('postgrest', 'g'));
+                console.log(res.body);
+                should.exist(res.body);
+                done(err);
+              });
+          }
+          catch (error) {
+            done();
+          }
+        });
+      });
+    }); // Function metadata configuration endpoint
+
+
+    describe("Function update vessel settings endpoint, JWT user_role", function () {
+      test.metadata_update.forEach(function (subtest) {
+        it(`${subtest.url}`, function (done) {
+          try {
+            // Reset agent so we do not save cookies
+            request = supertest.agent(test.cname);
+            request
+              .post(subtest.url)
+              .send(subtest.payload)
+              .set("Authorization", `Bearer ${user_jwt}`)
+              .set("Accept", "application/json")
+              .end(function (err, res) {
+                res.status.should.equal(200);
+                should.exist(res.header["content-type"]);
+                should.exist(res.header["server"]);
+                res.header["server"].should.match(new RegExp("postgrest", "g"));
+                //console.log(res.body);
+                should.exist(res.body);
+                done(err);
+              });
+          } catch (error) {
+            done();
+          }
+        });
+      });
+    }); // Update Metadata endpoint
 
   }); // OpenAPI description
-
-  describe("Get JWT user_role", function(){
-
-      it('/rpc/signup return user_role jwt token', function(done) {
-          // Reset agent so we do not save cookies
-          request = supertest.agent(test.cname);
-          request
-            .post('/rpc/signup')
-            .send(test.signin)
-            .set('Accept', 'application/json')
-            .end(function(err,res){
-              res.status.should.equal(200);
-              should.exist(res.header['content-type']);
-              should.exist(res.header['server']);
-              res.header['content-type'].should.match(new RegExp('json','g'));
-              res.header['server'].should.match(new RegExp('postgrest','g'));
-              should.exist(res.body.token);
-              user_jwt = res.body.token;
-              should.exist(user_jwt);
-              done(err);
-            });
-      });
-
-      it('/rpc/login return user_role jwt token', function(done) {
-          // Reset agent so we do not save cookies
-          request = supertest.agent(test.cname);
-          request
-            .post('/rpc/login')
-            .send(test.login)
-            .set('Accept', 'application/json')
-            .end(function(err,res){
-              res.status.should.equal(200);
-              should.exist(res.header['content-type']);
-              should.exist(res.header['server']);
-              res.header['content-type'].should.match(new RegExp('json','g'));
-              res.header['server'].should.match(new RegExp('postgrest','g'));
-              should.exist(res.body.token);
-              //res.body.token.should.match(user_jwt);
-              console.log(user_jwt);
-              should.exist(user_jwt);
-              done(err);
-            });
-      }); 
-
-  }); // JWT user_role
-
-  describe("OpenAPI with JWT user_role", function(){
-    this.timeout(5000);
-    it('/', function(done) {
-      request = supertest.agent(test.cname);
-      request
-        .get('/')
-        .set('Authorization', `Bearer ${user_jwt}`)
-        .end(function(err,res){
-          res.status.should.equal(200);
-          should.exist(res.header['content-type']);
-          should.exist(res.header['server']);
-          res.header['content-type'].should.match(new RegExp('json','g'));
-          res.header['server'].should.match(new RegExp('postgrest','g'));
-          // Functions
-          should.exist(res.body.paths['/rpc/register_vessel']);
-          should.exist(res.body.paths['/rpc/update_user_preferences_fn']);
-          should.exist(res.body.paths['/rpc/update_metadata_userdata_fn']);
-          should.exist(res.body.paths['/rpc/settings_fn']);
-          should.exist(res.body.paths['/rpc/versions_fn']);
-          should.exist(res.body.paths['/rpc/vessel_fn']);
-          should.exist(res.body.paths['/rpc/monitoring_history_fn']);
-          should.exist(res.body.paths['/rpc/stats_fn']);
-          // Tables
-          should.exist(res.body.paths['/metadata']);
-          should.exist(res.body.paths['/metrics']);
-          should.exist(res.body.paths['/logbook']);
-          should.exist(res.body.paths['/stays']);
-          should.exist(res.body.paths['/moorages']);
-          // Views
-          should.exist(res.body.paths['/logs_view']);
-          should.exist(res.body.paths['/moorages_view']);
-          should.exist(res.body.paths['/stays_view']);
-          should.exist(res.body.paths['/log_view']);
-          should.exist(res.body.paths['/moorage_view']);
-          should.exist(res.body.paths['/stay_view']);
-          should.exist(res.body.paths['/vessels_view']);
-          should.exist(res.body.paths['/monitoring_view']);
-          should.exist(res.body.paths['/monitoring_live']);
-          done(err);
-        });
-    });
-
-  }); // OpenAPI JWT user_role
-
-  describe("Set preferences email_notifications, JWT user_role", function(){
-
-      it('/rpc/update_user_preferences_fn return true', function(done) {
-          // Reset agent so we do not save cookies
-          request = supertest.agent(test.cname);
-          request
-            .post('/rpc/update_user_preferences_fn')
-            .send(test.preferences)
-            .set('Authorization', `Bearer ${user_jwt}`)
-            .set('Accept', 'application/json')
-            .set('Content-Type', 'application/json')
-            .end(function(err,res){
-              res.status.should.equal(200);
-              should.exist(res.header['content-type']);
-              should.exist(res.header['server']);
-              res.header['content-type'].should.match(new RegExp('json','g'));
-              res.header['server'].should.match(new RegExp('postgrest','g'));
-              //console.log(res.text);
-              should.exist(res.text);
-              res.text.should.match('true');
-              done(err);
-            });
-      });
-  }); // JWT user_role
-
-  describe("Get versions, JWT user_role", function(){
-
-      it('/rpc/versions_fn return json', function(done) {
-          // Reset agent so we do not save cookies
-          request = supertest.agent(test.cname);
-          request
-            .get('/rpc/versions_fn')
-            .set('Authorization', `Bearer ${user_jwt}`)
-            .set('Accept', 'application/json')
-            .end(function(err,res){
-              res.status.should.equal(200);
-              should.exist(res.header['content-type']);
-              should.exist(res.header['server']);
-              res.header['content-type'].should.match(new RegExp('json','g'));
-              res.header['server'].should.match(new RegExp('postgrest','g'));
-              //console.log(res.text);
-              should.exist(res.body.api_version);
-              should.exist(res.body.sys_version);
-              done(err);
-            });
-      });
-  }); // JWT user_role
-
-  describe("Get JWT vessel_role from user_role", function(){
-
-      it('/rpc/register_vessel return vessel_role jwt token', function(done) {
-          // Reset agent so we do not save cookies
-          request = supertest.agent(test.cname);
-          request
-            .post('/rpc/register_vessel')
-            .send(test.vessel)
-            .set('Authorization', `Bearer ${user_jwt}`)
-            .set('Accept', 'application/json')
-            .end(function(err,res){
-              res.status.should.equal(200);
-              should.exist(res.header['content-type']);
-              should.exist(res.header['server']);
-              res.header['content-type'].should.match(new RegExp('json','g'));
-              res.header['server'].should.match(new RegExp('postgrest','g'));
-              should.exist(res.body.token);
-              vessel_jwt = res.body.token;
-              console.log(vessel_jwt);
-              should.exist(vessel_jwt);
-              /* Save vessel JWT token for later use.
-              fs.writeFile(`vessel_jwt_${test.vessel.vessel_name}.txt`, vessel_jwt, (err) => {
-                // In case of a error throw err.
-                if (err) throw err;
-              })
-              */
-              done(err);
-            });
-      });
-  }); // JWT user_role
-
-  describe("OpenAPI with JWT vessel_role", function(){
-
-    it('/', function(done) {
-      request = supertest.agent(test.cname);
-      request
-        .get('/')
-        .set('Authorization', `Bearer ${vessel_jwt}`)
-        .end(function(err,res){
-          res.status.should.equal(200);
-          should.exist(res.header['content-type']);
-          should.exist(res.header['server']);
-          res.header['content-type'].should.match(new RegExp('json','g'));
-          res.header['server'].should.match(new RegExp('postgrest','g'));
-          should.exist(res.body.paths['/metadata']);
-          should.exist(res.body.paths['/metrics']);
-          should.exist(res.body.paths['/logbook']);
-          should.exist(res.body.paths['/stays']);
-          should.exist(res.body.paths['/moorages']);
-          done(err);
-        });
-    });
-
-  }); // OpenAPI JWT vessel_role
-
-  describe("Get vessel details view, JWT user_role", function(){
-
-      it('/vessels_view return json', function(done) {
-          // Reset agent so we do not save cookies
-          request = supertest.agent(test.cname);
-          request
-            .get('/vessels_view')
-            .set('Authorization', `Bearer ${user_jwt}`)
-            .end(function(err,res){
-              res.status.should.equal(200);
-              should.exist(res.header['content-type']);
-              should.exist(res.header['server']);
-              res.header['content-type'].should.match(new RegExp('json','g'));
-              res.header['server'].should.match(new RegExp('postgrest','g'));
-              console.log(res.body);
-              //res.body.length.should.match(0);
-              res.body.length.should.match(1);
-              //res.body[0].last_contact.should.match('Never');
-              should.equal(res.body[0].last_contact, null);
-              done(err);
-            });
-      });
-  }); // JWT user_role
-
-  describe("Get vessel details function, JWT user_role", function(){
-    // no metadata from vessel so error - unrecognized configuration parameter "vessel.client_id"
-      it('/rpc/vessel_fn return json', function(done) {
-          // Reset agent so we do not save cookies
-          request = supertest.agent(test.cname);
-          request
-            .get('/rpc/vessel_fn')
-            .set('Authorization', `Bearer ${user_jwt}`)
-            .set('Accept', 'application/json')
-            .set('Content-Type', 'application/json')
-            .end(function(err,res){
-              console.log(res.body)
-              res.status.should.equal(200);
-              should.exist(res.header['content-type']);
-              should.exist(res.header['server']);
-              res.header['content-type'].should.match(new RegExp('json','g'));
-              res.header['server'].should.match(new RegExp('postgrest','g'));
-              should.exist(res.body);
-              //body = res.body;
-              //console.log(res.text);
-              done(err);
-            });
-      });
-  }); // JWT user_role
-
-  describe("Vessel POST metadata, JWT vessel_role", function(){
-
-    it('/metadata?on_conflict=vessel_id', function(done) {
-      request = supertest.agent(test.cname);
-      request
-        .post('/metadata?on_conflict=vessel_id')
-        .send(test.vessel_metadata)
-        .set('Authorization', `Bearer ${vessel_jwt}`)
-        .set('Accept', 'application/json')
-        .set('Content-Type', 'application/json')
-        .set('Prefer', 'missing=default,return=headers-only,resolution=merge-duplicates')
-        .end(function(err,res){
-          res.status.should.equal(201);
-          //console.log(res.header);
-          should.exist(res.header['server']);
-          res.header['server'].should.match(new RegExp('postgrest','g'));
-          done(err);
-        });
-    });
-
-  }); // Vessel metadata JWT vessel_role
-
-  describe("Vessel POST metrics, JWT vessel_role", function(){
-
-    let data = [];
-    //console.log(test.vessel_metrics['metrics'][0]);
-    let i;
-    for (i = 0; i < test.vessel_metrics['metrics'].length; i++) {
-      data[i] = test.vessel_metrics['metrics'][i];
-      // Override time, -2h to allow to new data later without delay.
-      data[i]['time'] = moment.utc().subtract(1, 'day').add(i, 'minutes').format();
-      // Override client_id
-      //data[i]['client_id'] = test.vessel_metadata.client_id;
-      data[i]['client_id'] = null;
-    }
-    // The last entry are invalid and should be ignore.
-    // - Invalid status
-    // - Invalid speedoverground
-    // - Invalid time previous time is duplicate
-    // Force last valid entry to be back in time from previous, it should be ignore silently
-    data.at(-1).time = moment.utc(data.at(-3).time).subtract(1, 'minutes').format();
-    //console.log(data[0]);
-    // Force the -2 entry to be in the future add 1 year, it should be ignore silently
-    data.splice(i-2, 1, data.at(-2))
-    data.at(-3).time = moment.utc(data.at(-3).time).add(1, 'year').format();
-    //console.log(data.at(-2));
-    //console.log(data.at(-1));
-
-    it('/metrics?select=time', function(done) {
-      request = supertest.agent(test.cname);
-      request
-        .post('/metrics?select=time')
-        .send(data)
-        .set('Authorization', `Bearer ${vessel_jwt}`)
-        .set('Accept', 'application/json')
-        .set('Content-Type', 'application/json')
-        .set('Prefer', 'return=representation')
-        .end(function(err,res){
-          //console.log(res.body);
-          res.status.should.equal(201);
-          should.exist(res.header['content-type']);
-          should.exist(res.header['server']);
-          res.header['content-type'].should.match(new RegExp('json','g'));
-          res.header['server'].should.match(new RegExp('postgrest','g'));
-          should.exist(res.body);
-          //console.log(res.body);
-          res.body.length.should.match(test.vessel_metrics['metrics'].length-3);
-          done(err);
-        });
-    });
-
-  }); // Vessel POST metrics JWT vessel_role
-
-  describe("Table endpoint, JWT user_role", function(){
-
-    test.user_tables.forEach(function (subtest) {
-      it(`${subtest.url}`, function(done) {
-        try {
-          //console.log(`${subtest.url} ${subtest.res_body_length}`);
-          // Reset agent so we do not save cookies
-          request = supertest.agent(test.cname);
-          request
-            .get(`${subtest.url}`)
-            .set('Authorization', `Bearer ${user_jwt}`)
-            .set('Accept', 'application/json')
-            .end(function(err,res){
-              res.status.should.equal(200);
-              should.exist(res.header['content-type']);
-              should.exist(res.header['server']);
-              res.header['content-type'].should.match(new RegExp('json','g'));
-              res.header['server'].should.match(new RegExp('postgrest','g'));
-              should.exist(res.body);
-              res.body.length.should.match(subtest.res_body_length);
-              done(err);
-            });
-        }
-        catch (error) {
-          done();
-        }
-      });
-    });
-  }); // Table endpoint
-
-  describe("Views endpoint, JWT user_role", function(){
-
-    test.user_views.forEach(function (subtest) {
-      it(`${subtest.url}`, function(done) {
-        try {
-          //console.log(`${subtest.url} ${subtest.res_body_length}`);
-          // Reset agent so we do not save cookies
-          request = supertest.agent(test.cname);
-          request
-            .get(`${subtest.url}`)
-            .set('Authorization', `Bearer ${user_jwt}`)
-            .set('Accept', 'application/json')
-            .end(function(err,res){
-              res.status.should.equal(200);
-              should.exist(res.header['content-type']);
-              should.exist(res.header['server']);
-              res.header['content-type'].should.match(new RegExp('json','g'));
-              res.header['server'].should.match(new RegExp('postgrest','g'));
-              should.exist(res.body);
-              res.body.length.should.match(subtest.res_body_length);
-              done(err);
-            });
-        }
-        catch (error) {
-          done();
-        }
-      });
-    });
-  }); // Views endpoint
-
-  describe("Patch endpoint, JWT user_role", function(){
-
-    test.user_patchs.forEach(function (subtest) {
-      it(`${subtest.url}`, function(done) {
-        try {
-          //console.log(`${subtest.url} ${subtest.res_body_length}`);
-          // Reset agent so we do not save cookies
-          request = supertest.agent(test.cname);
-          request
-            .patch(subtest.url)
-            .send(subtest.patch)
-            .set('Content-Type', 'application/json')
-            .set('Authorization', `Bearer ${user_jwt}`)
-            .set('Accept', 'application/json')
-            .end(function(err,res){
-              res.status.should.equal(204);
-              should.exist(res.header['server']);
-              res.header['server'].should.match(new RegExp('postgrest','g'));
-              done(err);
-            });
-        }
-        catch (error) {
-          done();
-        }
-      });
-    });
-  }); // Patch endpoint
-
-  describe("Function endpoint, JWT user_role", function(){
-
-    test.user_fn.forEach(function (subtest) {
-      it(`${subtest.url}`, function(done) {
-        try {
-          //console.log(`${subtest.url} ${subtest.res_body_length}`);
-          // Reset agent so we do not save cookies
-          request = supertest.agent(test.cname);
-          request
-            .post(subtest.url)
-            .send(subtest.payload)
-            .set('Authorization', `Bearer ${user_jwt}`)
-            .set('Accept', 'application/json')
-            .end(function(err,res){
-              res.status.should.equal(200);
-              should.exist(res.header['content-type']);
-              should.exist(res.header['server']);
-              res.header['content-type'].should.match(new RegExp('json','g'));
-              res.header['server'].should.match(new RegExp('postgrest','g'));
-              //should.exist(res.body);
-              done(err);
-            });
-        }
-        catch (error) {
-          done();
-        }
-      });
-    });
-  }); // Function endpoint
-
-  describe("Function Metadata configuration endpoint, JWT vessel_role", function(){
-
-    let otp = null;
-    test.config_fn.forEach(function (subtest) {
-      it(`${subtest.url}`, function(done) {
-        try {
-          //console.log(`${subtest.url} ${subtest.res}`);
-          // Reset agent so we do not save cookies
-          request = supertest.agent(test.cname);
-          request
-            .get(subtest.url)
-            .set('Authorization', `Bearer ${vessel_jwt}`)
-            .set('Accept', 'application/json')
-            .end(function(err,res){
-              res.status.should.equal(200);
-              should.exist(res.header['content-type']);
-              should.exist(res.header['server']);
-              res.header['content-type'].should.match(new RegExp('json','g'));
-              res.header['server'].should.match(new RegExp('postgrest','g'));
-              console.log(res.body);
-              should.exist(res.body);
-              done(err);
-            });
-        }
-        catch (error) {
-          done();
-        }
-      });
-    });
-  }); // Function metadata configuration endpoint
-
-}); // OpenAPI description
 
 }); // CNAMEs Array

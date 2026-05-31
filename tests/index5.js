@@ -29,6 +29,18 @@ var moment = require("moment");
   {
     cname: process.env.PGSAIL_API_URI,
     name: "PostgSail unit test kapla",
+    stays: {
+      url: "/stays_view",
+      header: { name: "x-is-public", value: btoa("kapla,public_stays_list,0") },
+      payload: null,
+      res: {},
+    },
+    moorages: {
+      url: "/moorages_view",
+      header: { name: "x-is-public", value: btoa("kapla,public_moorages_list,0") },
+      payload: null,
+      res: {},
+    },
     logs: {
       url: "/logs_view",
       header: { name: "x-is-public", value: btoa("kapla,public_logs_list,0") },

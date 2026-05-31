@@ -9,8 +9,7 @@
  * alias mocha="./node_modules/mocha/bin/_mocha"
  * mocha index4.js --reporter mochawesome --reporter-options reportDir=/mnt/postgsail/,reportFilename=report_api.html
  *
- * Tests endpoint as a user and bot with JWT token, but without x-is-public header.
- * Expected: 200 for authorized path.
+ * Tests endpoint as a user and bot with JWT token
  */
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -114,10 +113,18 @@ var moment = require("moment");
     telegram: { payload: { user_id: 1234567890 } },
     telegram_fn: [
       { url: "/rpc/vessel_fn" },
+      { url: "/rpc/vessel_activity_fn" },
       { url: "/monitoring_view" },
+      { url: "/monitoring_live" },
+      { url: "/rpc/monitoring_history_fn" },
       { url: "/logs_view" },
+      { url: "/stays_view" },
+      { url: "/moorages_view" },
       { url: "/rpc/stats_fn" },
-      { url: "/rpc/graph_logs_by_day_fn" }
+      { url: "/rpc/badges_fn" },
+      { url: "/rpc/profile_fn" },
+      { url: "/rpc/graph_logs_by_day_fn" },
+      { url: "/rpc/graph_logs_by_week_fn" }
     ],
     settings: {
       url: "/rpc/settings_fn",
@@ -143,7 +150,7 @@ var moment = require("moment");
     metadata_update: [
       {
         url: "/rpc/update_metadata_userdata_fn",
-        payload: { userdata: { make_model: "my super boat" } },
+        payload: { userdata: { make_model: "my super boat kapla" } },
         res: {},
       },
       {
@@ -151,6 +158,16 @@ var moment = require("moment");
         payload: { userdata: { polar: "twa/tws;4;6;8;10;12;14;16;20;24\n0;0;0;0;0;0;0;0;0;0" } },
         res: {},
       },
+      {
+        url: "/rpc/update_metadata_userdata_fn",
+        payload: { userdata: { 'alerting': { 'enabled': true } } },
+        res: {}
+      },
+      {
+        url: "/rpc/update_metadata_userdata_fn",
+        payload: { userdata: { 'alerting': { 'low_water_temperature_threshold': 0 } } },
+        res: {}
+      }
     ],
     metadata: [
       {
@@ -252,7 +269,15 @@ var moment = require("moment");
       },
       {
         url: "/moorage_view",
+      }
+    ],
+    vessel: [
+      {
+        url: "/vessels_view",
       },
+      {
+        url: "/vessel_view",
+      }
     ],
     stats: [
       {
@@ -315,6 +340,14 @@ var moment = require("moment");
     ],
     activity: {
       url: "/rpc/vessel_activity_fn",
+    },
+    vessel_settings_fn: {
+      url: "/rpc/vessel_settings_fn",
+    },
+    tags: {
+      url: "/rpc/logs_tags_fn",
+      payload: null,
+      res: {},
     },
     geojson_view: [
       {
@@ -419,7 +452,20 @@ var moment = require("moment");
       },
     ],
     telegram: { payload: { user_id: 9876543210 } },
-    telegram_fn: [{ url: "/rpc/vessel_fn" }, { url: "/monitoring_view" }],
+    telegram_fn: [
+      { url: "/rpc/vessel_fn" },
+      { url: "/monitoring_view" },
+      { url: "/monitoring_live" },
+      { url: "/rpc/monitoring_history_fn" },
+      { url: "/logs_view" },
+      { url: "/stays_view" },
+      { url: "/moorages_view" },
+      { url: "/rpc/stats_fn" },
+      { url: "/rpc/badges_fn" },
+      { url: "/rpc/profile_fn" },
+      { url: "/rpc/graph_logs_by_day_fn" },
+      { url: "/rpc/graph_logs_by_week_fn" }
+    ],
     settings: {
       url: "/rpc/settings_fn",
       payload: null,
@@ -444,13 +490,23 @@ var moment = require("moment");
     metadata_update: [
       {
         url: "/rpc/update_metadata_userdata_fn",
-        payload: { userdata: { make_model: "my super boat" } },
+        payload: { userdata: { make_model: "my super boat aava" } },
         res: {},
       },
       {
         url: "/rpc/update_metadata_userdata_fn",
         payload: { userdata: { polar: "twa/tws;4;6;8;10;12;14;16;20;24\n0;0;0;0;0;0;0;0;0;0" } },
         res: {},
+      },
+      {
+        url: "/rpc/update_metadata_userdata_fn",
+        payload: { userdata: { 'alerting': { 'enabled': false } } },
+        res: {}
+      },
+      {
+        url: "/rpc/update_metadata_userdata_fn",
+        payload: { userdata: { 'alerting': { 'low_water_depth_threshold': 999 } } },
+        res: {}
       },
     ],
     metadata: [
@@ -547,6 +603,14 @@ var moment = require("moment");
         url: "/moorage_view",
       },
     ],
+    vessel: [
+      {
+        url: "/vessels_view",
+      },
+      {
+        url: "/vessel_view",
+      }
+    ],
     stats: [
       {
         url: "/rpc/stats_fn",
@@ -608,6 +672,14 @@ var moment = require("moment");
     ],
     activity: {
       url: "/rpc/vessel_activity_fn",
+    },
+    vessel_settings_fn: {
+      url: "/rpc/vessel_settings_fn",
+    },
+    tags: {
+      url: "/rpc/logs_tags_fn",
+      payload: null,
+      res: {},
     },
     geojson_view: [
       {
@@ -945,14 +1017,15 @@ var moment = require("moment");
     }); // Badges bot JWT
 
     describe("Profile, bot jwt", function () {
-      it("/rpc/profile_fn return user profile", function (done) {
+      it("/rpc/profile_fn", function (done) {
         // Reset agent so we do not save cookies
         request = supertest.agent(test.cname);
         request
-          .post("/rpc/profile_fn")
+          .get("/rpc/profile_fn")
           .set("Authorization", `Bearer ${bot_jwt}`)
           .set("Accept", "application/json")
           .end(function (err, res) {
+            console.log(res.body);
             res.status.should.equal(200);
             should.exist(res.header["content-type"]);
             should.exist(res.header["server"]);
@@ -1228,6 +1301,55 @@ var moment = require("moment");
       });
     }); // user JWT
 
+    describe("vessel_settings_fn, user jwt", function () {
+      it("/rpc/vessel_settings_fn endpoint, settings entries, JWT user_role", function (done) {
+        // Reset agent so we do not save cookies
+        request = supertest.agent(test.cname);
+        request
+          .get("/rpc/vessel_settings_fn")
+          .set("Authorization", `Bearer ${user_jwt}`)
+          .set("Accept", "application/json")
+          .end(function (err, res) {
+            res.status.should.equal(200);
+            should.exist(res.header["content-type"]);
+            should.exist(res.header["server"]);
+            res.header["content-type"].should.match(new RegExp("json", "g"));
+            res.header["server"].should.match(new RegExp("postgrest", "g"));
+            console.log(res.body);
+            should.exist(res.body);
+            res.body.should.be.an.Object();
+            should.exist(res.body.vessel_settings);
+            should.exist(res.body.vessel_settings.name);
+            res.body.vessel_settings.user_data.should.be.an.Object();
+            should.exist(res.body.vessel_settings.vessel_id);
+            //res.body.vessel_settings.configuration.should.be.an.Object();
+            done(err);
+          });
+      });
+    }); // user JWT
+
+    describe("logs_tags_fn, user jwt", function () {
+      it("/rpc/logs_tags_fn endpoint, tags entries, JWT user_role", function (done) {
+        // Reset agent so we do not save cookies
+        request = supertest.agent(test.cname);
+        request
+          .get("/rpc/logs_tags_fn")
+          .set("Authorization", `Bearer ${user_jwt}`)
+          .set("Accept", "application/json")
+          .end(function (err, res) {
+            res.status.should.equal(200);
+            should.exist(res.header["content-type"]);
+            should.exist(res.header["server"]);
+            res.header["content-type"].should.match(new RegExp("json", "g"));
+            res.header["server"].should.match(new RegExp("postgrest", "g"));
+            console.log(res.body);
+            should.exist(res.body);
+            res.body.should.be.an.Array();
+            done(err);
+          });
+      });
+    }); // user JWT
+
     describe("GeoJSON views, JWT user_role", function () {
       test.geojson_view.forEach(function (subtest) {
         it(`${subtest.url}`, function (done) {
@@ -1257,6 +1379,64 @@ var moment = require("moment");
         });
       });
     }); // GeoJSON views
+
+    describe("Vessel views, JWT user_role", function () {
+      test.geojson_view.forEach(function (subtest) {
+        it(`${subtest.url}`, function (done) {
+          try {
+            // Reset agent so we do not save cookies
+            request = supertest.agent(test.cname);
+            request
+              .get(`${subtest.url}`)
+              .set("Authorization", `Bearer ${user_jwt}`)
+              .set("Accept", "application/json")
+              .end(function (err, res) {
+                res.status.should.equal(200);
+                should.exist(res.header["content-type"]);
+                should.exist(res.header["server"]);
+                res.header["server"].should.match(new RegExp("postgrest", "g"));
+                should.exist(res.header['content-range']);
+                console.log(res.body);
+                should.exist(res.body);
+                res.body.should.be.an.Array();
+                res.body.length.should.be.aboveOrEqual(1);
+                done(err);
+              });
+          } catch (error) {
+            done();
+          }
+        });
+      });
+    }); // Vessel views
+
+    describe("Vessel views, JWT bot_role", function () {
+      test.vessel.forEach(function (subtest) {
+        it(`${subtest.url}`, function (done) {
+          try {
+            // Reset agent so we do not save cookies
+            request = supertest.agent(test.cname);
+            request
+              .get(`${subtest.url}`)
+              .set("Authorization", `Bearer ${bot_jwt}`)
+              .set("Accept", "application/json")
+              .end(function (err, res) {
+                res.status.should.equal(200);
+                should.exist(res.header["content-type"]);
+                should.exist(res.header["server"]);
+                res.header["server"].should.match(new RegExp("postgrest", "g"));
+                should.exist(res.header['content-range']);
+                console.log(res.body);
+                should.exist(res.body);
+                res.body.should.be.an.Array();
+                res.body.length.should.be.aboveOrEqual(1);
+                done(err);
+              });
+          } catch (error) {
+            done();
+          }
+        });
+      });
+    }); // Vessel views
 
   }); // OpenAPI description
 }); // Users Array

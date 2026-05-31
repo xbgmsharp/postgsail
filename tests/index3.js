@@ -86,6 +86,33 @@ var moment = require('moment');
       }
     ],
     user_fn: [
+      {
+        url: '/rpc/export_logbook_geojson_point_trip_fn',
+        payload: {
+              _id: 2
+            },
+        res: {
+          obj_name: 'geojson'
+        }
+      },
+      {
+        url: '/rpc/export_logbook_geojson_linestring_trip_fn',
+        payload: {
+              _id: 2
+            },
+        res: {
+          obj_name: 'geojson'
+        }
+      },
+      {
+        url: '/rpc/export_logbook_polar_csv_fn',
+        payload: {
+              _id: 2
+            },
+        res: {
+          obj_name: 'geojson'
+        }
+      },
       { //url: '/rpc/timelapse_fn',
         url: '/rpc/export_logbooks_geojson_linestring_trips_fn',
         payload: {
@@ -181,6 +208,12 @@ var moment = require('moment');
         payload: null,
         res: {
           obj_name: 'versions'
+        }
+      },
+      { url: '/rpc/stats_stays_fn',
+        payload: {},
+        res: {
+          obj_name: 'stats'
         }
       },
       { url: '/rpc/stats_logs_fn',
@@ -316,6 +349,33 @@ var moment = require('moment');
       }
     ],
     user_fn: [
+      {
+        url: '/rpc/export_logbook_geojson_point_trip_fn',
+        payload: {
+              _id: 4
+            },
+        res: {
+          obj_name: 'geojson'
+        }
+      },
+      {
+        url: '/rpc/export_logbook_geojson_linestring_trip_fn',
+        payload: {
+              _id: 4
+            },
+        res: {
+          obj_name: 'geojson'
+        }
+      },
+      {
+        url: '/rpc/export_logbook_polar_csv_fn',
+        payload: {
+              _id: 4
+            },
+        res: {
+          obj_name: 'geojson'
+        }
+      },
       { //url: '/rpc/timelapse_fn',
         url: '/rpc/export_logbooks_geojson_linestring_trips_fn',
         payload: {
@@ -413,34 +473,16 @@ var moment = require('moment');
       },
       { url: '/rpc/vessel_fn',
         payload: null,
-        res: {
-          vessel: {
-            beam: 10,
-            mmsi: 787654321,
-            name: 'aava',
-            height: 24,
-            length: 37,
-            alpha_2: null,
-            country: null,
-            geojson: { type: 'Feature', geometry: [Object], properties: [Object] },
-            ship_type: 'Pleasure Craft',
-            created_at: '2023-08-17T16:32:13',
-            last_contact: '2023-08-17T15:23:14'
-          }
-        }
+        res: {}
       },
       { url: '/rpc/settings_fn',
         payload: null,
+        res: {}
+      },
+      { url: '/rpc/stats_stays_fn',
+        payload: {},
         res: {
-          settings: {
-            email: 'demo+aava@openplotter.cloud',
-            first: 'first_aava',
-            last: 'last_aava',
-            preferences: { badges: [Object], email_notifications: false },
-            created_at: '2023-08-17T16:32:12.701788',
-            username: 'F Last_Aava',
-            has_vessel: true
-          }
+          obj_name: 'stats'
         }
       },
       { url: '/rpc/stats_logs_fn',
@@ -696,7 +738,7 @@ request.set('User-Agent', 'PostgSail unit tests');
           // Reset agent so we do not save cookies
           request = supertest.agent(test.cname);
           request
-            .post('/rpc/vessel_fn')
+            .get('/rpc/vessel_fn')
             .set('Authorization', `Bearer ${user_jwt}`)
             .set('Accept', 'application/json')
             .set('Content-Type', 'application/json')
@@ -706,9 +748,10 @@ request.set('User-Agent', 'PostgSail unit tests');
               should.exist(res.header['server']);
               res.header['content-type'].should.match(new RegExp('json','g'));
               res.header['server'].should.match(new RegExp('postgrest','g'));
-              //should.exist(res.body);
-              //body = res.body;
               console.log(res.text);
+              should.exist(res.body);
+              should.exist(res.body.vessel);
+              should.exist(res.body.vessel.last_contact);
               done(err);
             });
       });
