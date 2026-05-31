@@ -10,6 +10,7 @@ datasources:
     secureJsonData:
       password: '${PGSAIL_GRAFANA_PASSWORD}'
     jsonData:
+      database: signalk
       sslmode: 'disable' # disable/require/verify-ca/verify-full
       maxOpenConns: 10 # Grafana v5.4+
       maxIdleConns: 2 # Grafana v5.4+
