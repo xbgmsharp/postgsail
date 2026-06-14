@@ -76,6 +76,10 @@ update_metadata_userdata_fn | t
 -[ RECORD 1 ]---------------+--
 update_metadata_userdata_fn | t
 
+-[ RECORD 1 ]----+-----
+alerting_enabled | true
+alarms_not_null  | t
+
 SET
 api.metadata get configuration with new value as vessel
 -[ RECORD 1 ]------+------------------------------------

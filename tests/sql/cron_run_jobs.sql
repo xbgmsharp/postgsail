@@ -11,6 +11,9 @@ select current_database();
 -- output display format
 \x on
 
+SET statement_timeout = 0;
+ALTER FUNCTION overpass_py_fn SET statement_timeout = 0;
+
 -- Check the number of process pending
 \echo 'Check the number of process pending'
 -- Should be 24

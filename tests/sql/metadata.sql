@@ -71,7 +71,7 @@ SELECT api.update_metadata_userdata_fn(jsonb_build_object('alerting', jsonb_buil
 SELECT api.update_metadata_userdata_fn(jsonb_build_object('alarms', jsonb_build_object('high_wind_speed_threshold', jsonb_build_object('date', '2024-01-29 01:50:00+00', 'value', 294)))::TEXT);
 SELECT api.update_metadata_userdata_fn(jsonb_build_object('alarms', jsonb_build_object('low_water_depth_threshold', jsonb_build_object('date', '2024-01-29 01:50:00+00', 'value', 294)))::TEXT);
 
-SELECT user_data->'alerting'->'enabled' AS alerting_enabled,user_data->>'alarms'->'high_wind_speed_threshold' IS NOT NULL AS alarms_not_null FROM api.metadata; --WHERE vessel_id = current_setting('vessel.id', false);
+SELECT user_data->'alerting'->>'enabled' AS alerting_enabled,user_data->'alarms'->>'high_wind_speed_threshold' IS NOT NULL AS alarms_not_null FROM api.metadata; --WHERE vessel_id = current_setting('vessel.id', false);
 
 -- vessel_role
 SET ROLE vessel_role;

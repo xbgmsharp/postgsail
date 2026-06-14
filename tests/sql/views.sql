@@ -74,4 +74,4 @@ SELECT id,name,stay_code,_to_id,_to_name,_to_time IS NOT NULL AS _to_time_not_nu
 
 \echo 'stays explore view'
 --SELECT * FROM api.stays_explore_view;
-SELECT stay_id,moorage_id,moorage_name,stay_name,arrived IS NOT NULL AS arrived_not_null,stay_code FROM api.stays_explore_view ORDER BY moorage_name ASC;
+SELECT stay_id,moorage_id,moorage_name IS NOT NULL AS moorage_name_not_null,stay_name IS NOT NULL AS stay_name_not_null,arrived IS NOT NULL AS arrived_not_null,stay_code FROM api.stays_explore_view ORDER BY stay_id ASC;

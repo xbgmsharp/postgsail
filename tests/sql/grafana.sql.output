@@ -48,12 +48,12 @@ api.logs_view
 -[ RECORD 1 ]----+-----------------------
 id               | 1
 name             | patch log name 3
-from             | Pojoviken
+from             | patch moorage name 3
 to               | Norra hamnen
 distance         | 7.66
 duration         | PT27M
-_from_moorage_id | 5
-_to_moorage_id   | 6
+_from_moorage_id | 1
+_to_moorage_id   | 2
 -[ RECORD 2 ]----+-----------------------
 id               | 2
 name             | Norra hamnen to Ekenäs
@@ -61,14 +61,14 @@ from             | Norra hamnen
 to               | Ekenäs
 distance         | 8.92
 duration         | PT20M
-_from_moorage_id | 6
-_to_moorage_id   | 7
+_from_moorage_id | 2
+_to_moorage_id   | 3
 
 api.stays
 -[ RECORD 1 ]--------------------------------------------------
 id         | 1
 vessel_id  | t
-moorage_id | 5
+moorage_id | 1
 active     | f
 name       | t
 latitude   | 60.077666666666666
@@ -82,7 +82,7 @@ notes      | new stay note 3
 -[ RECORD 2 ]--------------------------------------------------
 id         | 2
 vessel_id  | t
-moorage_id | 6
+moorage_id | 2
 active     | f
 name       | t
 latitude   | 59.97688333333333
@@ -96,7 +96,7 @@ notes      |
 -[ RECORD 3 ]--------------------------------------------------
 id         | 3
 vessel_id  | t
-moorage_id | 7
+moorage_id | 3
 active     | t
 name       | f
 latitude   | 59.86
@@ -109,22 +109,22 @@ stay_code  | 1
 notes      | 
 
 api.stays_view
--[ RECORD 1 ]+----------------
+-[ RECORD 1 ]+---------------------
 id           | 1
 name         | t
-moorage      | Pojoviken
-moorage_id   | 5
+moorage      | patch moorage name 3
+moorage_id   | 1
 duration     | PT1M
 stayed_at    | Anchor
 stayed_at_id | 2
 arrived      | t
 departed     | t
 notes        | new stay note 3
--[ RECORD 2 ]+----------------
+-[ RECORD 2 ]+---------------------
 id           | 2
 name         | t
 moorage      | Norra hamnen
-moorage_id   | 6
+moorage_id   | 2
 duration     | PT2M
 stayed_at    | Dock
 stayed_at_id | 4
@@ -134,7 +134,7 @@ notes        |
 
 api.moorages
 -[ RECORD 1 ]-------------------------------------------------
-id        | 7
+id        | 3
 vessel_id | t
 name      | Ekenäs
 country   | fi
@@ -145,7 +145,7 @@ geog      | 0101000020E6100000E84C5FE2A25D3740AE47E17A14EE4D40
 home_flag | f
 notes     | 
 -[ RECORD 2 ]-------------------------------------------------
-id        | 6
+id        | 2
 vessel_id | t
 name      | Norra hamnen
 country   | fi
@@ -156,35 +156,35 @@ geog      | 0101000020E6100000029A081B9E6E3740455658830AFD4D40
 home_flag | f
 notes     | 
 -[ RECORD 3 ]-------------------------------------------------
-id        | 5
+id        | 1
 vessel_id | t
-name      | Pojoviken
+name      | patch moorage name 3
 country   | fi
 stay_code | 2
 latitude  | 60.0776666666667
 longitude | 23.5308666666667
 geog      | 0101000020E6100000B9DEBBE0E687374052A938FBF0094E40
-home_flag | f
-notes     | 
+home_flag | t
+notes     | new moorage note 3
 
 api.moorages_view
--[ RECORD 1 ]-------+-------------
-id                  | 7
+-[ RECORD 1 ]-------+---------------------
+id                  | 3
 moorage             | Ekenäs
 default_stay        | Unknown
 default_stay_id     | 1
 arrivals_departures | 1
 total_duration      | PT0S
--[ RECORD 2 ]-------+-------------
-id                  | 6
+-[ RECORD 2 ]-------+---------------------
+id                  | 2
 moorage             | Norra hamnen
 default_stay        | Dock
 default_stay_id     | 4
 arrivals_departures | 2
 total_duration      | PT2M
--[ RECORD 3 ]-------+-------------
-id                  | 5
-moorage             | Pojoviken
+-[ RECORD 3 ]-------+---------------------
+id                  | 1
+moorage             | patch moorage name 3
 default_stay        | Anchor
 default_stay_id     | 2
 arrivals_departures | 1
@@ -192,7 +192,7 @@ total_duration      | PT1M
 
 api.moorage_view
 -[ RECORD 1 ]------+---------------------------------------------------
-id                 | 7
+id                 | 3
 name               | Ekenäs
 default_stay       | Unknown
 latitude           | 59.86
@@ -207,7 +207,7 @@ stay_last_seen_id  |
 stay_first_seen    | f
 stay_last_seen     | f
 -[ RECORD 2 ]------+---------------------------------------------------
-id                 | 6
+id                 | 2
 name               | Norra hamnen
 default_stay       | Dock
 latitude           | 59.9768833333333
@@ -222,14 +222,14 @@ stay_last_seen_id  | 2
 stay_first_seen    | t
 stay_last_seen     | t
 -[ RECORD 3 ]------+---------------------------------------------------
-id                 | 5
-name               | Pojoviken
+id                 | 1
+name               | patch moorage name 3
 default_stay       | Anchor
 latitude           | 60.0776666666667
 longitude          | 23.5308666666667
 geog               | 0101000020E6100000B9DEBBE0E687374052A938FBF0094E40
-home               | f
-notes              | 
+home               | t
+notes              | new moorage note 3
 logs_count         | 1
 stays_count        | 1
 stay_first_seen_id | 1

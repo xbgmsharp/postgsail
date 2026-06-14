@@ -19,12 +19,12 @@ max_speed              | 6.5
 max_distance           | 16.58
 max_duration           | PT49M
 max_wind_speed         | 37.92
-home_ports             | 0
+home_ports             | 1
 unique_moorages        | 1
 moorages_top_countries | ["fi"]
-time_at_home_ports     | PT0S
-time_spent_away        | PT1M
-has_away_breakdown     | t
+time_at_home_ports     | PT1M
+time_spent_away        | PT0S
+has_away_breakdown     | f
 
 -[ RECORD 1 ]
 vessel_id | t
@@ -38,7 +38,7 @@ max_distance           | 69.10
 home_ports             | 1
 unique_moorages        | 2
 moorages_top_countries | ["ee"]
-time_at_home_ports     | PT21H14M
-time_spent_away        | PT1M
+time_at_home_ports     | PT1M
+time_spent_away        | PT21H14M
 has_away_breakdown     | t
 
