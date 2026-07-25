@@ -15,6 +15,7 @@ flowchart TD
 
     %% Web Server Layer
     frontend -->|HTTPS| postgrest[PostgREST]
+    mcp -->|HTTPS| postgrest[PostgREST]
 
     %% Database
     postgrest --> |SQL|postgres[(PostgreSQL / TimescaleDB / PostGIS / MobilityDB)]
@@ -32,8 +33,8 @@ flowchart TD
     vessel -->|HTTPS| postgrest
 
     %% MCP (External Client)
-    mcp([AI-Agent])
-    mcp -->|HTTPS| postgrest
+    ai_agent([AI-Agent])
+    ai_agent -->|HTTPS| mcp[MCP]
 
     %% Telegram Bot (External Client)
     telegram_bot([Telegram Bot])
@@ -44,7 +45,7 @@ flowchart TD
     subgraph Clients
         user
         vessel
-        mcp
+        ai_agent
         telegram_bot
     end
 
@@ -53,6 +54,7 @@ flowchart TD
         grafana
         postgrest
         postgres
+        mcp
     end
 
     subgraph "Notification endpoint"

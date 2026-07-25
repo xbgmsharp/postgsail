@@ -56,6 +56,9 @@ erDiagram
         jsonb configuration "User-defined Signalk path mapping for metrics"
         jsonb configuration 
         timestamp_with_time_zone created_at "{NOT_NULL}"
+        timestamp_with_time_zone first_metric "Timestamp of the first metric row received from this vessel.
+ Insert by autodiscovery process."
+        timestamp_with_time_zone first_metric 
         double_precision height 
         inet ip "Store vessel ip address"
         inet ip 
@@ -72,6 +75,8 @@ erDiagram
         numeric ship_type "Type of ship associated with the vessel, link to public.aistypes"
         numeric ship_type 
         text signalk_version "{NOT_NULL}"
+        timestamp_with_time_zone time "Timestamp of the most recent metadata received from this vessel.
+ Use as an equivalent to last_metric for stats. {NOT_NULL}"
         timestamp_with_time_zone time "{NOT_NULL}"
         timestamp_with_time_zone updated_at "{NOT_NULL}"
         jsonb user_data "User-defined data for the vessel.
@@ -311,6 +316,8 @@ erDiagram
     api_logbook }o--|| api_metadata : ""
     api_logbook }o--|| api_moorages : ""
     api_logbook }o--|| api_moorages : ""
+    _timescaledb_internal__hyper_1_1_chunk }o--|| api_metadata : ""
+    _timescaledb_internal__hyper_1_2_chunk }o--|| api_metadata : ""
     api_metadata |o--|| auth_vessels : ""
     api_metrics }o--|| api_metadata : ""
     api_moorages }o--|| api_metadata : ""

@@ -20,6 +20,7 @@ PostgSail MCP server provides AI agents with read-only access to PostgSail marin
 * Historical analysis (tracking patterns, favorite destinations)
 * Data export (for external navigation tools)
 * Maintenance tracking (through stay notes and logs)
+* Community-aware features
 
 ## Authentication
 
@@ -37,14 +38,13 @@ MCP implementation:
 
 ## Remote MCP Server
 
+[GitHub Repository](https://github.com/xbgmsharp/postgsail-mcp-server)
+
 Accessible at https://mcp.openplotter.cloud/
 
 [LeChat](https://chat.mistral.ai/) allow remote [connectors](https://chat.mistral.ai/connections) even with a free account.
 
 Others AI [ClaudeAI](https://claude.ai) and [OpenAI](https://chatgpt.com/) requires an upgrade plan to use remote connectors.
-
-However you can use the MCP locally with Claude Desktop app.
-
 
 ### Endpoints
 
@@ -71,19 +71,3 @@ The authentication is done via authorization Bearer header, https://iot.openplot
     }
 }
 ```
-
-## Local STDIO MCP Server
-
-Accessible locally, works with Claude Desktop app.
-
-### Installation
-
-* Install Claude App
-* Settings -> Extensions
-* Drag .MCPB or .DXT files here to install
-
-OR
-
-* Install Claude App.
-* Settings -> Extensions -> Advanced settings -> Extension Developer
-* Install Extension...
