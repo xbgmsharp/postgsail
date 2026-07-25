@@ -34,7 +34,7 @@ Stats logbook and moorages for user aava
 boat_name              | aava
 logs_count             | 2
 max_speed              | 9.5
-max_distance           | 69.10
+max_distance           | 69.00
 home_ports             | 1
 unique_moorages        | 2
 moorages_top_countries | ["ee"]

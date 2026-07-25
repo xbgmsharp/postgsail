@@ -31,7 +31,7 @@ Check badges for all users
 -[ RECORD 1 ]
 count | 11
 -[ RECORD 2 ]
-count | 5
+count | 6
 
 Check details from vessel_id kapla
 -[ RECORD 1 ]-+-----------------------------------------------------------------------------------------------------------------
@@ -78,10 +78,12 @@ badges | Stormtrooper
 -[ RECORD 13 ]------------
 badges | Stormtrooper
 -[ RECORD 14 ]------------
-badges | Tropical Traveler
+badges | Traveler
 -[ RECORD 15 ]------------
-badges | Wake Maker
+badges | Tropical Traveler
 -[ RECORD 16 ]------------
+badges | Wake Maker
+-[ RECORD 17 ]------------
 badges | Wake Maker
 
 Check details from vessel_id aava

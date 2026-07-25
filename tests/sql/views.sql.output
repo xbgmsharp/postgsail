@@ -48,10 +48,10 @@ to                        | Tallinnamadal lighthouse
 started_not_null          | t
 ended_not_null            | t
 geojson_features_not_null | t
-distance                  | 8.40
+distance                  | 68.93
 date_trunc                | PT46M
-avg_speed                 | 10.95
-max_speed                 | 7.1
+avg_speed                 | 94
+max_speed                 | 9.5
 max_wind_speed            | 18
 avg_wind_speed_not_null   | t
 notes                     | 
@@ -65,9 +65,9 @@ to                        | Montsolís
 started_not_null          | t
 ended_not_null            | t
 geojson_features_not_null | t
-distance                  | 5.19
+distance                  | 5.12
 date_trunc                | PT1H11M
-avg_speed                 | 4.38
+avg_speed                 | 4.46
 max_speed                 | 5.6
 max_wind_speed            | 44.18
 avg_wind_speed_not_null   | t
