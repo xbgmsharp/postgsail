@@ -61,7 +61,7 @@ jobs:
           tbls doc --rm-dist -c ../tblsConfig.yml --sort
 
       - name: Install mdbook & plugins 
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@v2.85.5
         with: { tool: 'mdbook,mdbook-toc,mdbook-tabs,mdbook-mermaid,mdbook-katex,mdbook-alerts,mdbook-linkcheck' }
 
       - name: Install mdbook plugins
