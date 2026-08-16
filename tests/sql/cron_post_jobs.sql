@@ -51,14 +51,14 @@ SELECT count(*) from api.eventlogs_view;
 -- Extract stats_logs key with explicit cast to avoid 'unknown' type
 SELECT api.stats_fn() AS stats_fn INTO stats_jsonb;
 SELECT  stats_fn->'stats_logs'->'name'      AS stats_logs_name,
-        stats_fn->'logs_top_speed'          AS logs_top_speed,
+        (SELECT jsonb_agg(elem - 'name') FROM jsonb_array_elements(stats_fn->'logs_top_speed') elem)      AS logs_top_speed,
         (stats_fn->'stats_moorages') IS NOT NULL AS stats_moorages_not_null,
-        stats_fn->'logs_top_distance'       AS logs_top_distance,
-        stats_fn->'logs_top_duration'       AS logs_top_duration,
-        stats_fn->'logs_top_avg_speed'      AS logs_top_avg_speed,
-        stats_fn->'logs_top_wind_speed'     AS logs_top_wind_speed,
-        stats_fn->'moorages_top_arrivals'   AS moorages_top_arrivals,
-        stats_fn->'moorages_top_duration'   AS moorages_top_duration,
+        (SELECT jsonb_agg(elem - 'name') FROM jsonb_array_elements(stats_fn->'logs_top_distance') elem)   AS logs_top_distance,
+        (SELECT jsonb_agg(elem - 'name') FROM jsonb_array_elements(stats_fn->'logs_top_duration') elem)   AS logs_top_duration,
+        (SELECT jsonb_agg(elem - 'name') FROM jsonb_array_elements(stats_fn->'logs_top_avg_speed') elem)  AS logs_top_avg_speed,
+        (SELECT jsonb_agg(elem - 'name') FROM jsonb_array_elements(stats_fn->'logs_top_wind_speed') elem) AS logs_top_wind_speed,
+        (SELECT jsonb_agg(elem - 'moorage') FROM jsonb_array_elements(stats_fn->'moorages_top_arrivals') elem) AS moorages_top_arrivals,
+        (SELECT jsonb_agg(elem - 'moorage') FROM jsonb_array_elements(stats_fn->'moorages_top_duration') elem) AS moorages_top_duration,
         stats_fn->'moorages_top_countries'  AS moorages_top_countries,
         jsonb_array_length(stats_fn->'stats_moorages'->'time_spent_away_by') >= 1  AS time_spent_away_by_is_gt_1,
         stats_fn->'stats_moorages'->'time_at_home_ports'      AS time_at_home_ports
