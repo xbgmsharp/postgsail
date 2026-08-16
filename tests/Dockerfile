@@ -1,5 +1,5 @@
 #FROM node:lts
-FROM mcr.microsoft.com/devcontainers/javascript-node:22
+FROM mcr.microsoft.com/devcontainers/javascript-node:24
 
 ENV DEBIAN_FRONTEND=noninteractive
 
