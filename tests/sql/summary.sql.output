@@ -8,8 +8,8 @@ Expanded display is on.
 -[ RECORD 1 ]--+------------------------------
 server_version | 18.6 (Debian 18.6-1.pgdg13+2)
 
--[ RECORD 1 ]--------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-postgis_full_version | POSTGIS="3.6.4 94d984b" [EXTENSION] PGSQL="180" GEOS="3.13.1-CAPI-1.19.2" PROJ="9.6.0 NETWORK_ENABLED=OFF URL_ENDPOINT=https://cdn.proj.org USER_WRITABLE_DIRECTORY=/var/lib/postgresql/.local/share/proj DATABASE_PATH=/usr/share/proj/proj.db" (compiled against PROJ 9.6.0) LIBXML="2.9.14" LIBJSON="0.18" LIBPROTOBUF="1.5.1" WAGYU="0.5.0 (Internal)"
+-[ RECORD 1 ]--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+postgis_full_version | POSTGIS="3.6.4 94d984b" [EXTENSION] PGSQL="180" GEOS="3.14.1-CAPI-1.20.5" (compiled against GEOS 3.13.1) PROJ="9.8.1 NETWORK_ENABLED=OFF URL_ENDPOINT=https://cdn.proj.org USER_WRITABLE_DIRECTORY=/var/lib/postgresql/.local/share/proj DATABASE_PATH=/usr/share/proj/proj.db" (compiled against PROJ 9.6.0) LIBXML="2.9.14" LIBJSON="0.18" LIBPROTOBUF="1.5.1" WAGYU="0.5.0 (Internal)"
 
 List of installed extensions
 -[ RECORD 1 ]--------------------------------------------------------------------------------------
@@ -59,12 +59,12 @@ Schema      | public
 Description | PostGIS geometry and geography spatial types and functions
 -[ RECORD 10 ]-------------------------------------------------------------------------------------
 Name        | timescaledb
-Version     | 2.29.1
+Version     | 2.29.2
 Schema      | public
 Description | Enables scalable inserts and complex queries for time-series data (Community Edition)
 -[ RECORD 11 ]-------------------------------------------------------------------------------------
 Name        | timescaledb_toolkit
-Version     | 1.24.0
+Version     | 1.25.0
 Schema      | public
 Description | Library of analytical hyperfunctions, time-series pipelining, and other SQL utilities
 -[ RECORD 12 ]-------------------------------------------------------------------------------------
@@ -428,90 +428,146 @@ cmd        | ALL
 qual       | (vessel_id = current_setting('vessel.id'::text, false))
 with_check | false
 -[ RECORD 36 ]-----------------------------------------------------------------------------------------------------------------------------
-tablename  | accounts
+tablename  | stays_at
 policyname | admin_all
 roles      | {username}
 cmd        | ALL
 qual       | true
 with_check | true
 -[ RECORD 37 ]-----------------------------------------------------------------------------------------------------------------------------
+tablename  | stays_at
+policyname | api_anonymous_role
+roles      | {api_anonymous}
+cmd        | ALL
+qual       | ((vessel_id IS NULL) OR (vessel_id = current_setting('vessel.id'::text, true)))
+with_check | false
+-[ RECORD 38 ]-----------------------------------------------------------------------------------------------------------------------------
+tablename  | stays_at
+policyname | api_bot_role
+roles      | {bot_role}
+cmd        | ALL
+qual       | ((vessel_id IS NULL) OR (vessel_id = current_setting('vessel.id'::text, true)))
+with_check | false
+-[ RECORD 39 ]-----------------------------------------------------------------------------------------------------------------------------
+tablename  | stays_at
+policyname | api_scheduler_role
+roles      | {scheduler}
+cmd        | ALL
+qual       | ((vessel_id IS NULL) OR (vessel_id = current_setting('vessel.id'::text, true)))
+with_check | false
+-[ RECORD 40 ]-----------------------------------------------------------------------------------------------------------------------------
+tablename  | stays_at
+policyname | api_user_role_select
+roles      | {user_role}
+cmd        | SELECT
+qual       | ((vessel_id IS NULL) OR (vessel_id = current_setting('vessel.id'::text, true)))
+with_check | 
+-[ RECORD 41 ]-----------------------------------------------------------------------------------------------------------------------------
+tablename  | stays_at
+policyname | api_user_role_write
+roles      | {user_role}
+cmd        | ALL
+qual       | (vessel_id = current_setting('vessel.id'::text, true))
+with_check | (vessel_id = current_setting('vessel.id'::text, false))
+-[ RECORD 42 ]-----------------------------------------------------------------------------------------------------------------------------
+tablename  | stays_at
+policyname | api_vessel_role
+roles      | {vessel_role}
+cmd        | ALL
+qual       | ((vessel_id IS NULL) OR (vessel_id = current_setting('vessel.id'::text, true)))
+with_check | false
+-[ RECORD 43 ]-----------------------------------------------------------------------------------------------------------------------------
+tablename  | stays_at
+policyname | grafana_role
+roles      | {grafana}
+cmd        | ALL
+qual       | ((vessel_id IS NULL) OR (vessel_id = current_setting('vessel.id'::text, true)))
+with_check | false
+-[ RECORD 44 ]-----------------------------------------------------------------------------------------------------------------------------
+tablename  | accounts
+policyname | admin_all
+roles      | {username}
+cmd        | ALL
+qual       | true
+with_check | true
+-[ RECORD 45 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | accounts
 policyname | api_bot_role
 roles      | {bot_role}
 cmd        | ALL
 qual       | ((email)::text = current_setting('user.email'::text, true))
 with_check | false
--[ RECORD 38 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 46 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | accounts
 policyname | api_scheduler_role
 roles      | {scheduler}
 cmd        | ALL
 qual       | ((email)::text = current_setting('user.email'::text, true))
 with_check | ((email)::text = current_setting('user.email'::text, false))
--[ RECORD 39 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 47 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | accounts
 policyname | api_user_role
 roles      | {user_role}
 cmd        | ALL
 qual       | ((email)::text = current_setting('user.email'::text, true))
 with_check | ((email)::text = current_setting('user.email'::text, true))
--[ RECORD 40 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 48 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | otp
 policyname | otp_user_role
 roles      | {user_role}
 cmd        | ALL
 qual       | ((user_email)::text = current_setting('user.email'::text, true))
 with_check | ((user_email)::text = current_setting('user.email'::text, true))
--[ RECORD 41 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 49 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | vessels
 policyname | admin_all
 roles      | {username}
 cmd        | ALL
 qual       | true
 with_check | true
--[ RECORD 42 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 50 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | vessels
 policyname | api_bot_role
 roles      | {bot_role}
 cmd        | ALL
 qual       | ((owner_email)::text = current_setting('user.email'::text, true))
 with_check | false
--[ RECORD 43 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 51 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | vessels
 policyname | api_user_role
 roles      | {user_role}
 cmd        | ALL
 qual       | ((vessel_id = current_setting('vessel.id'::text, true)) AND ((owner_email)::text = current_setting('user.email'::text, true)))
 with_check | ((vessel_id = current_setting('vessel.id'::text, true)) AND ((owner_email)::text = current_setting('user.email'::text, true)))
--[ RECORD 44 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 52 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | vessels
 policyname | grafana_role
 roles      | {grafana}
 cmd        | ALL
 qual       | ((owner_email)::text = current_setting('user.email'::text, true))
 with_check | false
--[ RECORD 45 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 53 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | process_queue
 policyname | admin_all
 roles      | {username}
 cmd        | ALL
 qual       | true
 with_check | true
--[ RECORD 46 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 54 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | process_queue
 policyname | api_scheduler_role
 roles      | {scheduler}
 cmd        | ALL
 qual       | true
 with_check | false
--[ RECORD 47 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 55 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | process_queue
 policyname | api_user_role
 roles      | {user_role}
 cmd        | ALL
 qual       | ((ref_id = current_setting('user.id'::text, true)) OR (ref_id = current_setting('vessel.id'::text, true)))
 with_check | ((ref_id = current_setting('user.id'::text, false)) OR (ref_id = current_setting('vessel.id'::text, false)))
--[ RECORD 48 ]-----------------------------------------------------------------------------------------------------------------------------
+-[ RECORD 56 ]-----------------------------------------------------------------------------------------------------------------------------
 tablename  | process_queue
 policyname | api_vessel_role
 roles      | {vessel_role}
@@ -623,6 +679,6 @@ reverse_geocode_py_fn | {"name": "Spain", "osm_id": 1311341, "osm_type": "relati
 
 Test geoip reverse_geoip_py_fn
 Test opverpass API overpass_py_fn
--[ RECORD 1 ]----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-versions_fn | {"api_version" : "0.12.1", "sys_version" : "PostgreSQL 18.6", "mobilitydb" : "1.3.0", "timescaledb" : "2.29.1", "postgis" : "3.6.4", "postgrest" : "PostgREST 14.17"}
+-[ RECORD 1 ]---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+versions_fn | {"api_version" : "0.12.1", "sys_version" : "PostgreSQL 18.6", "mobilitydb" : "1.3.0", "timescaledb" : "2.29.2", "postgis" : "3.6.4", "postgrest" : "PostgREST 16.2"}
 
