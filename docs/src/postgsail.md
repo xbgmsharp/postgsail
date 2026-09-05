@@ -140,8 +140,21 @@ erDiagram
     }
 
     api_stays_at {
+        timestamp_with_time_zone created_at "{NOT_NULL}"
         text description "{NOT_NULL}"
+        text icon "Optional icon, not implemented yet."
+        integer parent_code "Optional rollup of a custom type to a built-in (< 1000). Populated from the
+ stay_code of the stay or moorage being edited when the type is created.
+ Read by public.badges_moorages_fn to resolve stay-level codes, and by every
+ cross-vessel path to avoid emitting user-entered free text. NULL means no
+ rollup — the row counts toward no built-in threshold."
         integer stay_code "{NOT_NULL}"
+        timestamp_with_time_zone updated_at "{NOT_NULL}"
+        text vessel_id "Owning vessel for a custom stay type. NULL = built-in, readable by every role.
+ Defaults from current_setting('vessel.id', true) so PostgREST inserts need not
+ supply it. FK to api.metadata(vessel_id) ON DELETE CASCADE: removing a vessel
+ removes its custom types, and the RESTRICT FKs from api.stays/api.moorages
+ mean that delete fails while rows still reference them."
     }
 
     auth_accounts {
@@ -322,9 +335,11 @@ erDiagram
     api_metrics }o--|| api_metadata : ""
     api_moorages }o--|| api_metadata : ""
     api_stays }o--|| api_metadata : ""
+    api_stays_at }o--|| api_metadata : ""
     api_moorages }o--|| api_stays_at : ""
     api_stays }o--|| api_moorages : ""
     api_stays }o--|| api_stays_at : ""
+    api_stays_at }o--|| api_stays_at : ""
     auth_otp |o--|| auth_accounts : ""
     auth_vessels }o--|| auth_accounts : ""
 ```
