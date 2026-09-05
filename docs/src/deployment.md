@@ -21,6 +21,24 @@ PostgSail supports both cloud-hosted and self-hosted deployment options:
 - Requires PostgreSQL administration
 - Custom integration capabilities
 
+### Features comparison
+
+| Feature | OSS / Self-Hosted | SaaS |
+|---|---|---|
+| Logs (Unlimited) | ✅ Yes | ✅ Yes |
+| Stays  (Unlimited) | ✅ Yes | ✅ Yes |
+| Moorages (Unlimited) | ✅ Yes | ✅ Yes |
+| MCP server | ✅ Yes | ✅ Yes |
+| Telegram bot | ✅ Yes | ✅ Yes |
+| Log retention | Unlimited / self-managed | 30 days free, 1 year for sponsors |
+| Fleet (Multi-vessel) | ❌ No | ✅ Yes |
+| Windy PWS integration | ❌ No | ✅ Yes |
+| Community aware | ❌ No | ✅ Yes |
+| Generate video(s) of trip(s) | ❌ No | ✅ Yes |
+| Generate image(s) of trip(s) | ❌ No | ✅ Yes |
+| AI assistant | ❌ No | ✅ Yes |
+| Image gallery support | ❌ No | ✅ Yes |
+
 ## Cloud-hosted PostgSail
 
 Remove the hassle of running PostgSail yourself. Here you can skip the technical setup, the maintenance work and server costs by getting PostgSail on our reliable and secure PostgSail Cloud. Register and try for free at [iot.openplotter.cloud](https://iot.openplotter.cloud/).
