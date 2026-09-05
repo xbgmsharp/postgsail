@@ -45,7 +45,8 @@ var moment = require('moment');
         { url: '/stays', res_body_length: 3},
         { url: '/moorages', res_body_length: 3},
         { url: '/logbook', res_body_length: 2},
-        { url: '/metadata', res_body_length: 1}
+        { url: '/metadata', res_body_length: 1},
+        { url: '/stays_at?order=stay_code.asc', res_body_length: 4}
     ],
     user_views: [
         { url: '/stays_view', res_body_length: 2},
@@ -54,13 +55,21 @@ var moment = require('moment');
         { url: '/moorage_view', res_body_length: 3},
         { url: '/logs_view', res_body_length: 2},
         { url: '/log_view', res_body_length: 2},
-        //{ url: '/stats_view', res_body_length: 1},
         { url: '/vessels_view', res_body_length: 1},
+        { url: '/vessel_view', res_body_length: 1},
     ],
     user_geojson_views: [
         { url: '/stays_geojson_view', res_body_length: 3}, // Include active stay
         { url: '/logs_geojson_view', res_body_length: 2},
         { url: '/moorages_geojson_view', res_body_length: 3} // Include active stay
+    ],
+    stays_at: [
+      { url: '/stays_at',
+        payload: {
+                description: "Club marina",
+                parent_code: 1
+              },
+      }
     ],
     user_patchs: [
       { url: '/logbook?id=eq.1',
@@ -82,6 +91,12 @@ var moment = require('moment');
               home_flag: true,
               stay_code: 2,
               notes: "new moorage note 3"
+            },
+      },
+      { url: '/stays_at?stay_code=eq.1000',
+        patch: {
+              description: "Club marina renamed",
+              parent_code: 1
             },
       }
     ],
@@ -192,17 +207,15 @@ var moment = require('moment');
           obj_name: 'geojson'
         }
       },
-      { url: '/rpc/vessel_fn',
-        payload: null,
-        res: {
-          obj_name: 'vessel'
-        }
-      },
       { url: '/rpc/settings_fn',
         payload: null,
         res: {
           obj_name: 'settings'
         }
+      },
+      { url: '/rpc/profile_fn',
+        payload: null,
+        res: {}
       },
       { url: '/rpc/versions_fn',
         payload: null,
@@ -308,7 +321,8 @@ var moment = require('moment');
         { url: '/stays', res_body_length: 3},
         { url: '/moorages', res_body_length: 4},
         { url: '/logbook', res_body_length: 2},
-        { url: '/metadata', res_body_length: 1}
+        { url: '/metadata', res_body_length: 1},
+        { url: '/stays_at?order=stay_code.asc', res_body_length: 4}
     ],
     user_views: [
         { url: '/stays_view', res_body_length: 2},
@@ -317,13 +331,21 @@ var moment = require('moment');
         { url: '/moorage_view', res_body_length: 4},
         { url: '/logs_view', res_body_length: 2},
         { url: '/log_view', res_body_length: 2},
-        //{ url: '/stats_view', res_body_length: 1},
         { url: '/vessels_view', res_body_length: 1},
+        { url: '/vessel_view', res_body_length: 1},
     ],
     user_geojson_views: [
         { url: '/stays_geojson_view', res_body_length: 3}, // Include active stay
         { url: '/logs_geojson_view', res_body_length: 2},
         { url: '/moorages_geojson_view', res_body_length: 4} // Include active stay
+    ],
+    stays_at: [
+      { url: '/stays_at',
+        payload: {
+              description: "Yacht Club",
+              parent_code: 2
+            },
+      }
     ],
     user_patchs: [
       { url: '/logbook?id=eq.4',
@@ -345,6 +367,12 @@ var moment = require('moment');
               home_flag: true,
               stay_code: 2,
               notes: "new moorage note"
+            },
+      },
+      { url: '/stays_at?stay_code=eq.1001',
+        patch: {
+              description: "Yacht Club renamed",
+              parent_code: 2
             },
       }
     ],
@@ -471,11 +499,11 @@ var moment = require('moment');
         },
         res: { geojson: { type: 'FeatureCollection', features: [ [Object] ] } }
       },
-      { url: '/rpc/vessel_fn',
+      { url: '/rpc/settings_fn',
         payload: null,
         res: {}
       },
-      { url: '/rpc/settings_fn',
+      { url: '/rpc/profile_fn',
         payload: null,
         res: {}
       },
@@ -610,7 +638,6 @@ request.set('User-Agent', 'PostgSail unit tests');
           should.exist(res.body.paths['/rpc/update_metadata_userdata_fn']);
           should.exist(res.body.paths['/rpc/settings_fn']);
           should.exist(res.body.paths['/rpc/versions_fn']);
-          should.exist(res.body.paths['/rpc/vessel_fn']);
           should.exist(res.body.paths['/rpc/monitoring_history_fn']);
           should.exist(res.body.paths['/rpc/stats_fn']);
           // Tables
@@ -627,6 +654,7 @@ request.set('User-Agent', 'PostgSail unit tests');
           should.exist(res.body.paths['/moorage_view']);
           should.exist(res.body.paths['/stay_view']);
           should.exist(res.body.paths['/vessels_view']);
+          should.exist(res.body.paths['/vessel_view']);
           should.exist(res.body.paths['/monitoring_view']);
           should.exist(res.body.paths['/monitoring_live']);
           done(err);
@@ -710,7 +738,7 @@ request.set('User-Agent', 'PostgSail unit tests');
 
   describe("Get vessel details view, JWT user_role", function(){
 
-      it('/vessels_view return json', function(done) {
+      it('/vessels_view return array', function(done) {
           // Reset agent so we do not save cookies
           request = supertest.agent(test.cname);
           request
@@ -734,11 +762,11 @@ request.set('User-Agent', 'PostgSail unit tests');
 
   describe("Get vessel details function, JWT user_role", function(){
 
-      it('/rpc/vessel_fn return json', function(done) {
+      it('/vessel_view return array', function(done) {
           // Reset agent so we do not save cookies
           request = supertest.agent(test.cname);
           request
-            .get('/rpc/vessel_fn')
+            .get('/vessel_view')
             .set('Authorization', `Bearer ${user_jwt}`)
             .set('Accept', 'application/json')
             .set('Content-Type', 'application/json')
@@ -749,9 +777,10 @@ request.set('User-Agent', 'PostgSail unit tests');
               res.header['content-type'].should.match(new RegExp('json','g'));
               res.header['server'].should.match(new RegExp('postgrest','g'));
               console.log(res.text);
-              should.exist(res.body);
-              should.exist(res.body.vessel);
-              should.exist(res.body.vessel.last_contact);
+              res.body.length.should.match(1);
+              should.exist(res.body[0].vessel_id);
+              should.exist(res.body[0].last_contact);
+              should.exist(res.body[0].geojson);
               done(err);
             });
       });
@@ -850,6 +879,37 @@ request.set('User-Agent', 'PostgSail unit tests');
       });
     });
   }); // Views endpoint
+
+  describe("Function stays_at endpoint, JWT user_role", function(){
+
+    test.stays_at.forEach(function (subtest) {
+      it(`${subtest.url}`, function(done) {
+        try {
+          //console.log(`${subtest.url} ${subtest.res_body_length}`);
+          // Reset agent so we do not save cookies
+          request = supertest.agent(test.cname);
+          request
+            .post(subtest.url)
+            .send(subtest.payload)
+            .set('Authorization', `Bearer ${user_jwt}`)
+            .set('Accept', 'application/json')
+            .end(function(err,res){
+              res.status.should.equal(201);
+              //should.exist(res.header['content-type']);
+              should.exist(res.header['server']);
+              //res.header['content-type'].should.match(new RegExp('json','g'));
+              res.header['server'].should.match(new RegExp('postgrest','g'));
+              console.log(res.body);
+              should.exist(res.body);
+              done(err);
+            });
+        }
+        catch (error) {
+          done();
+        }
+      });
+    });
+  }); // Function endpoint
 
   describe("Patch endpoint, JWT user_role", function(){
 

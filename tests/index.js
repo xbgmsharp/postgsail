@@ -63,8 +63,8 @@ let configtime = new Date().toISOString();
       // not processed yet, { url: '/moorages_view', res_body_length: 1},
       { url: '/logs_view', res_body_length: 0 }, // not processed yet so empty
       { url: '/log_view', res_body_length: 0 }, // not processed yet so empty
-      //{ url: '/stats_view', res_body_length: 1},
       { url: '/vessels_view', res_body_length: 1 },
+      { url: '/vessel_view', res_body_length: 1 },
     ],
     user_patchs: [
       {
@@ -127,13 +127,6 @@ let configtime = new Date().toISOString();
         },
         res: {
           obj_name: null
-        }
-      },
-      {
-        url: '/rpc/vessel_fn',
-        payload: null,
-        res: {
-          obj_name: 'vessel'
         }
       },
       {
@@ -218,8 +211,8 @@ let configtime = new Date().toISOString();
       // not processed yet, { url: '/moorages_view', res_body_length: 1},
       { url: '/logs_view', res_body_length: 0 }, // not processed yet so empty
       { url: '/log_view', res_body_length: 0 }, // not processed yet so empty
-      //{ url: '/stats_view', res_body_length: 1},
       { url: '/vessels_view', res_body_length: 1 },
+      { url: '/vessel_view', res_body_length: 1 },
     ],
     user_patchs: [
       {
@@ -282,13 +275,6 @@ let configtime = new Date().toISOString();
         },
         res: {
           obj_name: null
-        }
-      },
-      {
-        url: '/rpc/vessel_fn',
-        payload: null,
-        res: {
-          obj_name: 'vessel'
         }
       },
       {
@@ -433,7 +419,6 @@ let configtime = new Date().toISOString();
             should.exist(res.body.paths['/rpc/update_metadata_userdata_fn']);
             should.exist(res.body.paths['/rpc/settings_fn']);
             should.exist(res.body.paths['/rpc/versions_fn']);
-            should.exist(res.body.paths['/rpc/vessel_fn']);
             should.exist(res.body.paths['/rpc/monitoring_history_fn']);
             should.exist(res.body.paths['/rpc/stats_fn']);
             // Tables
@@ -450,6 +435,7 @@ let configtime = new Date().toISOString();
             should.exist(res.body.paths['/moorage_view']);
             should.exist(res.body.paths['/stay_view']);
             should.exist(res.body.paths['/vessels_view']);
+            should.exist(res.body.paths['/vessel_view']);
             should.exist(res.body.paths['/monitoring_view']);
             should.exist(res.body.paths['/monitoring_live']);
             done(err);
@@ -587,11 +573,11 @@ let configtime = new Date().toISOString();
 
     describe("Get vessel details function, JWT user_role", function () {
       // no metadata from vessel so error - unrecognized configuration parameter "vessel.client_id"
-      it('/rpc/vessel_fn return json', function (done) {
+      it('vessel_view return array', function (done) {
         // Reset agent so we do not save cookies
         request = supertest.agent(test.cname);
         request
-          .get('/rpc/vessel_fn')
+          .get('/vessel_view')
           .set('Authorization', `Bearer ${user_jwt}`)
           .set('Accept', 'application/json')
           .set('Content-Type', 'application/json')
@@ -604,7 +590,7 @@ let configtime = new Date().toISOString();
             res.header['server'].should.match(new RegExp('postgrest', 'g'));
             console.log(res.body);
             should.exist(res.body);
-            res.body.vessel === null; // no metrics yet so vessel is null
+            res.body.length.should.match(0); // no metrics yet so vessel is null
             done(err);
           });
       });

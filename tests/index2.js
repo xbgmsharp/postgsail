@@ -50,8 +50,8 @@ const metrics_simulator = require('./metrics_sample_simulator.json');
         // not processed yet, { url: '/moorages_view', res_body_length: 1},
         { url: '/logs_view', res_body_length: 1},
         { url: '/log_view', res_body_length: 0},  // not processed yet so empty
-        //{ url: '/stats_view', res_body_length: 1},
         { url: '/vessels_view', res_body_length: 1},
+        { url: '/vessel_view', res_body_length: 1},
     ],
     user_patchs: [
       { url: '/logbook?id=eq.4',
@@ -110,16 +110,16 @@ const metrics_simulator = require('./metrics_sample_simulator.json');
           obj_name: null
         }
       },
-      { url: '/rpc/vessel_fn',
-        payload: null,
-        res: {
-          obj_name: 'vessel'
-        }
-      },
       { url: '/rpc/settings_fn',
         payload: null,
         res: {
           obj_name: 'settings'
+        }
+      },
+      { url: '/rpc/profile_fn',
+        payload: null,
+        res: {
+          obj_name: 'profile'
         }
       }
     ],
@@ -218,7 +218,6 @@ request.set('User-Agent', 'PostgSail unit tests');
           should.exist(res.body.paths['/rpc/update_metadata_userdata_fn']);
           should.exist(res.body.paths['/rpc/settings_fn']);
           should.exist(res.body.paths['/rpc/versions_fn']);
-          should.exist(res.body.paths['/rpc/vessel_fn']);
           should.exist(res.body.paths['/rpc/monitoring_history_fn']);
           should.exist(res.body.paths['/rpc/stats_fn']);
           // Tables
@@ -235,6 +234,7 @@ request.set('User-Agent', 'PostgSail unit tests');
           should.exist(res.body.paths['/moorage_view']);
           should.exist(res.body.paths['/stay_view']);
           should.exist(res.body.paths['/vessels_view']);
+          should.exist(res.body.paths['/vessel_view']);
           should.exist(res.body.paths['/monitoring_view']);
           should.exist(res.body.paths['/monitoring_live']);
           done(err);
@@ -366,11 +366,11 @@ request.set('User-Agent', 'PostgSail unit tests');
 
   describe("Get vessel details function, JWT user_role", function(){
 
-      it('/rpc/vessel_fn return json', function(done) {
+      it('/vessel_view return array', function(done) {
           // Reset agent so we do not save cookies
           request = supertest.agent(test.cname);
           request
-            .get('/rpc/vessel_fn')
+            .get('/vessel_view')
             .set('Authorization', `Bearer ${user_jwt}`)
             .set('Accept', 'application/json')
             .set('Content-Type', 'application/json')
@@ -382,8 +382,10 @@ request.set('User-Agent', 'PostgSail unit tests');
               res.header['server'].should.match(new RegExp('postgrest','g'));
               console.log(res.body);
               should.exist(res.body);
-              should.exist(res.body.vessel);
-              should.exist(res.body.vessel.last_contact);
+              res.body.length.should.match(1);
+              should.exist(res.body[0].vessel_id);
+              should.exist(res.body[0].last_contact);
+              should.exist(res.body[0].geojson);
               done(err);
             });
       });

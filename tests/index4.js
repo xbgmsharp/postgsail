@@ -110,9 +110,13 @@ var moment = require("moment");
         res: {},
       },
     ],
-    telegram: { payload: { user_id: 1234567890 } },
+    telegram: {
+        payload: { user_id: 1234567890 },
+        email: { email: "demo+kapla@openplotter.cloud" },
+    },
     telegram_fn: [
-      { url: "/rpc/vessel_fn" },
+      { url: "/vessels_view" },
+      { url: "/vessel_view" },
       { url: "/rpc/vessel_activity_fn" },
       { url: "/monitoring_view" },
       { url: "/monitoring_live" },
@@ -451,9 +455,13 @@ var moment = require("moment");
         res: {},
       },
     ],
-    telegram: { payload: { user_id: 9876543210 } },
+    telegram: {
+      payload: { user_id: 9876543210 },
+      email: { email: "demo+aava@openplotter.cloud" }
+    },
     telegram_fn: [
-      { url: "/rpc/vessel_fn" },
+      { url: "/vessels_view" },
+      { url: "/vessel_view" },
       { url: "/monitoring_view" },
       { url: "/monitoring_live" },
       { url: "/rpc/monitoring_history_fn" },
@@ -921,6 +929,28 @@ var moment = require("moment");
             should.exist(res.body.token);
             bot_jwt = res.body.token;
             console.log(res.body.token);
+            done(err);
+          });
+      });
+    }); // anonymous JWT
+
+    describe("telegram otp session, anonymous", function () {
+      it("/rpc/telegram_otp_fn return bot jwt token", function (done) {
+        // Reset agent so we do not save cookies
+        request = supertest.agent(test.cname);
+        request
+          .post("/rpc/telegram_otp_fn")
+          .send(test.telegram.email)
+          .set("Accept", "application/json")
+          .set("Content-Type", "application/json")
+          .end(function (err, res) {
+            res.status.should.equal(200);
+            should.exist(res.header["content-type"]);
+            should.exist(res.header["server"]);
+            res.header["content-type"].should.match(new RegExp("json", "g"));
+            res.header["server"].should.match(new RegExp("postgrest", "g"));
+            should.exist(res.body.otp_code);
+            console.log(res.body.otp_code);
             done(err);
           });
       });

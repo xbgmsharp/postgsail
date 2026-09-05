@@ -14,11 +14,15 @@ if [[ ! -x "/usr/bin/psql" ]]; then
     apt update && apt -y install postgresql-client
 fi
 
+# Disable cron jobs
+echo "Disable cron jobs"
+psql -c "UPDATE cron.job SET active = False;" || exit 1
+
 # pnpm install
-if [[ ! -x "/usr/local/bin/pnpm" ]]; then
+if [[ ! -x "/usr/local/share/npm-global/bin/pnpm" ]]; then
     npm install -g pnpm
 fi
-pnpm install || exit 1
+#pnpm install --config.confirmModulesPurge=false || exit 1
 
 # settings
 export mymocha="./node_modules/mocha/bin/_mocha"
