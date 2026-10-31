@@ -24,6 +24,9 @@ if [[ ! -x "/usr/local/share/npm-global/bin/pnpm" ]]; then
 fi
 #pnpm install --config.confirmModulesPurge=false || exit 1
 
+# install dependencies
+npm install
+
 # settings
 export mymocha="./node_modules/mocha/bin/_mocha"
 mkdir -p output/ || rm -rf output/*
