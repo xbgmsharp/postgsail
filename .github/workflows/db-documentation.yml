@@ -15,13 +15,20 @@ on:
         - "*"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   build-docs:
     name: mdbook database schema
     runs-on: ubuntu-latest
     steps:
       - name: Check out the source
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set env
         run: cp .env.example .env
@@ -30,9 +37,7 @@ jobs:
         run: docker compose pull db api
 
       - name: Run PostgSail Database
-        # Environment variables
         env:
-          # The hostname used to communicate with the PostgreSQL service container
           PGHOST: localhost
           PGPORT: 5432
           PGDATABASE: signalk
@@ -44,12 +49,19 @@ jobs:
           source .env
           docker compose stop || true
           docker compose rm || true
-          docker compose up -d db && sleep 15
+          docker compose up -d db
+          until docker compose exec -T db pg_isready -U ${PGUSER}; do echo "Waiting for db..."; sleep 5; done
           docker compose up migrate
           docker compose ps -a
 
+      - name: Install tbls
+        run: |
+          TBLS_VERSION=v1.73.1
+          curl -sLo /tmp/tbls.tar.gz "https://github.com/k1LoW/tbls/releases/download/${TBLS_VERSION}/tbls_linux_amd64.tar.gz"
+          sudo tar xzf /tmp/tbls.tar.gz -C /usr/local/bin tbls
+          rm /tmp/tbls.tar.gz
+
       - name: Generate documentation
-        # Environment variables
         env:
           PGSAIL_DB_URI: postgres://username:password@localhost:5432/signalk
         run: |
@@ -57,16 +69,14 @@ jobs:
           go install github.com/KarnerTh/mermerd@v0.13.0
           ~/go/bin/mermerd --runConfig ../mermerdConfig.yaml
           mv postgsail.md src/
-          source <(curl -sL https://raw.githubusercontent.com/k1LoW/tbls/main/use)
           tbls doc --rm-dist -c ../tblsConfig.yml --sort
 
-      - name: Install mdbook & plugins 
+      - name: Install mdbook & plugins
         uses: taiki-e/install-action@v2
         with: { tool: 'mdbook,mdbook-toc,mdbook-tabs,mdbook-mermaid,mdbook-katex,mdbook-alerts,mdbook-linkcheck' }
 
       - name: Install mdbook plugins
         run: mdbook-mermaid install docs
-          #mdbook-excalidraw install docs
 
       - name: Build documentation
         run: mdbook build docs

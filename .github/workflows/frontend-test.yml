@@ -15,12 +15,19 @@ on:
       - "*"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   ci-test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           submodules: 'true'
 
@@ -38,9 +45,7 @@ jobs:
           docker compose -f docker-compose.dev.yml -f docker-compose.yml build web
 
       - name: Run PostgSail Web tests
-        # Environment variables
         env:
-          # The hostname used to communicate with the PostgreSQL service container
           PGHOST: localhost
           PGPORT: 5432
           PGDATABASE: signalk
@@ -51,20 +56,17 @@ jobs:
           source .env
           docker compose stop || true
           docker compose rm || true
-          docker compose up -d db && sleep 15
+          docker compose up -d db
+          until docker compose exec -T db pg_isready -U username; do echo "Waiting for db..."; sleep 3; done
           docker compose up migrate
           docker compose ps -a
           echo "Test PostgSail Web Unit Test"
-          docker compose -f docker-compose.dev.yml -f docker-compose.yml up -d web_dev && sleep 100
+          docker compose -f docker-compose.dev.yml -f docker-compose.yml up -d web_dev
+          timeout 120 bash -c 'until curl -sf http://localhost:8080/; do echo "Waiting for web..."; sleep 5; done'
           docker compose -f docker-compose.dev.yml -f docker-compose.yml logs web_dev
           docker compose ps -a
-          curl http://localhost:8080/
-          #docker compose -f docker-compose.dev.yml -f docker-compose.yml up web_tests --abort-on-container-exit --exit-code-from web_tests
-          if [ $? != 0 ];
-          then
-              echo "Error running frontend-tests"
-              exit 1
-          fi
+          docker compose -f docker-compose.dev.yml -f docker-compose.yml up web_tests --abort-on-container-exit --exit-code-from web_tests
+
       - name: Show the logs
         if: always()
         run: |

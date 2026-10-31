@@ -15,13 +15,20 @@ on:
         - "*"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   schemalint:
     name: lint database schema
     runs-on: ubuntu-latest
     steps:
       - name: Check out the source
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set env
         run: cp .env.example .env
@@ -30,35 +37,38 @@ jobs:
         run: docker compose pull db api
 
       - name: Run PostgSail Database
-        # Environment variables
         env:
-          # The hostname used to communicate with the PostgreSQL service container
           PGHOST: localhost
           PGPORT: 5432
           PGDATABASE: signalk
           PGUSER: username
           PGPASSWORD: password
-          PGSAIL_DB_URI: postgres://username:password@localhost:5432/signalk
+          PGSAIL_DB_URI: postgres://${PGUSER}:${PGPASSWORD}@localhost:5432/${PGDATABASE}
         run: |
           set -eu
           source .env
           docker compose stop || true
           docker compose rm || true
-          docker compose up -d db && sleep 15
+          docker compose up -d db
+          until docker compose exec -T db pg_isready -U ${PGUSER}; do echo "Waiting for db..."; sleep 5; done
           docker compose up migrate
           docker compose ps -a
 
+      - name: Install tbls
+        run: |
+          TBLS_VERSION=v1.73.1
+          curl -sLo /tmp/tbls.tar.gz "https://github.com/k1LoW/tbls/releases/download/${TBLS_VERSION}/tbls_linux_amd64.tar.gz"
+          sudo tar xzf /tmp/tbls.tar.gz -C /usr/local/bin tbls
+          rm /tmp/tbls.tar.gz
+
       - name: Lint database
-        # Environment variables
         env:
           PGSAIL_DB_URI: postgres://username:password@localhost:5432/signalk
         run: |
           npm install -g schemalint || exit 1
           npx schemalint -c schemalintConfig.js
-          source <(curl -sL https://raw.githubusercontent.com/k1LoW/tbls/main/use)
           tbls lint -c tblsConfig.yml
           echo "Test PostgSail lint"
-          #docker compose -f docker-compose.dev.yml -f docker-compose.yml up docs
 
       - name: Show the logs
         if: always()
