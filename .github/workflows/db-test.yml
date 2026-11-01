@@ -5,6 +5,7 @@ on:
     paths:
       - 'initdb/**'
       - 'tests/**'
+      - 'db/**'
     branches:
       - 'main'
   push:
@@ -13,6 +14,7 @@ on:
     paths:
       - 'initdb/**'
       - 'tests/**'
+      - 'db/**'
     tags:
         - "*"
   workflow_dispatch:
