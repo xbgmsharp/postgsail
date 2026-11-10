@@ -64,7 +64,7 @@ Schema      | public
 Description | Enables scalable inserts and complex queries for time-series data (Community Edition)
 -[ RECORD 11 ]-------------------------------------------------------------------------------------
 Name        | timescaledb_toolkit
-Version     | 1.26.0
+Version     | 1.27.0
 Schema      | public
 Description | Library of analytical hyperfunctions, time-series pipelining, and other SQL utilities
 -[ RECORD 12 ]-------------------------------------------------------------------------------------
