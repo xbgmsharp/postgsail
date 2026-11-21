@@ -2,9 +2,7 @@
 
 Connect your AI tools to PostgSail using MCP
 
-<video controls>
-  <source src="https://github.com/user-attachments/assets/162dac63-8f80-4e46-9357-1033b6b6c78b" type="video/mp4">
-</video>
+▶️ [Watch the demo video on GitHub](https://github.com/xbgmsharp/postgsail-mcp-server#readme)
 
 The [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP) is a standard for connecting Large Language Models (LLMs) to platforms like PostgSail.
 
