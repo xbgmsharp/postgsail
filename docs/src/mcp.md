@@ -40,7 +40,7 @@ MCP implementation:
 
 Accessible at https://mcp.openplotter.cloud/
 
-[LeChat](https://chat.mistral.ai/) allow remote [connectors](https://chat.mistral.ai/connections) even with a free account.
+[Vibe](https://chat.mistral.ai/) allow remote [connectors](https://chat.mistral.ai/connections) even with a free account.
 
 Others AI [ClaudeAI](https://claude.ai) and [OpenAI](https://chatgpt.com/) requires an upgrade plan to use remote connectors.
 
