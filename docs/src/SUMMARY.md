@@ -1,10 +1,37 @@
 # Summary
 
-- [Introduction](introduction.md)
+[Introduction](introduction.md)
+
+# User Guide
+
+- [Getting started](user/getting-started.md)
+- [SignalK plugin](plugin.md)
+- [Your boat](user/boat.md)
+- [How it works: logs, stays & moorages](user/how-it-works.md)
+- [Logbook](user/logbook.md)
+- [Stays & moorages](user/stays-moorages.md)
+- [Monitoring & energy](user/monitoring.md)
+- [Timelapse](user/timelapse.md)
+- [Statistics](user/stats.md)
+- [Badges](user/badges.md)
+- [Notifications & Telegram bot](user/notifications.md)
+- [Friends](user/friends.md)
+- [Windy weather station](user/windy.md)
+- [NoForeignland](user/noforeignland.md)
+- [AI assistant (MCP)](mcp.md)
+- [Grafana dashboards](user/grafana.md)
+- [Profile, sharing & privacy](user/settings.md)
+- [Troubleshooting](user/troubleshooting.md)
+- [FAQ](user/faq.md)
+
+# Self-hosting
+
 - [Deployment](deployment.md)
 - [Setup & Deployment](setup.md)
 - [Environment Variables](env-vars.md)
-- [Signalk Plugin](plugin.md)
+  - [Email (SMTP)](smtp.md)
+  - [Telegram](telegram.md)
+  - [Pushover](pushover.md)
 - [Hosting Environment–specific Guides](run-hosting-environment.md)
   - [Linux Server](run-with-docker.md)
   - [Docker Compose](run-with-docker-compose.md)
@@ -18,7 +45,6 @@
   - [PostgSail](upgrade-pgsail.md)
   - [PostgreSQL](upgrade-pg.md)
 - [Troubleshooting](troubleshooting.md)
-- [Model context protocol (MCP)](mcp.md)
 
 # Reference guide
 
@@ -65,6 +91,8 @@
   - [public.mid](db/public.mid.md)
   - [public.process_queue](db/public.process_queue.md)
 
------------
+---
+
 - [Development](development.md)
   - [Getting involved](getting-involved.md)
+  - [Contributing](contributing.md)
